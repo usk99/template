@@ -1,0 +1,32 @@
+
+リスト	li = [0, "zero"]	別の型でもok
+		li[0]				:最初の項目
+		li[-1]				:最後の項目
+		li[n:m]				:n番目(index)からm個
+		min(li)				:最小値
+		max(li)				:最大値
+		sum(li)				:合計
+		len(li)				:要素数
+		li.append(m)		:m(1要素)を末尾追加
+		li.extend(m)		:m(複数要素)を末尾追加
+		li.insert(n,m)		:n番目(index)にmを追加
+		li.remove(m)		:mに一致する最初の要素を削除
+		del li[n]			:n番目(index)を削除
+		li.index(m)			:mに一致するindex
+		li.pop(n)			:n番目を削除,戻り値に,引数無なら末尾
+		li.count(m)			:mに一致する要素数
+		li.sort()			:liを並べ替えて上書き
+		li.sorted()			:liを並べ替えて返す
+		li.reverse()		:liを逆順で上書き
+		li[::-1]			:liの逆順を返す
+		li.copy()			:liを複製,ただの代入なら同じインスタンス扱い
+		
+
+		for l in li
+			print(li)	:各要素を直接出力
+
+		list(li.fromkeys(li))	:重複削除
+
+
+辞書	di = {"key":value,"key":value}
+		di[n]		:keyがnのvalue

@@ -1,0 +1,25 @@
+{
+    "name": "x",
+    "private": true,
+    "scripts": {
+        "submit_cpp": "acc submit Main.cpp -- -l 5028 -w 0 -y",
+        "submit_cs": "mcs Main.cs && acc submit Main.cs -- -l 5003 -w 0 -y",
+        "submit_java": "acc submit Main.java -- -l 5005 -w 0 -y",
+        "submit_py": "acc submit Main.py -- -l 5078 -w 0 -y",
+        "submit_rs": "acc submit rust/src/main.rs -- -l 5054 -w 0 -y",
+        "test_cpp": "g++ -std=c++20 Main.cpp && oj t -c \"./a.out\"",
+        "test_cs": "mcs Main.cs && oj t -c \"dotnet run Main.cs\"",
+        "test_java": "oj t -c \"java Main.java\"",
+        "test_py": "oj t -c \"python3 Main.py\"",
+        "test_rs": "cd rust && cargo build && oj t -c \"target/debug/rust\" -d ../test && cd ../",
+        "exe_cpp": "g++ -std=c++20 Main.cpp && ./a.out",
+        "exe_cs": "mcs Main.cs && ./Main.exe",
+        "exe_java": "javac Main.java && java Main",
+        "exe_py": "/bin/python3.12 Main.py",
+        "exe_rs": "cd rust && cargo run && cd ../",
+        "test_ready": "oj-prepare $(acc task -u); oj-template -t generate.py $(acc task -u)",
+        "test_create": "oj g/i ./generate.py",
+        "test_clear": "find -name \"random-0[^0]*.in\" -type f | xargs rm -rf",
+        "test_clear_all": "find -name \"random*.in\" -type f | xargs rm -rf"
+    }
+}

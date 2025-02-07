@@ -1,0 +1,19 @@
+{
+    "contest": {
+        "static": [".gitignore"]
+    },
+    "task": {
+        "program": [
+            "Main.cpp",
+            "Main.cs",
+            "Main.java",
+            "Main.py",
+            "x.csproj",
+            "package.json",
+            "memo",
+            ".vscode",
+            "rust"
+        ],
+        "submit": "Program.cs"
+    }
+}

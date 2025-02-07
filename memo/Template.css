@@ -1,0 +1,60 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: rgba(135, 207, 235, 0.646);
+    font-family: monospace, "MS ゴシック";
+    font-size: 100%;
+    min-height: 100vh;
+    min-width: 1600px;
+}
+
+div {
+    margin: auto;
+}
+
+html {
+    overflow-y: scroll;
+}
+
+h1 {
+    padding-top: 50px;
+    text-align: center;
+}
+
+h2 {
+    padding-top: 1em;
+}
+
+p,
+li,
+dt,
+dl {
+    line-height: 1.6;
+}
+
+table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+}
+
+th {
+    text-align: center;
+}
+
+td {
+    vertical-align: top;
+}
+
+section {
+    margin: auto;
+    width: 95%;
+}
+
+p {
+    text-align: left;
+    margin: 0 0 0 1em;
+}
