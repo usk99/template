@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_imports)]
 #![allow(unused_macros)]
+
 fn solve() {
     let a = InputNum();
     let b = InputNums(a);
