@@ -70,6 +70,8 @@ mod module_of_output{
     pub fn Output(o:impl Output){o.output();}
 }
 
+use std::cmp::*;
+
 use crate::module_of_extension::*;
 use crate::module_of_input::*;
 use crate::module_of_output::*;
