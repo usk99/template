@@ -42,6 +42,9 @@ namespace Extensions {
     using namespace std;
     struct string : std::string {
             using std::string::string;
+            string() : std::string() {}
+            string(const char *str) : std::string(str) {}
+            string(const std::string str) : std::string(str) {}
             string TrimEnd() {
                 string &target = *this;
                 while (this->back() == ' ') {
@@ -286,7 +289,6 @@ namespace IO {
 } // namespace IO
 
 void Solve() {
-    using namespace Extensions;
     using namespace IO;
     using Extensions::string, Extensions::vector;
 
