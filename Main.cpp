@@ -42,12 +42,26 @@ namespace Extensions {
     using namespace std;
     struct string : std::string {
             using std::string::string;
-            string Trim() {
+            string TrimEnd() {
                 string &target = *this;
                 while (this->back() == ' ') {
                     this->pop_back();
                 }
                 return target;
+            }
+            string TrimStart() {
+                string &target = *this;
+                while (this->front() == ' ') {
+                    this->erase(this->begin());
+                }
+                return target;
+            }
+            string Trim() {
+                string &target = *this;
+                while (this->back() == ' ') {
+                    this->pop_back();
+                }
+                return this->TrimStart();
             }
 
             auto Replace(const string &oldValue, const string &newValue) {
@@ -92,8 +106,8 @@ namespace Extensions {
 } // namespace Extensions
 // いろいろ
 namespace Contest {
-    namespace std = Extensions;
-    using std::pair, std::set, std::map, std::string, std::vector;
+    using namespace Extensions;
+    using std::pair, std::set, std::map, Extensions::string, Extensions::vector;
     // clang-format off
 	using ll   = long long;
 	using pii  = pair<int, int>;   using pll  = pair<ll, ll>;     using pss = pair<string, string>;
@@ -167,7 +181,7 @@ namespace Contest {
 // 入出力
 namespace IO {
     using namespace Contest;
-    namespace std = Extensions;
+    using Extensions::vector, Extensions::string;
     class Scanner {
         private:
             int            _int;
@@ -272,8 +286,9 @@ namespace IO {
 } // namespace IO
 
 void Solve() {
-    namespace std = Extensions;
+    using namespace Extensions;
     using namespace IO;
+    using Extensions::string, Extensions::vector;
 
     auto A = InputNum();
     auto B = InputNums(2);
