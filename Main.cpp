@@ -39,19 +39,44 @@ namespace Define {
 } // namespace Define
 // 拡張メソッド的なもの
 namespace Extensions {
+    using namespace std;
+    struct string : std::string {
+            using std::string::string;
+            string Trim() {
+                string &target = *this;
+                while (this->back() == ' ') {
+                    this->pop_back();
+                }
+                return target;
+            }
+
+            auto Replace(const string &oldValue, const string &newValue) {
+                string &target = *this;
+                if (oldValue == "")
+                    return target;
+                size_t pos    = 0;
+                size_t offset = 0;
+                size_t len    = oldValue.length();
+                while ((pos = this->find(oldValue, offset)) != std::string::npos) {
+                    this->replace(pos, len, newValue);
+                    offset = pos + newValue.length();
+                }
+                return target;
+            }
+    };
 
     template<typename T, typename A = std::allocator<T>>
     class vector : public std::vector<T, A> {
             using std::vector<T, A>::vector;
 
         public:
-            std::string Join(std::string sep = "") {
+            string Join(string sep = "") {
                 std::ostringstream oss;
                 if (!this->empty()) {
                     oss << this->at(0);
                     rep(i, 1, this->size()) oss << sep << this->at(i);
                 }
-                return oss.str();
+                return string(oss.str().c_str());
             }
     };
 
@@ -64,12 +89,11 @@ namespace Extensions {
     constexpr bool is_vector = is_vec<T>::value;
     template<typename T>
     constexpr bool is_num = std::is_integral_v<T> || std::is_floating_point_v<T>;
-
 } // namespace Extensions
 // いろいろ
 namespace Contest {
-    using std::pair, std::string, std::set, std::map;
-    using namespace Extensions;
+    namespace std = Extensions;
+    using std::pair, std::set, std::map, std::string, std::vector;
     // clang-format off
 	using ll   = long long;
 	using pii  = pair<int, int>;   using pll  = pair<ll, ll>;     using pss = pair<string, string>;
@@ -143,6 +167,7 @@ namespace Contest {
 // 入出力
 namespace IO {
     using namespace Contest;
+    namespace std = Extensions;
     class Scanner {
         private:
             int            _int;
@@ -168,7 +193,8 @@ namespace IO {
                 if (_int < (int)_str.size()) {
                     vector<string> vec(_str.size() - _int);
                     std::copy(_str.begin() + _int, _str.end(), vec.begin());
-                    auto s = " " + vec.Join(" ");
+                    string s = " ";
+                    s += vec.Join(" ");
                     _str.clear();
                     return s;
                 }
@@ -246,7 +272,7 @@ namespace IO {
 } // namespace IO
 
 void Solve() {
-    using namespace std;
+    namespace std = Extensions;
     using namespace IO;
 
     auto A = InputNum();
