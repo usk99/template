@@ -1,4 +1,36 @@
-#include <bits/stdc++.h>
+#if !__INCLUDE_LEVEL__
+#  include __FILE__
+void Solve() {
+    using namespace IO;
+    using Extensions::string, Extensions::vector;
+
+    auto A = InputNum();
+    auto B = InputNums(2);
+    auto C = InputsNums(3, 2);
+    auto D = InputString();
+    auto E = InputStringLine();
+    auto F = InputStrings(2);
+    auto G = InputStringLines(2);
+    auto H = InputsStrings(3, 2);
+
+    Output(A);
+    Output(B);
+    Output(C);
+    Output(D);
+    Output(E);
+    Output(F);
+    Output(G);
+    Output(H);
+
+    return;
+}
+
+int main() {
+    Solve();
+    return 0;
+}
+#else
+#  include <bits/stdc++.h>
 // #if __has_include(<atcoder/all>)
 // #  include <atcoder/all>
 // #endif
@@ -7,35 +39,35 @@
 // 定義系
 namespace Define {
 // 引数に応じて呼び出しを変える,for文
-#define rep_overload(e1, e2, e3, e4, NAME, ...)  NAME
-#define REP_OVERLOAD(e1, e2, e3, e4, NAME, ...)  NAME
-#define rrep_overload(e1, e2, e3, e4, NAME, ...) NAME
-#define RREP_OVERLOAD(e1, e2, e3, e4, NAME, ...) NAME
+#  define rep_overload(e1, e2, e3, e4, NAME, ...)  NAME
+#  define REP_OVERLOAD(e1, e2, e3, e4, NAME, ...)  NAME
+#  define rrep_overload(e1, e2, e3, e4, NAME, ...) NAME
+#  define RREP_OVERLOAD(e1, e2, e3, e4, NAME, ...) NAME
 // for文
-#define rep1(i, lim)          for (int i = (int)0; i < (int)lim; i++)
-#define rep2(i, x, lim)       for (int i = (int)x; i < (int)lim; i++)
-#define rep3(i, x, lim, gap)  for (int i = (int)x; i < (int)lim; i += gap)
-#define rep(i, ...)           rep_overload(i, __VA_ARGS__, rep3, rep2, rep1)(i, __VA_ARGS__)
-#define REP1(i, lim)          for (int i = (int)0; i <= (int)lim; i++)
-#define REP2(i, x, lim)       for (int i = (int)x; i <= (int)lim; i++)
-#define REP3(i, x, lim, gap)  for (int i = (int)x; i <= (int)lim; i += (int)gap)
-#define REP(i, ...)           REP_OVERLOAD(i, __VA_ARGS__, REP3, REP2, REP1)(i, __VA_ARGS__)
-#define rrep1(i, x)           for (int i = (int)x; i > 0; i--)
-#define rrep2(i, x, lim)      for (int i = (int)x; i > (int)lim; i--)
-#define rrep3(i, x, lim, gap) for (int i = (int)x; i > (int)lim; i -= gap)
-#define rrep(i, ...)          rrep_overload(i, __VA_ARGS__, rrep3, rrep2, rrep1)(i, __VA_ARGS__)
-#define RREP1(i, x)           for (int i = (int)x; i >= 0; i--)
-#define RREP2(i, x, lim)      for (int i = (int)x; i >= (int)lim; i--)
-#define RREP3(i, x, lim, gap) for (int i = (int)x; i >= (int)lim; i -= (int)gap)
-#define RREP(i, ...)          RREP_OVERLOAD(i, __VA_ARGS__, RREP3, RREP2, RREP1)(i, __VA_ARGS__)
+#  define rep1(i, lim)                             for (int i = (int)0; i < (int)lim; i++)
+#  define rep2(i, x, lim)                          for (int i = (int)x; i < (int)lim; i++)
+#  define rep3(i, x, lim, gap)                     for (int i = (int)x; i < (int)lim; i += gap)
+#  define rep(i, ...)                              rep_overload(i, __VA_ARGS__, rep3, rep2, rep1)(i, __VA_ARGS__)
+#  define REP1(i, lim)                             for (int i = (int)0; i <= (int)lim; i++)
+#  define REP2(i, x, lim)                          for (int i = (int)x; i <= (int)lim; i++)
+#  define REP3(i, x, lim, gap)                     for (int i = (int)x; i <= (int)lim; i += (int)gap)
+#  define REP(i, ...)                              REP_OVERLOAD(i, __VA_ARGS__, REP3, REP2, REP1)(i, __VA_ARGS__)
+#  define rrep1(i, x)                              for (int i = (int)x; i > 0; i--)
+#  define rrep2(i, x, lim)                         for (int i = (int)x; i > (int)lim; i--)
+#  define rrep3(i, x, lim, gap)                    for (int i = (int)x; i > (int)lim; i -= gap)
+#  define rrep(i, ...)                             rrep_overload(i, __VA_ARGS__, rrep3, rrep2, rrep1)(i, __VA_ARGS__)
+#  define RREP1(i, x)                              for (int i = (int)x; i >= 0; i--)
+#  define RREP2(i, x, lim)                         for (int i = (int)x; i >= (int)lim; i--)
+#  define RREP3(i, x, lim, gap)                    for (int i = (int)x; i >= (int)lim; i -= (int)gap)
+#  define RREP(i, ...)                             RREP_OVERLOAD(i, __VA_ARGS__, RREP3, RREP2, RREP1)(i, __VA_ARGS__)
 
-#define all(x)  x.begin(), x.end()
-#define rall(x) x.rbegin(), x.rend()
-#define el      "\n"
-#define spa     " "
+#  define all(x)  x.begin(), x.end()
+#  define rall(x) x.rbegin(), x.rend()
+#  define el      "\n"
+#  define spa     " "
 
-#define eps          (1e-10)
-#define Equals(a, b) (fabs((a) - (b)) < eps)
+#  define eps          (1e-10)
+#  define Equals(a, b) (fabs((a) - (b)) < eps)
 } // namespace Define
 // 拡張メソッド的なもの
 namespace Extensions {
@@ -287,33 +319,4 @@ namespace IO {
     void Output(vl n, string sep = " ") { Output(n.Join(sep)); }
     void Output(vvl n, string sep = " ", string end = el) { rep(i, n.size()) Output(n[i].Join(sep), end); }
 } // namespace IO
-
-void Solve() {
-    using namespace IO;
-    using Extensions::string, Extensions::vector;
-
-    auto A = InputNum();
-    auto B = InputNums(2);
-    auto C = InputsNums(3, 2);
-    auto D = InputString();
-    auto E = InputStringLine();
-    auto F = InputStrings(2);
-    auto G = InputStringLines(2);
-    auto H = InputsStrings(3, 2);
-
-    Output(A);
-    Output(B);
-    Output(C);
-    Output(D);
-    Output(E);
-    Output(F);
-    Output(G);
-    Output(H);
-
-    return;
-}
-
-int main() {
-    Solve();
-    return 0;
-}
+#endif

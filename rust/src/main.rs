@@ -49,12 +49,12 @@ mod module_of_input{
         }
     }
 
-    pub fn InputNum     ()                ->        isize   {get_word().parse().unwrap()}
-    pub fn InputNums    (n: isize)        ->    Vec<isize>  {let mut v=Vec::    <isize>  ::new();for _ in 0..n{v.push(InputNum());}v}
-    pub fn InputsNums   (h: isize,w:isize)->Vec<Vec<isize>> {let mut v=Vec::<Vec<isize>> ::new();for _ in 0..h{v.push(InputNums(w));}v}
+    pub fn InputNum     ()                ->        usize   {get_word().parse().unwrap()}
+    pub fn InputNums    (n: usize)        ->    Vec<usize>  {let mut v=Vec::    <usize>  ::new();for _ in 0..n{v.push(InputNum());}v}
+    pub fn InputsNums   (h: usize,w:usize)->Vec<Vec<usize>> {let mut v=Vec::<Vec<usize>> ::new();for _ in 0..h{v.push(InputNums(w));}v}
     pub fn InputString  ()                ->        String  {get_word()}
-    pub fn InputStrings (n: isize)        ->    Vec<String> {let mut v=Vec::    <String> ::new();for _ in 0..n{v.push(InputString());}v}
-    pub fn InputsStrings(h: isize,w:isize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
+    pub fn InputStrings (n: usize)        ->    Vec<String> {let mut v=Vec::    <String> ::new();for _ in 0..n{v.push(InputString());}v}
+    pub fn InputsStrings(h: usize,w:usize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
 }
 // 出力
 #[rustfmt::skip]
@@ -71,6 +71,7 @@ mod module_of_output{
 }
 
 use std::cmp::*;
+use std::collections::HashSet;
 
 use crate::module_of_extension::*;
 use crate::module_of_input::*;

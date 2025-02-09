@@ -86,9 +86,9 @@ def InputsStrings(h: int, w: int): return [InputStrings(w) for _ in range(h)]
 
 
 # 標準出力
-@ singledispatch
+@singledispatch
 def Output(*arg, s: str = " ", e: str = "\n"): print(*arg, sep=s, end=e)
-@ Output.register(bool)
+@Output.register(bool)
 def _(arg): print("Yes" if arg else "No")
 @Output.register(list)
 def _(arg, s: str = " "): print(s.join(map(str, arg)))

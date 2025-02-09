@@ -91,11 +91,29 @@ public class Main {
         stringBuilder.append(t.toString() + el);
     }
 
+    static <T> void Output(T[] ts) {
+        if (ts.length != 0) {
+            stringBuilder.append(ts[0]);
+            for (var i = 1; i < ts.length; i++)
+                stringBuilder.append(" " + ts[i]);
+            stringBuilder.append(el);
+        }
+    }
+
     static <T> void Output(T[] ts, String sep) {
         if (ts.length != 0) {
             stringBuilder.append(ts[0]);
             for (var i = 1; i < ts.length; i++)
                 stringBuilder.append(sep + ts[i]);
+            stringBuilder.append(el);
+        }
+    }
+
+    static <T> void Output(ArrayList<T> ts) {
+        if (!ts.isEmpty()) {
+            stringBuilder.append(ts.get(0));
+            for (var i = 1; i < ts.size(); i++)
+                stringBuilder.append(" " + ts.get(i));
             stringBuilder.append(el);
         }
     }
@@ -113,6 +131,14 @@ public class Main {
     // #region 変換
     static int ToInt(long n) {
         return (int) n;
+    }
+
+    static int ToInt(String s) {
+        return Integer.parseInt(s);
+    }
+
+    static String ToString(long n) {
+        return String.valueOf(n);
     }
     // #endregion
 }
