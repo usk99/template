@@ -398,11 +398,11 @@ namespace Contest
         /// </summary>
         /// <param name="isEuclidean">true:直線距離,false:縦横距離</param>
         #region GetDistance
-        public static decimal GetDistance<T>(this (T, T) point1, (T, T) point2, bool isEuclidean = true)
+        public static double GetDistance<T>(this (T, T) point1, (T, T) point2, bool isEuclidean = true)
         {
-            var X = Abs(point1.Item1.ToDecimal() - point2.Item1.ToDecimal());
-            var Y = Abs(point1.Item2.ToDecimal() - point2.Item2.ToDecimal());
-            return isEuclidean ? Sqrt((X * X + Y * Y).ToDouble()).ToDecimal() : X + Y;
+            var X = Abs(point1.Item1.ToDouble() - point2.Item1.ToDouble());
+            var Y = Abs(point1.Item2.ToDouble() - point2.Item2.ToDouble());
+            return isEuclidean ? Sqrt(X * X + Y * Y) : X + Y;
         }
         #endregion
 
