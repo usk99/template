@@ -142,4 +142,11 @@ public class Main {
         return String.valueOf(n);
     }
     // #endregion
+
+    // #region いろいろ
+    final Integer[] DY = { 0, 1, 0, -1 };
+    final Integer[] DX = { 1, 0, -1, 0 }; // (右,下,左,上)
+    final String ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    final String abc = "abcdefghijklmnopqrstuvwxyz";
+    // #endregion
 }

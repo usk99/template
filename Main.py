@@ -25,6 +25,11 @@ from functools import singledispatch
 # import array, bisect, collections, copy, heapq, itertools, math, numpy, string
 # from typing import overload
 
+DY = [0, 1, 0, -1]
+DX = [1, 0, -1, 0]  # (右,下,左,上）
+ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+abc = "abcdefghijklmnopqrstuvwxyz"
+
 
 class Scanner:
     _int: int = 0

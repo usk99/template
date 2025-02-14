@@ -158,8 +158,8 @@ namespace Contest {
     // clang-format on
 
     const double PI    = acos(-1);
-    const int    DX[4] = { 1, 0, -1, 0 }; // （下，右，上，左）
     const int    DY[4] = { 0, 1, 0, -1 };
+    const int    DX[4] = { 1, 0, -1, 0 }; // (右,下,左,上)
     const int    INF   = 1001001001;
     const ll     INFL  = 4004004003094073385LL; // (int)INFL = INF, (int)(-INFL) = -INF;
     const string ABC   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

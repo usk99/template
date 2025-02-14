@@ -70,9 +70,20 @@ mod module_of_output{
     pub fn Output(o:impl Output){o.output();}
 }
 
+// いろいろ
+#[rustfmt::skip]
+#[allow(non_upper_case_globals)]
+mod module_of_convenience {
+    pub const DY: [isize; 4] = [0, 1, 0, -1];
+    pub const DX: [isize; 4] = [1, 0, -1, 0]; // （右,下,左,上）
+    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+}
+
 use std::cmp::*;
 use std::collections::HashSet;
 
+use crate::module_of_convenience::*;
 use crate::module_of_extension::*;
 use crate::module_of_input::*;
 use crate::module_of_output::*;
