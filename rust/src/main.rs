@@ -25,8 +25,8 @@ fn main() {
 mod module_of_type {
     pub trait Numeric   {}
     impl Numeric for f32{}impl Numeric for f64{}
-    impl Numeric for i8 {}impl Numeric for i16{}impl Numeric for i32{}impl Numeric for i64{}impl Numeric for isize{}
-    impl Numeric for u8 {}impl Numeric for u16{}impl Numeric for u32{}impl Numeric for u64{}impl Numeric for usize{}
+    impl Numeric for i8 {}impl Numeric for i16{}impl Numeric for i32{}impl Numeric for i64{}impl Numeric for i128{}impl Numeric for isize{}
+    impl Numeric for u8 {}impl Numeric for u16{}impl Numeric for u32{}impl Numeric for u64{}impl Numeric for u128{}impl Numeric for usize{}
 }
 // 拡張
 #[rustfmt::skip]
@@ -69,21 +69,59 @@ mod module_of_output{
     impl<T:Display>        Output for Vec<T>{fn output(self){println!("{}",self.iter().join(" "));}}
     pub fn Output(o:impl Output){o.output();}
 }
+// タイマー
+#[rustfmt::skip]
+mod module_of_timer {
+    pub struct Timer {
+        instant: std::time::Instant,
+        timelimit: u128, // 制限時間(ms)
+    }
+    impl Timer {
+        // 計測開始
+        pub fn new(timelimit: u128) -> Self {Self {instant: std::time::Instant::now(),timelimit,}}
+        // 時間取得
+        pub fn getTime(&self) -> u128 {self.instant.elapsed().as_millis()} 
+        // 時間確認
+        pub fn isTimeout(&self) -> bool {self.getTime() >= self.timelimit}
+        // 再起動
+        pub fn reset(&mut self) {self.instant = std::time::Instant::now()}
+        // 制限時間セット
+        pub fn setTimelimit(&mut self, timelimit: u128) {self.timelimit = timelimit;}
+    }
+}
 
 // いろいろ
 #[rustfmt::skip]
 #[allow(non_upper_case_globals)]
 mod module_of_convenience {
-    pub const DY: [isize; 4] = [0, 1, 0, -1];
-    pub const DX: [isize; 4] = [1, 0, -1, 0]; // （右,下,左,上）
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+    pub const  IDY4: [i8;  4] = [0,  1,  0, -1];
+    pub const  IDX4: [i8;  4] = [1,  0, -1,  0];
+    pub const  UDY4: [u8;  4] = [0,  1,  0, !0];
+    pub const  UDX4: [u8;  4] = [1,  0, !0,  0];   // (右,下,左,上)
+    pub const IDY12: [i8; 12] = [0,  1,  0, -1,  1, -1, -1,  1,  2,  0, -2,  0];
+    pub const IDX12: [i8; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
+    pub const UDY12: [u8; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
+    pub const UDX12: [u8; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];   // (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
 }
 
-use std::cmp::*;
-use std::collections::HashSet;
+use ac_library::math;
+use core::time;
+use itertools::Itertools;
+use num::Integer;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
+use std::fmt::{format, Binary};
+use std::fs::File;
+use std::io::Write;
+use std::num::Wrapping;
+use std::ops::Index;
+use std::{cmp::*, vec};
+use std::{env, result};
+use std::{string, usize};
 
 use crate::module_of_convenience::*;
 use crate::module_of_extension::*;
 use crate::module_of_input::*;
 use crate::module_of_output::*;
+use crate::module_of_timer::*;

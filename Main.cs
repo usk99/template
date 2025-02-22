@@ -86,10 +86,10 @@ namespace Contest
     #region いろいろ
     public static class Methods
     {
-        static readonly int[] DY = [0, 1, 0, -1];
-        static readonly int[] DX = [1, 0, -1, 0];   // (右,下,左,上)
-        const string ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const string abc = "abcdefghijklmnopqrstuvwxyz";
+        public static IReadOnlyList<int> DY = new int[] { 0, 1, 0, -1 };
+        public static IReadOnlyList<int> DX = new int[] { 1, 0, -1, 0 };   // (右,下,左,上)
+        public const string ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        public const string abc = "abcdefghijklmnopqrstuvwxyz";
 
         /// <summary>
         /// 型変換
