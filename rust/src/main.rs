@@ -10,7 +10,10 @@ fn solve(timer: Timer) {
     let c = InputsNums(b[0], b[1]);
 
     Output(a);
-    Outpu
+    Output(b);
+    for cc in c {
+        Output(cc);
+    }
 }
 fn main() {
     let timer = Timer::new(0); // 実行時間制限
