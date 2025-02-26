@@ -2,22 +2,19 @@
 #![allow(non_snake_case)]
 #![allow(unused_imports)]
 #![allow(unused_macros)]
+#![deny(arithmetic_overflow)]
 
-fn solve() {
+fn solve(timer: Timer) {
     let a = InputNum();
     let b = InputNums(a);
     let c = InputsNums(b[0], b[1]);
 
     Output(a);
-    Output(b);
-    for i in c {
-        Output(i);
-    }
-
-    return;
+    Outpu
 }
 fn main() {
-    solve();
+    let timer = Timer::new(0); // 実行時間制限
+    solve(timer);
 }
 
 // 型
@@ -45,7 +42,7 @@ mod module_of_input{
             loop{let res=stdin.read(&mut u8b).unwrap_or(0);
                 if res==0||u8b[0]<=b' '{break;}// 空白等で終了
                 else{buf.push(u8b[0]);}// 返却文字列追加
-            }if buf.len()>=1{return String::from_utf8(buf).unwrap();}// utf8をStringでreturn
+            }if !buf.is_empty(){return String::from_utf8(buf).unwrap();}// utf8をStringでreturn
         }
     }
 
@@ -96,29 +93,32 @@ mod module_of_timer {
 mod module_of_convenience {
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
-    pub const  IDY4: [i8;  4] = [0,  1,  0, -1];
-    pub const  IDX4: [i8;  4] = [1,  0, -1,  0];
-    pub const  UDY4: [u8;  4] = [0,  1,  0, !0];
-    pub const  UDX4: [u8;  4] = [1,  0, !0,  0];   // (右,下,左,上)
-    pub const IDY12: [i8; 12] = [0,  1,  0, -1,  1, -1, -1,  1,  2,  0, -2,  0];
-    pub const IDX12: [i8; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
-    pub const UDY12: [u8; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
-    pub const UDX12: [u8; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];   // (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
+    pub const  IDY4: [isize;  4] = [0,  1,  0, -1];
+    pub const  IDX4: [isize;  4] = [1,  0, -1,  0];
+    pub const  UDY4: [usize;  4] = [0,  1,  0, !0];
+    pub const  UDX4: [usize;  4] = [1,  0, !0,  0];   // (右,下,左,上)
+    pub const IDY12: [isize; 12] = [0,  1,  0, -1,  1, -1, -1,  1,  2,  0, -2,  0];
+    pub const IDX12: [isize; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
+    pub const UDY12: [usize; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
+    pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];   // (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
 }
 
 use ac_library::math;
 use core::time;
 use itertools::Itertools;
-use num::Integer;
+use maplit::hashset;
+use num::traits::ops::saturating;
+use num::{range, Integer};
+use num_integer::Roots;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
 use std::fmt::{format, Binary};
 use std::fs::File;
 use std::io::Write;
 use std::num::Wrapping;
 use std::ops::Index;
+use std::string;
 use std::{cmp::*, vec};
 use std::{env, result};
-use std::{string, usize};
 
 use crate::module_of_convenience::*;
 use crate::module_of_extension::*;
