@@ -22,6 +22,7 @@ def main():
 # いろいろ-------------------------------------------------------------
 import sys, typing
 from functools import singledispatch
+from collections import deque
 # import array, bisect, collections, copy, heapq, itertools, math, numpy, string
 # from typing import overload
 
