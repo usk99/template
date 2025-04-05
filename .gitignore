@@ -1,4 +1,8 @@
+/bin
+/obj
+/rust/target
+/tools
 /*/bin
 /*/obj
-/rust/target
+/*/rust/target
 /*/tools
