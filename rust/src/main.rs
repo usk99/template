@@ -89,7 +89,68 @@ mod module_of_timer {
         pub fn setTimelimit(&mut self, timelimit: u128) {self.timelimit = timelimit;}
     }
 }
+// unionfind
+#[rustfmt::skip]
+mod module_of_unionfind {
+    pub struct UnionFind {
+        parent: Vec<i64>,
+        size: Vec<u64>,
+    }
 
+    impl UnionFind {
+        pub fn new(n: usize) -> Self {
+            Self {
+                parent: vec![-1; n],
+                size: vec![1; n],
+            }
+        }
+
+        // 根を求める
+        pub fn root(&mut self, x: usize) -> usize {
+            if self.parent[x] == -1 {
+                // 初期値なら x を返す
+                x 
+            }
+            else {  
+                // 再帰的に根をたどる
+                self.parent[x] = self.root(self.parent[x] as usize) as i64;
+                self.parent[x] as usize 
+            }
+        }
+
+        // x と y が同じグループに属するかどうか (根が一致するかどうか)
+        pub fn isSame(&mut self, x: usize, y: usize) -> bool { self.root(x) == self.root(y) }
+
+        // x を含むグループと y を含むグループとを併合する
+        pub fn unite(&mut self, x: usize, y: usize) -> bool {
+            // x, y をそれぞれ根まで移動する
+            let mut x = self.root(x);
+            let mut y = self.root(y);
+
+            // すでに同じグループのときは何もしない
+            if x == y {
+                return false;
+            }
+
+            // union by size (y 側のサイズが小さくなるようにする)
+            if self.size[x] < self.size[y] {
+                // swap(x, y);
+                std::mem::swap(&mut y, &mut x);
+            }
+
+            // y を x の子とする
+            self.parent[y] = x as i64;
+            self.size[x] += self.size[y];
+            true
+        }
+
+        // x を含むグループのサイズ
+        pub fn size(&mut self, x: usize) -> u64 {
+            let r = self.root(x);
+            self.size[r]
+        }
+    }
+}
 // いろいろ
 #[rustfmt::skip]
 #[allow(non_upper_case_globals)]
@@ -128,3 +189,4 @@ use crate::module_of_extension::*;
 use crate::module_of_input::*;
 use crate::module_of_output::*;
 use crate::module_of_timer::*;
+use crate::module_of_unionfind::*;

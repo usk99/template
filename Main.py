@@ -78,6 +78,44 @@ class Scanner:
         return float(self.Next(self))
 
 
+# UnionFind
+class UnionFind():
+    # 初期化
+    def __init__(self, n):
+        self.parent = [-1] * n
+        self.siz = [1] * n
+
+    # 根を求める
+    def root(self, x):
+        if self.parent[x] == -1:
+            return x  # x が根の場合は x を返す
+        else:
+            self.parent[x] = self.root(self.parent[x])  # 経路圧縮
+            return self.parent[x]
+
+    # x と y が同じグループに属するか (根が一致するか)
+    def isSame(self, x, y):
+        return self.root(x) == self.root(y)
+
+    # x を含むグループと y を含むグループを併合する
+    def unite(self, x, y):
+        # x 側と y 側の根を取得する
+        rx = self.root(x)
+        ry = self.root(y)
+        if rx == ry:
+            return False  # すでに同じグループのときは何もしない
+        # union by size
+        if self.siz[rx] < self.siz[ry]:  # ry 側の rank が小さくなるようにする
+            rx, ry = ry, rx
+        self.parent[ry] = rx  # ry を rx の子とする
+        self.siz[rx] += self.siz[ry]
+        return True
+
+    # x を含む根付き木のサイズを求める
+    def size(self, x):
+        return self.siz[self.root(x)]
+
+
 # 標準入力
 sc = Scanner
 def InputNum(): return sc.NextLong(sc)
