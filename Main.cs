@@ -469,6 +469,17 @@ namespace Contest
             return ans;
         }
         #endregion
+
+        /// <summary>
+        /// 平方根(誤差注意)
+        /// </summary>
+        #region SqrtOfLong
+        public static long SqrtOfLong(this long x)
+        {
+            var n = (long)Sqrt(x) - 1;
+            return n * (n + 2) < x ? n + 1 : n;
+        }
+        #endregion
     }
     #endregion
 

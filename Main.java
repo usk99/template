@@ -148,5 +148,11 @@ public class Main {
     final Integer[] DX = { 1, 0, -1, 0 }; // (右,下,左,上)
     final String ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     final String abc = "abcdefghijklmnopqrstuvwxyz";
+
+    public static long SqrtOfLong(long x) {
+        var n = (long) Math.sqrt(x) - 1;
+        return n * (n + 2) < x ? n + 1 : n;
+    }
+
     // #endregion
 }
