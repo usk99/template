@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using static System.Console;
 using static System.Math;
+using static Contest.Methods;
 using static Contest.PrimeNumber;
 
 namespace Contest
