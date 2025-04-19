@@ -172,6 +172,32 @@ namespace Contest
         #endregion
 
         /// <summary>
+        /// 小さい方取得
+        /// </summary>
+        #region ChMin
+        public static bool ChMin<T>(ref T from, ref T to) where T : IComparable
+        {
+            if (from.CompareTo(to) <= 0)
+                return false;
+            from = to;
+            return true;
+        }
+        #endregion
+
+        /// <summary>
+        /// 大きい方取得
+        /// </summary>
+        #region ChMax
+        public static bool ChMax<T>(ref T from, ref T to) where T : IComparable
+        {
+            if (from.CompareTo(to) >= 0)
+                return false;
+            from = to;
+            return true;
+        }
+        #endregion
+
+        /// <summary>
         /// 順列列挙
         /// </summary>
         /// <param name="withRepetition">各要素自身の重複</param>

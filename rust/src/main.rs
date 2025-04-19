@@ -165,6 +165,30 @@ mod module_of_convenience {
     pub const IDX12: [isize; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
     pub const UDY12: [usize; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
     pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];   // (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
+    #[macro_export]
+    macro_rules! min {
+        ($a:expr $(,)*)=>{{$a}};
+        ($a:expr, $b:expr $(,)*)=>{{std::cmp::min($a, $b)}};
+        ($a:expr, $($rest:expr),+ $(,)*)=>{{std::cmp::min($a, min!($($rest),+))}};
+    }
+    #[macro_export]
+    macro_rules! max {
+        ($a:expr $(,)*)=>{{$a}};
+        ($a:expr, $b:expr $(,)*)=>{{std::cmp::max($a, $b)}};
+        ($a:expr, $($rest:expr),+ $(,)*)=>{{std::cmp::max($a, max!($($rest),+))}};
+    }
+    #[macro_export]
+    macro_rules! ChMin {
+        ($base:expr, $($cmps:expr),+ $(,)*) => {{
+            let cmp_min = min!($($cmps),+);
+            if $base > cmp_min {$base = cmp_min;true}else{false}}};
+    }
+    #[macro_export]
+    macro_rules! ChMax {
+        ($base:expr, $($cmps:expr),+ $(,)*) => {{
+            let cmp_max = max!($($cmps),+);
+            if $base < cmp_max {$base = cmp_max;true} else {false}}};
+    }
 }
 
 use ac_library::math;
