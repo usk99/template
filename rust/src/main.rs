@@ -4,7 +4,8 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-fn solve(timer: Timer) {
+fn solve(isLocal: bool, timer: Timer, input: Input) {
+    //let mut rng = rand::thread_rng();
     let a = InputNum();
     let b = InputNums(a);
     let c = InputsNums(b[0], b[1]);
@@ -16,8 +17,23 @@ fn solve(timer: Timer) {
     }
 }
 fn main() {
+    let isLocal = env::var("ATCODER").and(Ok(false)).unwrap_or(true);
     let timer = Timer::new(0); // 実行時間制限
-    solve(timer);
+    let input = Input::new(); // 入力
+    solve(isLocal, timer, input);
+}
+#[derive(Debug)]
+struct Input {
+    N: usize,
+    M: usize,
+}
+impl Input {
+    fn new() -> Self {
+        Self {
+            N: InputNum(),
+            M: InputNum(),
+        }
+    }
 }
 
 // 型
@@ -151,31 +167,21 @@ mod module_of_unionfind {
         }
     }
 }
-// いろいろ
+// マクロ
 #[rustfmt::skip]
 #[allow(non_upper_case_globals)]
-mod module_of_convenience {
-    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
-    pub const  IDY4: [isize;  4] = [0,  1,  0, -1];
-    pub const  IDX4: [isize;  4] = [1,  0, -1,  0];
-    pub const  UDY4: [usize;  4] = [0,  1,  0, !0];
-    pub const  UDX4: [usize;  4] = [1,  0, !0,  0];   // (右,下,左,上)
-    pub const IDY12: [isize; 12] = [0,  1,  0, -1,  1, -1, -1,  1,  2,  0, -2,  0];
-    pub const IDX12: [isize; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
-    pub const UDY12: [usize; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
-    pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];   // (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
+mod module_of_macro{
     #[macro_export]
     macro_rules! min {
         ($a:expr $(,)*)=>{{$a}};
-        ($a:expr, $b:expr $(,)*)=>{{std::cmp::min($a, $b)}};
-        ($a:expr, $($rest:expr),+ $(,)*)=>{{std::cmp::min($a, min!($($rest),+))}};
+        ($a:expr,$b:expr $(,)*)=>{{std::cmp::min($a, $b)}};
+        ($a:expr,$($rest:expr),+ $(,)*)=>{{std::cmp::min($a, min!($($rest),+))}};
     }
     #[macro_export]
     macro_rules! max {
         ($a:expr $(,)*)=>{{$a}};
-        ($a:expr, $b:expr $(,)*)=>{{std::cmp::max($a, $b)}};
-        ($a:expr, $($rest:expr),+ $(,)*)=>{{std::cmp::max($a, max!($($rest),+))}};
+        ($a:expr,$b:expr $(,)*)=>{{std::cmp::max($a, $b)}};
+        ($a:expr,$($rest:expr),+ $(,)*)=>{{std::cmp::max($a, max!($($rest),+))}};
     }
     #[macro_export]
     macro_rules! ChMin {
@@ -189,6 +195,25 @@ mod module_of_convenience {
             let cmp_max = max!($($cmps),+);
             if $base < cmp_max {$base = cmp_max;true} else {false}}};
     }
+}
+// 便利
+#[rustfmt::skip]
+#[allow(non_upper_case_globals)]
+mod module_of_convenience {
+    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+    pub const  IDY4: [isize;  4] = [0,  1,  0, -1];
+    pub const  IDX4: [isize;  4] = [1,  0, -1,  0];
+    pub const  UDY4: [usize;  4] = [0,  1,  0, !0];
+    pub const  UDX4: [usize;  4] = [1,  0, !0,  0];// (右,下,左,上)
+    pub const  IDY8: [isize;  8] = [0,  1,  0, -1, -1,  1,  1, -1];
+    pub const  IDX8: [isize;  8] = [1,  0, -1,  0,  1,  1, -1, -1];
+    pub const  UDY8: [usize;  8] = [0,  1,  0, !0,  1,  1, !0, !0];
+    pub const  UDX8: [usize;  8] = [1,  0, !0,  0,  1, !0, !0,  1];// (右,下,左,上,右下,左下,左上,右上)
+    pub const IDY12: [isize; 12] = [0,  1,  0, -1,  1, -1, -1,  1,  2,  0, -2,  0];
+    pub const IDX12: [isize; 12] = [1,  0, -1,  0,  1,  1, -1, -1,  0,  2,  0, -2];
+    pub const UDY12: [usize; 12] = [0,  1,  0, !0,  1, !0, !0,  1,  2,  0, !1,  0];
+    pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];// (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
 }
 
 use ac_library::math;
