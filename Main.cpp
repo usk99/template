@@ -157,13 +157,15 @@ namespace Contest {
 	using vs   = vector<string>;   using vvs  = vector<vs>;
     // clang-format on
 
-    const double PI    = acos(-1);
-    const int    DY[4] = { 0, 1, 0, -1 };
-    const int    DX[4] = { 1, 0, -1, 0 }; // (右,下,左,上)
-    const int    INF   = 1001001001;
-    const ll     INFL  = 4004004003094073385LL; // (int)INFL = INF, (int)(-INFL) = -INF;
-    const string ABC   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const string abc   = "abcdefghijklmnopqrstuvwxyz";
+    const double PI     = acos(-1);
+    const int    DY4[4] = { 0, 1, 0, -1 };
+    const int    DX4[4] = { 1, 0, -1, 0 }; // (右,下,左,上)
+    const int    DY8[4] = { 0, 1, 0, -1, -1, 1, 1, -1 };
+    const int    DX8[4] = { 1, 0, -1, 0, 1, 1, -1, -1 }; // (右,下,左,上,右上,右下,左下,左上)
+    const int    INF    = 1001001001;
+    const ll     INFL   = 4004004003094073385LL; // (int)INFL = INF, (int)(-INFL) = -INF;
+    const string ABC    = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const string abc    = "abcdefghijklmnopqrstuvwxyz";
 
     // 大きい値を第一引数に上書き
     template<typename T1, typename T2>

@@ -144,8 +144,10 @@ public class Main {
     // #endregion
 
     // #region いろいろ
-    final Integer[] DY = { 0, 1, 0, -1 };
-    final Integer[] DX = { 1, 0, -1, 0 }; // (右,下,左,上)
+    final Integer[] DY4 = { 0, 1, 0, -1 };
+    final Integer[] DX4 = { 1, 0, -1, 0 }; // (右,下,左,上)
+    final Integer[] DY8 = { 0, 1, 0, -1, -1, 1, 1, -1 };
+    final Integer[] DX8 = { 1, 0, -1, 0, 1, 1, -1, -1 }; // (右,下,左,上,右上,右下,左下,左上)
     final String ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     final String abc = "abcdefghijklmnopqrstuvwxyz";
 

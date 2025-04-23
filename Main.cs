@@ -87,8 +87,10 @@ namespace Contest
     #region いろいろ
     public static class Methods
     {
-        public static IReadOnlyList<int> DY = new int[] { 0, 1, 0, -1 };
-        public static IReadOnlyList<int> DX = new int[] { 1, 0, -1, 0 };   // (右,下,左,上)
+        public static IReadOnlyList<int> DY4 = new int[] { 0, 1, 0, -1 };
+        public static IReadOnlyList<int> DX4 = new int[] { 1, 0, -1, 0 };   // (右,下,左,上)
+        public static IReadOnlyList<int> DY8 = new int[] { 0, 1, 0, -1, -1, 1, 1, -1 };
+        public static IReadOnlyList<int> DX8 = new int[] { 1, 0, -1, 0, 1, 1, -1, -1 };   // (右,下,左,上,右上,右下,左下,左上 )
         public const string ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         public const string abc = "abcdefghijklmnopqrstuvwxyz";
 
