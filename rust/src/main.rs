@@ -4,7 +4,7 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-fn solve(isLocal: bool, timer: Timer, input: Input) {
+fn solve(isLocal: bool, timer: Timer, input: Input, answer: &mut Vec<String>) {
     //let mut rng = rand::thread_rng();
     let a = InputNum();
     let b = InputNums(a);
@@ -17,10 +17,30 @@ fn solve(isLocal: bool, timer: Timer, input: Input) {
     }
 }
 fn main() {
-    let isLocal = env::var("ATCODER").and(Ok(false)).unwrap_or(true);
+    let isLocal = env::args()
+        .map(|x| x.contains(&String::from("target")))
+        .next()
+        .unwrap();
+    let isLocal = isLocal & env::var("ATCODER").and(Ok(false)).unwrap_or(true);
     let timer = Timer::new(0); // 実行時間制限
     let input = Input::new(); // 入力
-    solve(isLocal, timer, input);
+    let mut answer = Vec::<String>::new();
+
+    solve(isLocal, timer, input, &mut answer);
+
+    for ans in answer.clone() {
+        Output(ans);
+    }
+
+    if isLocal {
+        let path = "../output.txt";
+        let file = match std::fs::File::create(path) {
+            Ok(file) => file,
+            Err(_) => std::fs::File::create_new(path).unwrap(),
+        };
+        let mut file = std::io::BufWriter::new(file);
+        let _ = file.write_all(answer.iter().join("\n").as_bytes());
+    }
 }
 #[derive(Debug)]
 struct Input {
@@ -76,14 +96,14 @@ mod module_of_input{
 #[rustfmt::skip]
 mod module_of_output{
     use itertools::Itertools;use std::{fmt::Display, ops::Add};use crate::module_of_type::*;
-    pub trait Output{fn output(self);}
-    impl Output for bool  {fn output(self){println!("{}",if self{"Yes"}else{"No"});}}
-    impl Output for String{fn output(self){println!("{self}");}}
-    impl Output for &str  {fn output(self){println!("{self}");}}
-    impl Output for char  {fn output(self){println!("{self}");}}
-    impl<T:Display+Numeric>Output for     T {fn output(self){println!("{self}");}}
-    impl<T:Display>        Output for Vec<T>{fn output(self){println!("{}",self.iter().join(" "));}}
-    pub fn Output(o:impl Output){o.output();}
+    pub trait Output{fn output(self)->String;}
+    impl Output for bool  {fn output(self)->String{(if self {"Yes"}else{"No"}).to_string()}}
+    impl Output for String{fn output(self)->String{self.to_string()}}
+    impl Output for &str  {fn output(self)->String{self.to_string()}}
+    impl Output for char  {fn output(self)->String{format!("{self}")}}
+    impl<T:Display+Numeric>Output for     T {fn output(self)->String{format!("{self}")}}
+    impl<T:Display>        Output for Vec<T>{fn output(self)->String{self.iter().join(" ").to_string()}}
+    pub fn Output(o:impl Output){let out=o.output();println!("{}",out);}
 }
 // タイマー
 #[rustfmt::skip]
