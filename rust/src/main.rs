@@ -4,7 +4,7 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-fn solve(isLocal: bool, timer: Timer, input: Input, answer: &mut Vec<String>) {
+fn solve(timer: Timer, input: &Input, answer: &mut Vec<String>) {
     //let mut rng = rand::thread_rng();
     let a = InputNum();
     let b = InputNums(a);
@@ -17,31 +17,24 @@ fn solve(isLocal: bool, timer: Timer, input: Input, answer: &mut Vec<String>) {
     }
 }
 fn main() {
-    let isLocal = env::args()
-        .map(|x| x.contains(&String::from("target")))
-        .next()
-        .unwrap();
-    let isLocal = isLocal & env::var("ATCODER").and(Ok(false)).unwrap_or(true);
+    Config::init(); // 設定初期化
     let timer = Timer::new(0); // 実行時間制限
     let input = Input::new(); // 入力
-    let mut answer = Vec::<String>::new();
+    let mut answer = Vec::new();
 
-    solve(isLocal, timer, input, &mut answer);
+    solve(timer, &input, &mut answer);
 
     for ans in answer.clone() {
         Output(ans);
     }
 
-    if isLocal {
+    if isLocal() {
         let path = "../output.txt";
-        let file = match std::fs::File::create(path) {
-            Ok(file) => file,
-            Err(_) => std::fs::File::create_new(path).unwrap(),
-        };
-        let mut file = std::io::BufWriter::new(file);
-        let _ = file.write_all(answer.iter().join("\n").as_bytes());
+        let _ = std::io::BufWriter::new(std::fs::File::create(path).unwrap())
+            .write_all(answer.iter().join("\n").as_bytes());
     }
 }
+
 #[derive(Debug)]
 struct Input {
     N: usize,
@@ -56,6 +49,24 @@ impl Input {
     }
 }
 
+// 設定
+#[rustfmt::skip]
+mod module_of_config {
+    use std::sync::OnceLock;
+    pub struct Config {
+        islocal: bool,
+    }
+    pub static CONFIG: OnceLock<Config> = OnceLock::new();
+    impl Config {
+        pub fn init() {
+            // local判定・・・pahcerや提出時はfalse
+            let islocal = std::env::args().map(|x| x.contains("target")).next().unwrap()
+                & std::env::var("ATCODER").and(Ok(false)).unwrap_or(true);
+            CONFIG.get_or_init(|| Self { islocal });
+        }
+    }
+    pub fn isLocal()->bool{CONFIG.get().unwrap().islocal}
+}
 // 型
 #[rustfmt::skip]
 mod module_of_type {
@@ -72,10 +83,12 @@ mod module_of_extension{
     pub trait ToChars{fn tochars(&self)->Vec<char>;}
     impl ToChars for String{fn tochars(&self)->Vec<char>{self.chars().collect::<Vec<char>>()}}
 }
-// 入力
+// 入出力
 #[rustfmt::skip]
-mod module_of_input{
+mod module_of_IO{
     use crate::module_of_extension::*;use std::io::Read;
+    use itertools::Itertools;use std::{fmt::Display, ops::Add};use crate::module_of_type::*;
+    // 入力
     fn get_word()->String{let mut stdin=std::io::stdin();
         loop{let mut u8b=[0];let mut buf=Vec::<u8>::with_capacity(16);
             loop{let res=stdin.read(&mut u8b).unwrap_or(0);
@@ -84,26 +97,23 @@ mod module_of_input{
             }if !buf.is_empty(){return String::from_utf8(buf).unwrap();}// utf8をStringでreturn
         }
     }
-
     pub fn InputNum     ()                ->        usize   {get_word().parse().unwrap()}
     pub fn InputNums    (n: usize)        ->    Vec<usize>  {let mut v=Vec::    <usize>  ::new();for _ in 0..n{v.push(InputNum());}v}
     pub fn InputsNums   (h: usize,w:usize)->Vec<Vec<usize>> {let mut v=Vec::<Vec<usize>> ::new();for _ in 0..h{v.push(InputNums(w));}v}
     pub fn InputString  ()                ->        String  {get_word()}
     pub fn InputStrings (n: usize)        ->    Vec<String> {let mut v=Vec::    <String> ::new();for _ in 0..n{v.push(InputString());}v}
     pub fn InputsStrings(h: usize,w:usize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
-}
-// 出力
-#[rustfmt::skip]
-mod module_of_output{
-    use itertools::Itertools;use std::{fmt::Display, ops::Add};use crate::module_of_type::*;
+
+    // 出力
     pub trait Output{fn output(self)->String;}
-    impl Output for bool  {fn output(self)->String{(if self {"Yes"}else{"No"}).to_string()}}
+    impl Output for bool  {fn output(self)->String{(if self{"Yes"}else{"No"}).to_string()}}
     impl Output for String{fn output(self)->String{self.to_string()}}
     impl Output for &str  {fn output(self)->String{self.to_string()}}
     impl Output for char  {fn output(self)->String{format!("{self}")}}
     impl<T:Display+Numeric>Output for     T {fn output(self)->String{format!("{self}")}}
     impl<T:Display>        Output for Vec<T>{fn output(self)->String{self.iter().join(" ").to_string()}}
-    pub fn Output(o:impl Output){let out=o.output();println!("{}",out);}
+    pub fn Output (o:impl Output){ println!("{}",o.output())}
+    pub fn EOutput(o:impl Output){eprintln!("{}",o.output())}
 }
 // タイマー
 #[rustfmt::skip]
@@ -244,18 +254,16 @@ use num::traits::ops::saturating;
 use num::{range, Integer};
 use num_integer::Roots;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
-use std::fmt::{format, Binary};
+use std::fmt::{format, Binary, Display};
 use std::fs::File;
 use std::io::Write;
 use std::num::Wrapping;
-use std::ops::Index;
-use std::string;
 use std::{cmp::*, vec};
 use std::{env, result};
 
+use crate::module_of_IO::*;
+use crate::module_of_config::*;
 use crate::module_of_convenience::*;
 use crate::module_of_extension::*;
-use crate::module_of_input::*;
-use crate::module_of_output::*;
 use crate::module_of_timer::*;
 use crate::module_of_unionfind::*;
