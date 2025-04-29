@@ -8,28 +8,19 @@ fn main() {
     Config::init(); // 設定初期化
     let timer = Timer::new(0); // 実行時間制限
     let input = Input::new(); // 入力
-    let mut answer = Vec::new();
+    let mut answer = Output::new(); // 出力
 
-    solve(timer, &input, &mut answer);
+    solve(&timer, &input, &mut answer);
 
-    answer.iter().for_each(Output);
-
+    // 出力
+    let ans = answer.outstr();
     if isLocal() {
-        let _ = BufWriter::new(File::create("../output.txt").unwrap())
-            .write(answer.iter().join("\n").as_bytes());
+        let _ = BufWriter::new(File::create("../output.txt").unwrap()).write(ans.as_bytes());
     }
+    Output(ans);
 }
-fn solve(timer: Timer, input: &Input, answer: &mut Vec<String>) {
+fn solve(timer: &Timer, input: &Input, answer: &mut Output) {
     //let mut rng = rand::thread_rng();
-    let a = InputNum();
-    let b = InputNums(a);
-    let c = InputsNums(b[0], b[1]);
-
-    Output(a);
-    Output(b);
-    for cc in c {
-        Output(cc);
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +33,27 @@ impl Input {
         let N = InputNum();
         let M = InputNum();
         Self { N, M }
+    }
+}
+
+pub struct Output {
+    output: Vec<String>,
+}
+impl Output {
+    fn new() -> Self {
+        Self { output: Vec::new() }
+    }
+    // 追加
+    fn push<T: ChangeToString>(&mut self, element: T) {
+        self.output.push(element.change_to_string())
+    }
+    // 初期化
+    fn clear(mut self) {
+        self.output.clear();
+    }
+    // 文字列化
+    fn outstr(&self) -> String {
+        self.output.iter().join("\n")
     }
 }
 
@@ -66,10 +78,36 @@ mod module_of_config {
 // 型
 #[rustfmt::skip]
 mod module_of_type {
-    pub trait Numeric   {}
-    impl Numeric for f32{}impl Numeric for f64{}
-    impl Numeric for i8 {}impl Numeric for i16{}impl Numeric for i32{}impl Numeric for i64{}impl Numeric for i128{}impl Numeric for isize{}
-    impl Numeric for u8 {}impl Numeric for u16{}impl Numeric for u32{}impl Numeric for u64{}impl Numeric for u128{}impl Numeric for usize{}
+    use itertools::Itertools;
+    use std::fmt::Display;
+
+    // 基本的な型の出力様式
+    trait Cts{fn cts(self) -> String;}
+    fn changetostring(element:impl Cts)->String{element.cts()}
+    impl Cts for   bool{fn cts(self)->String{(if self {"Yes"} else {"No"}).to_string()}}
+    impl Cts for    f32{fn cts(self)->String{self.to_string()}}
+    impl Cts for    f64{fn cts(self)->String{self.to_string()}}
+    impl Cts for     i8{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i16{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i32{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i64{fn cts(self)->String{self.to_string()}}
+    impl Cts for   i128{fn cts(self)->String{self.to_string()}}
+    impl Cts for  isize{fn cts(self)->String{self.to_string()}}
+    impl Cts for     u8{fn cts(self)->String{self.to_string()}}
+    impl Cts for    u16{fn cts(self)->String{self.to_string()}}
+    impl Cts for    u32{fn cts(self)->String{self.to_string()}}
+    impl Cts for    u64{fn cts(self)->String{self.to_string()}}
+    impl Cts for   u128{fn cts(self)->String{self.to_string()}}
+    impl Cts for  usize{fn cts(self)->String{self.to_string()}}
+    impl Cts for   &str{fn cts(self)->String{self.to_string()}}
+    impl Cts for   char{fn cts(self)->String{self.to_string()}}
+    impl Cts for&String{fn cts(self)->String{self.to_string()}}
+    impl Cts for String{fn cts(self)->String{self}}
+    
+    // vec対応
+    pub trait ChangeToString{fn change_to_string(self)->String;}
+    impl <T:Cts + Display> ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
+    impl <T:Cts + Display> ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
 }
 // 拡張
 #[rustfmt::skip]
@@ -101,16 +139,10 @@ mod module_of_IO{
     pub fn InputsStrings(h: usize,w:usize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
 
     // 出力
-    pub trait Output{fn output(self)->String;}
-    impl Output for    bool{fn output(self)->String{(if self{"Yes"}else{"No"}).to_string()}}
-    impl Output for  String{fn output(self)->String{self}}
-    impl Output for &String{fn output(self)->String{self.to_string()}}
-    impl Output for    &str{fn output(self)->String{self.to_string()}}
-    impl Output for    char{fn output(self)->String{self.to_string()}}
-    impl<T:Display+Numeric>Output for     T {fn output(self)->String{self.to_string()}}
-    impl<T:Display>        Output for Vec<T>{fn output(self)->String{self.iter().join(" ")}}
+    pub trait Output{fn output(self) -> String;}
     pub fn  Output(o:impl Output){ println!("{}",o.output())}
     pub fn EOutput(o:impl Output){eprintln!("{}",o.output())}
+    impl<T:ChangeToString>Output for T {fn output(self) -> String{self.change_to_string()}}
 }
 // タイマー
 #[rustfmt::skip]
@@ -124,6 +156,11 @@ mod module_of_timer {
         pub fn new(timelimit: u128) -> Self {Self {instant:std::time::Instant::now(),timelimit,}}
         // 時間取得
         pub fn getTime(&self) -> u128 {self.instant.elapsed().as_millis()} 
+        // 時間取得(カンマ区切り文字列)
+        pub fn getTimeStr(&self) -> String {self.instant.elapsed().as_millis().to_string()
+                .chars().rev().collect::<Vec<char>>().chunks(3).map(|cs| cs.iter().collect::<String>())
+                .collect::<Vec<String>>().join(",").chars().rev().collect::<String>()
+        }
         // 時間確認
         pub fn isTimeout(&self) -> bool {self.getTime() >= self.timelimit}
         // 再起動
@@ -139,7 +176,6 @@ mod module_of_unionfind {
         parent:Vec<isize>,
         size:  Vec<usize>,
     }
-
     impl UnionFind {
         pub fn new(n: usize) -> Self {
             Self {
@@ -147,7 +183,6 @@ mod module_of_unionfind {
                 size: vec![1; n],
             }
         }
-
         // 根を求める
         pub fn root(&mut self, x: usize) -> usize {
             if self.parent[x] == -1 {
@@ -160,12 +195,10 @@ mod module_of_unionfind {
                 self.parent[x] as usize
             }
         }
-
         // x と y が同じグループに属するかどうか (根が一致するかどうか)
         pub fn isSame(&mut self, x: usize, y: usize) -> bool {
             self.root(x) == self.root(y)
         }
-
         // x を含むグループと y を含むグループとを併合する
         pub fn unite(&mut self, x: usize, y: usize) -> bool {
             // x, y をそれぞれ根まで移動する
@@ -187,7 +220,6 @@ mod module_of_unionfind {
             self.size[x] += self.size[y];
             true
         }
-
         // x を含むグループのサイズ
         pub fn size(&mut self, x: usize) -> usize {
             let r = self.root(x);
@@ -244,11 +276,9 @@ mod module_of_convenience {
     pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];// (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
 }
 
-use ac_library::math;
 use core::time;
 use itertools::Itertools;
-use maplit::hashset;
-use num::traits::ops::saturating;
+use module_of_type::ChangeToString;
 use num::{range, Integer};
 use num_integer::Roots;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
