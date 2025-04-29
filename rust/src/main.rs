@@ -4,6 +4,21 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
+fn main() {
+    Config::init(); // 設定初期化
+    let timer = Timer::new(0); // 実行時間制限
+    let input = Input::new(); // 入力
+    let mut answer = Vec::new();
+
+    solve(timer, &input, &mut answer);
+
+    answer.iter().for_each(Output);
+
+    if isLocal() {
+        let _ = BufWriter::new(File::create("../output.txt").unwrap())
+            .write(answer.iter().join("\n").as_bytes());
+    }
+}
 fn solve(timer: Timer, input: &Input, answer: &mut Vec<String>) {
     //let mut rng = rand::thread_rng();
     let a = InputNum();
@@ -16,36 +31,17 @@ fn solve(timer: Timer, input: &Input, answer: &mut Vec<String>) {
         Output(cc);
     }
 }
-fn main() {
-    Config::init(); // 設定初期化
-    let timer = Timer::new(0); // 実行時間制限
-    let input = Input::new(); // 入力
-    let mut answer = Vec::new();
 
-    solve(timer, &input, &mut answer);
-
-    for ans in answer.clone() {
-        Output(ans);
-    }
-
-    if isLocal() {
-        let path = "../output.txt";
-        let _ = std::io::BufWriter::new(std::fs::File::create(path).unwrap())
-            .write_all(answer.iter().join("\n").as_bytes());
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Input {
     N: usize,
     M: usize,
 }
 impl Input {
     fn new() -> Self {
-        Self {
-            N: InputNum(),
-            M: InputNum(),
-        }
+        let N = InputNum();
+        let M = InputNum();
+        Self { N, M }
     }
 }
 
@@ -65,7 +61,7 @@ mod module_of_config {
             CONFIG.get_or_init(|| Self { islocal });
         }
     }
-    pub fn isLocal()->bool{CONFIG.get().unwrap().islocal}
+    pub fn isLocal() -> bool{CONFIG.get().unwrap().islocal}
 }
 // 型
 #[rustfmt::skip]
@@ -106,13 +102,14 @@ mod module_of_IO{
 
     // 出力
     pub trait Output{fn output(self)->String;}
-    impl Output for bool  {fn output(self)->String{(if self{"Yes"}else{"No"}).to_string()}}
-    impl Output for String{fn output(self)->String{self.to_string()}}
-    impl Output for &str  {fn output(self)->String{self.to_string()}}
-    impl Output for char  {fn output(self)->String{format!("{self}")}}
-    impl<T:Display+Numeric>Output for     T {fn output(self)->String{format!("{self}")}}
-    impl<T:Display>        Output for Vec<T>{fn output(self)->String{self.iter().join(" ").to_string()}}
-    pub fn Output (o:impl Output){ println!("{}",o.output())}
+    impl Output for    bool{fn output(self)->String{(if self{"Yes"}else{"No"}).to_string()}}
+    impl Output for  String{fn output(self)->String{self}}
+    impl Output for &String{fn output(self)->String{self.to_string()}}
+    impl Output for    &str{fn output(self)->String{self.to_string()}}
+    impl Output for    char{fn output(self)->String{self.to_string()}}
+    impl<T:Display+Numeric>Output for     T {fn output(self)->String{self.to_string()}}
+    impl<T:Display>        Output for Vec<T>{fn output(self)->String{self.iter().join(" ")}}
+    pub fn  Output(o:impl Output){ println!("{}",o.output())}
     pub fn EOutput(o:impl Output){eprintln!("{}",o.output())}
 }
 // タイマー
@@ -124,7 +121,7 @@ mod module_of_timer {
     }
     impl Timer {
         // 計測開始
-        pub fn new(timelimit: u128) -> Self {Self {instant: std::time::Instant::now(),timelimit,}}
+        pub fn new(timelimit: u128) -> Self {Self {instant:std::time::Instant::now(),timelimit,}}
         // 時間取得
         pub fn getTime(&self) -> u128 {self.instant.elapsed().as_millis()} 
         // 時間確認
@@ -139,8 +136,8 @@ mod module_of_timer {
 #[rustfmt::skip]
 mod module_of_unionfind {
     pub struct UnionFind {
-        parent: Vec<i64>,
-        size: Vec<u64>,
+        parent:Vec<isize>,
+        size:  Vec<usize>,
     }
 
     impl UnionFind {
@@ -155,17 +152,19 @@ mod module_of_unionfind {
         pub fn root(&mut self, x: usize) -> usize {
             if self.parent[x] == -1 {
                 // 初期値なら x を返す
-                x 
+                x
             }
-            else {  
+            else {
                 // 再帰的に根をたどる
-                self.parent[x] = self.root(self.parent[x] as usize) as i64;
-                self.parent[x] as usize 
+                self.parent[x] = self.root(self.parent[x] as usize) as isize;
+                self.parent[x] as usize
             }
         }
 
         // x と y が同じグループに属するかどうか (根が一致するかどうか)
-        pub fn isSame(&mut self, x: usize, y: usize) -> bool { self.root(x) == self.root(y) }
+        pub fn isSame(&mut self, x: usize, y: usize) -> bool {
+            self.root(x) == self.root(y)
+        }
 
         // x を含むグループと y を含むグループとを併合する
         pub fn unite(&mut self, x: usize, y: usize) -> bool {
@@ -180,18 +179,17 @@ mod module_of_unionfind {
 
             // union by size (y 側のサイズが小さくなるようにする)
             if self.size[x] < self.size[y] {
-                // swap(x, y);
                 std::mem::swap(&mut y, &mut x);
             }
 
             // y を x の子とする
-            self.parent[y] = x as i64;
+            self.parent[y] = x as isize;
             self.size[x] += self.size[y];
             true
         }
 
         // x を含むグループのサイズ
-        pub fn size(&mut self, x: usize) -> u64 {
+        pub fn size(&mut self, x: usize) -> usize {
             let r = self.root(x);
             self.size[r]
         }
@@ -230,8 +228,8 @@ mod module_of_macro{
 #[rustfmt::skip]
 #[allow(non_upper_case_globals)]
 mod module_of_convenience {
-    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+    pub const   ABC: &str        = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    pub const   abc: &str        = "abcdefghijklmnopqrstuvwxyz";
     pub const  IDY4: [isize;  4] = [0,  1,  0, -1];
     pub const  IDX4: [isize;  4] = [1,  0, -1,  0];
     pub const  UDY4: [usize;  4] = [0,  1,  0, !0];
@@ -256,7 +254,7 @@ use num_integer::Roots;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
 use std::fmt::{format, Binary, Display};
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::num::Wrapping;
 use std::{cmp::*, vec};
 use std::{env, result};
