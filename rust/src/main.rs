@@ -75,53 +75,86 @@ mod module_of_config {
     }
     pub fn isLocal() -> bool{CONFIG.get().unwrap().islocal}
 }
-// 型
-#[rustfmt::skip]
-mod module_of_type {
-    use itertools::Itertools;
-    use std::fmt::Display;
+// 座標
+//#[rustfmt::skip]
+mod module_of_coord {
+    use std::ops::{Add, AddAssign};
 
-    // 基本的な型の出力様式
-    trait Cts{fn cts(self) -> String;}
-    fn changetostring(element:impl Cts)->String{element.cts()}
-    impl Cts for   bool{fn cts(self)->String{(if self {"Yes"} else {"No"}).to_string()}}
-    impl Cts for    f32{fn cts(self)->String{self.to_string()}}
-    impl Cts for    f64{fn cts(self)->String{self.to_string()}}
-    impl Cts for     i8{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i16{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i32{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i64{fn cts(self)->String{self.to_string()}}
-    impl Cts for   i128{fn cts(self)->String{self.to_string()}}
-    impl Cts for  isize{fn cts(self)->String{self.to_string()}}
-    impl Cts for     u8{fn cts(self)->String{self.to_string()}}
-    impl Cts for    u16{fn cts(self)->String{self.to_string()}}
-    impl Cts for    u32{fn cts(self)->String{self.to_string()}}
-    impl Cts for    u64{fn cts(self)->String{self.to_string()}}
-    impl Cts for   u128{fn cts(self)->String{self.to_string()}}
-    impl Cts for  usize{fn cts(self)->String{self.to_string()}}
-    impl Cts for   &str{fn cts(self)->String{self.to_string()}}
-    impl Cts for   char{fn cts(self)->String{self.to_string()}}
-    impl Cts for&String{fn cts(self)->String{self.to_string()}}
-    impl Cts for String{fn cts(self)->String{self}}
-    
-    // vec対応
-    pub trait ChangeToString{fn change_to_string(self)->String;}
-    impl <T:Cts + Display> ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
-    impl <T:Cts + Display> ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
-}
-// 拡張
-#[rustfmt::skip]
-mod module_of_extension{
-    pub trait ToString{fn tostring(&self)->String;}
-    impl ToString for Vec<char>{fn tostring(&self)->String{self.iter().collect::<String>()}}
-    pub trait ToChars{fn tochars(&self)->Vec<char>;}
-    impl ToChars for String{fn tochars(&self)->Vec<char>{self.chars().collect::<Vec<char>>()}}
+    /// -  u8:<=255
+    /// - u16:<=65,535
+    /// - u32:<=4,294,967,295
+    type Target = u8;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct Coord {
+        row: Target,
+        col: Target,
+    }
+    impl Coord {
+        pub const fn new(row: usize, col: usize) -> Self {
+            Self {
+                row: row as Target,
+                col: col as Target,
+            }
+        }
+        /// 縦取得
+        pub const fn row(&self) -> usize {
+            self.row as usize
+        }
+        // 横取得
+        pub const fn col(&self) -> usize {
+            self.col as usize
+        }
+        /// 領域内チェック
+        pub const fn whitin(&self, r: usize, c: usize) -> bool {
+            self.row() < r && self.col() < c
+        }
+        /// 軸ごとの距離
+        const fn diff(&self, other: &Self) -> Self {
+            Self::new(
+                self.row().abs_diff(other.row()),
+                self.col().abs_diff(other.col()),
+            )
+        }
+        /// ユークリッド距離(直線)
+        pub fn dist_euclidean(&self, other: &Self) -> f64 {
+            let rowdiff = self.row().abs_diff(other.row());
+            let coldiff = self.col().abs_diff(other.col());
+            ((rowdiff + coldiff) as f64).sqrt()
+        }
+        /// マンハッタン距離(格子)
+        pub const fn dist_manhattan(&self, other: &Self) -> usize {
+            let dif = self.diff(other);
+            dif.row() + dif.col()
+        }
+        /// チェビシェフ距離(8方向)
+        pub fn dist_chebychev(&self, other: &Self) -> usize {
+            let dif = self.diff(other);
+            std::cmp::max(dif.row(), dif.col())
+        }
+    }
+    // + 演算子で座標の加算
+    impl Add<Coord> for Coord {
+        type Output = Coord;
+        fn add(self, rhs: Coord) -> Self::Output {
+            Coord {
+                row: self.row.wrapping_add(rhs.row),
+                col: self.col.wrapping_add(rhs.col),
+            }
+        }
+    }
+    // += 演算子で座標の加算
+    impl AddAssign<Coord> for Coord {
+        fn add_assign(&mut self, rhs: Coord) {
+            self.row = self.row.wrapping_add(rhs.row);
+            self.col = self.col.wrapping_add(rhs.col);
+        }
+    }
 }
 // 入出力
 #[rustfmt::skip]
 mod module_of_IO{
-    use crate::module_of_extension::*;use std::io::Read;
-    use itertools::Itertools;use std::{fmt::Display, ops::Add};use crate::module_of_type::*;
+    use itertools::Itertools;use std::{fmt::Display,io::Read};
     // 入力
     fn get_word()->String{let mut stdin=std::io::stdin();
         loop{let mut u8b=[0];let mut buf=Vec::<u8>::with_capacity(16);
@@ -137,12 +170,28 @@ mod module_of_IO{
     pub fn InputString  ()                ->        String  {get_word()}
     pub fn InputStrings (n: usize)        ->    Vec<String> {let mut v=Vec::    <String> ::new();for _ in 0..n{v.push(InputString());}v}
     pub fn InputsStrings(h: usize,w:usize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
-
     // 出力
     pub trait Output{fn output(self) -> String;}
     pub fn  Output(o:impl Output){ println!("{}",o.output())}
     pub fn EOutput(o:impl Output){eprintln!("{}",o.output())}
     impl<T:ChangeToString>Output for T {fn output(self) -> String{self.change_to_string()}}
+    // 基本的な型の出力様式
+    trait Cts{fn cts(self) -> String;}
+    fn changetostring(element:impl Cts)->String{element.cts()}
+    impl Cts for   bool{fn cts(self)->String{(if self {"Yes"} else {"No"}).to_string()}}
+    impl Cts for    f32{fn cts(self)->String{self.to_string()}}impl Cts for    f64{fn cts(self)->String{self.to_string()}}
+    impl Cts for     i8{fn cts(self)->String{self.to_string()}}impl Cts for     u8{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i16{fn cts(self)->String{self.to_string()}}impl Cts for    u16{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i32{fn cts(self)->String{self.to_string()}}impl Cts for    u32{fn cts(self)->String{self.to_string()}}
+    impl Cts for    i64{fn cts(self)->String{self.to_string()}}impl Cts for    u64{fn cts(self)->String{self.to_string()}}
+    impl Cts for   i128{fn cts(self)->String{self.to_string()}}impl Cts for   u128{fn cts(self)->String{self.to_string()}}
+    impl Cts for  isize{fn cts(self)->String{self.to_string()}}impl Cts for  usize{fn cts(self)->String{self.to_string()}}
+    impl Cts for   &str{fn cts(self)->String{self.to_string()}}impl Cts for   char{fn cts(self)->String{self.to_string()}}
+    impl Cts for&String{fn cts(self)->String{self.to_string()}}impl Cts for String{fn cts(self)->String{self}}
+    // vec対応
+    pub trait ChangeToString{fn change_to_string(self)->String;}
+    impl <T:Cts + Display> ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
+    impl <T:Cts + Display> ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
 }
 // タイマー
 #[rustfmt::skip]
@@ -278,11 +327,9 @@ mod module_of_convenience {
 
 use core::time;
 use itertools::Itertools;
-use module_of_type::ChangeToString;
 use num::{range, Integer};
-use num_integer::Roots;
-use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
-use std::fmt::{format, Binary, Display};
+use std::collections::*;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::num::Wrapping;
@@ -292,6 +339,6 @@ use std::{env, result};
 use crate::module_of_IO::*;
 use crate::module_of_config::*;
 use crate::module_of_convenience::*;
-use crate::module_of_extension::*;
+use crate::module_of_coord::*;
 use crate::module_of_timer::*;
 use crate::module_of_unionfind::*;
