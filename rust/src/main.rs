@@ -5,11 +5,16 @@
 #![deny(arithmetic_overflow)]
 
 fn main() {
-    Config::init(); // 設定初期化
-    let timer = Timer::new(0); // 実行時間制限
-    let input = Input::new(); // 入力
-    let mut answer = Output::new(); // 出力
+    // 設定初期化
+    Config::init();
+    // 実行時間制限
+    let timer = Timer::new(0);
+    // 入力
+    let input = Input::new();
+    // 出力用意
+    let mut answer = Output::new();
 
+    // 解く
     solve(&timer, &input, &mut answer);
 
     // 出力
@@ -23,7 +28,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) {
     //let mut rng = rand::thread_rng();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct Input {
     N: usize,
     M: usize,
@@ -76,25 +81,69 @@ mod module_of_config {
     pub fn isLocal() -> bool{CONFIG.get().unwrap().islocal}
 }
 // 座標
-//#[rustfmt::skip]
 mod module_of_coord {
-    use std::ops::{Add, AddAssign};
-
+    use std::{
+        fmt::{Display, Formatter, Result},
+        ops::{Add, AddAssign, Index, IndexMut},
+    };
     /// -  u8:<=255
     /// - u16:<=65,535
     /// - u32:<=4,294,967,295
-    type Target = u8;
+    type CoordType = u8;
+    #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+    pub enum Direction {
+        /// 上
+        U,
+        /// 右
+        R,
+        /// 下
+        D,
+        /// 左
+        L,
+    }
+    impl Direction {
+        pub fn to_coord(self) -> Coord {
+            match self {
+                Direction::U => Coord::new(!0, 0),
+                Direction::R => Coord::new(0, 1),
+                Direction::D => Coord::new(1, 0),
+                Direction::L => Coord::new(0, !0),
+            }
+        }
+        pub fn to_index(self) -> usize {
+            match self {
+                Direction::U => 0,
+                Direction::R => 1,
+                Direction::D => 2,
+                Direction::L => 3,
+            }
+        }
+        pub fn to_str(self) -> &'static str {
+            match self {
+                Direction::U => "Up",
+                Direction::R => "Right",
+                Direction::D => "Down",
+                Direction::L => "Left",
+            }
+        }
+    }
+    impl std::fmt::Display for Direction {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.to_str())
+        }
+    }
+    pub const DIRECTIONS: [Direction; 4] = [Direction::U, Direction::R, Direction::D, Direction::L];
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     pub struct Coord {
-        row: Target,
-        col: Target,
+        row: CoordType,
+        col: CoordType,
     }
     impl Coord {
         pub const fn new(row: usize, col: usize) -> Self {
             Self {
-                row: row as Target,
-                col: col as Target,
+                row: row as CoordType,
+                col: col as CoordType,
             }
         }
         /// 縦取得
@@ -105,9 +154,17 @@ mod module_of_coord {
         pub const fn col(&self) -> usize {
             self.col as usize
         }
+        /// 連番取得
+        pub const fn to_sequence(self, col: usize) -> usize {
+            self.row() * col + self.col()
+        }
         /// 領域内チェック
         pub const fn whitin(&self, r: usize, c: usize) -> bool {
             self.row() < r && self.col() < c
+        }
+        /// 移動
+        pub fn move_direction(self, d: Direction) -> Coord {
+            self + d.to_coord()
         }
         /// 軸ごとの距離
         const fn diff(&self, other: &Self) -> Self {
@@ -150,11 +207,61 @@ mod module_of_coord {
             self.col = self.col.wrapping_add(rhs.col);
         }
     }
+    impl Display for Coord {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+            write!(f, "{} {}", self.row, self.col)
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct VecSeq<T> {
+        vec: Vec<T>,
+        row: usize,
+        col: usize,
+    }
+    impl<T> VecSeq<T> {
+        pub fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
+            Self { vec, row, col }
+        }
+    }
+    impl<T: Default + Clone> VecSeq<T> {
+        pub fn with_default(row: usize, col: usize) -> Self {
+            let vec = vec![T::default(); row * col];
+            Self { vec, row, col }
+        }
+    }
+    impl<T> Index<Coord> for VecSeq<T> {
+        type Output = T;
+        #[inline]
+        fn index(&self, coord: Coord) -> &Self::Output {
+            &self.vec[coord.to_sequence(self.col)]
+        }
+    }
+    impl<T> Index<&Coord> for VecSeq<T> {
+        type Output = T;
+        #[inline]
+        fn index(&self, coord: &Coord) -> &Self::Output {
+            &self.vec[coord.to_sequence(self.col)]
+        }
+    }
+    impl<T> IndexMut<Coord> for VecSeq<T> {
+        #[inline]
+        fn index_mut(&mut self, coord: Coord) -> &mut Self::Output {
+            &mut self.vec[coord.to_sequence(self.col)]
+        }
+    }
+    impl<T> IndexMut<&Coord> for VecSeq<T> {
+        #[inline]
+        fn index_mut(&mut self, coord: &Coord) -> &mut Self::Output {
+            &mut self.vec[coord.to_sequence(self.col)]
+        }
+    }
 }
 // 入出力
 #[rustfmt::skip]
 mod module_of_IO{
     use itertools::Itertools;use std::{fmt::Display,io::Read};
+    use crate::{Coord, Direction};
     // 入力
     fn get_word()->String{let mut stdin=std::io::stdin();
         loop{let mut u8b=[0];let mut buf=Vec::<u8>::with_capacity(16);
@@ -192,6 +299,8 @@ mod module_of_IO{
     pub trait ChangeToString{fn change_to_string(self)->String;}
     impl <T:Cts + Display> ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
     impl <T:Cts + Display> ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
+    impl ChangeToString for     Coord{fn change_to_string(self)->String {format!("{}",self)}}
+    impl ChangeToString for Direction{fn change_to_string(self)->String {format!("{}",self)}}
 }
 // タイマー
 #[rustfmt::skip]
@@ -237,8 +346,7 @@ mod module_of_unionfind {
             if self.parent[x] == -1 {
                 // 初期値なら x を返す
                 x
-            }
-            else {
+            } else {
                 // 再帰的に根をたどる
                 self.parent[x] = self.root(self.parent[x] as usize) as isize;
                 self.parent[x] as usize
@@ -325,20 +433,23 @@ mod module_of_convenience {
     pub const UDX12: [usize; 12] = [1,  0, !0,  0,  1,  1, !0, !0,  0,  2,  0, !1];// (右,下,左,上,右下,左下,左上,右上,右右,下下,左左,上上)
 }
 
-use core::time;
-use itertools::Itertools;
-use num::{range, Integer};
-use std::collections::*;
-use std::fmt::Display;
-use std::fs::File;
-use std::io::{BufWriter, Write};
-use std::num::Wrapping;
-use std::{cmp::*, vec};
-use std::{env, result};
+use crate::{
+    module_of_IO::*, module_of_config::*, module_of_convenience::*, module_of_coord::*,
+    module_of_timer::*, module_of_unionfind::*,
+};
 
-use crate::module_of_IO::*;
-use crate::module_of_config::*;
-use crate::module_of_convenience::*;
-use crate::module_of_coord::*;
-use crate::module_of_timer::*;
-use crate::module_of_unionfind::*;
+use {
+    core::time,
+    itertools::Itertools,
+    num::{range, Integer},
+    std::{
+        cmp::*,
+        collections::*,
+        env,
+        fmt::Display,
+        fs::File,
+        io::{BufWriter, Write},
+        num::Wrapping,
+        result, vec,
+    },
+};
