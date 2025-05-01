@@ -84,13 +84,15 @@ mod module_of_config {
 mod module_of_coord {
     use std::{
         fmt::{Display, Formatter, Result},
+        hash,
         ops::{Add, AddAssign, Index, IndexMut},
     };
+    /// 座標の型
     /// -  u8:<=255
     /// - u16:<=65,535
     /// - u32:<=4,294,967,295
     type CoordType = u8;
-    #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+    #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
     pub enum Direction {
         /// 上
         U,
@@ -102,14 +104,43 @@ mod module_of_coord {
         L,
     }
     impl Direction {
-        pub fn to_coord(self) -> Coord {
+        /// 方向を反転する
+        pub fn opposite(self) -> Self {
             match self {
-                Direction::U => Coord::new(!0, 0),
-                Direction::R => Coord::new(0, 1),
-                Direction::D => Coord::new(1, 0),
-                Direction::L => Coord::new(0, !0),
+                Direction::U => Direction::D,
+                Direction::R => Direction::L,
+                Direction::D => Direction::U,
+                Direction::L => Direction::R,
             }
         }
+        /// 時計回りに90度
+        pub fn clockwise(self) -> Self {
+            match self {
+                Direction::U => Direction::R,
+                Direction::R => Direction::D,
+                Direction::D => Direction::L,
+                Direction::L => Direction::U,
+            }
+        }
+        /// 反時計回りに90度
+        pub fn counter_clockwise(self) -> Self {
+            match self {
+                Direction::U => Direction::L,
+                Direction::R => Direction::U,
+                Direction::D => Direction::R,
+                Direction::L => Direction::D,
+            }
+        }
+        /// 座標に変換
+        pub fn to_coord(self) -> Coord {
+            match self {
+                Direction::U => Coord::new(!0, 0), // -1, 0
+                Direction::R => Coord::new(0, 1),
+                Direction::D => Coord::new(1, 0),
+                Direction::L => Coord::new(0, !0), // 0, -1
+            }
+        }
+        /// 方向をインデックスに
         pub fn to_index(self) -> usize {
             match self {
                 Direction::U => 0,
@@ -118,6 +149,17 @@ mod module_of_coord {
                 Direction::L => 3,
             }
         }
+        /// インデックスを方向に
+        pub fn from_index(ind: usize) -> Option<Self> {
+            match ind {
+                0 => Some(Direction::U),
+                1 => Some(Direction::R),
+                2 => Some(Direction::D),
+                3 => Some(Direction::L),
+                _ => None,
+            }
+        }
+        /// 方向を文字列に
         pub fn to_str(self) -> &'static str {
             match self {
                 Direction::U => "Up",
@@ -126,6 +168,10 @@ mod module_of_coord {
                 Direction::L => "Left",
             }
         }
+        /// 全方位イテレータ
+        pub fn all() -> impl Iterator<Item = Direction> {
+            DIRECTIONS.iter().copied()
+        }
     }
     impl std::fmt::Display for Direction {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -133,64 +179,79 @@ mod module_of_coord {
         }
     }
     pub const DIRECTIONS: [Direction; 4] = [Direction::U, Direction::R, Direction::D, Direction::L];
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Coord {
         row: CoordType,
         col: CoordType,
     }
     impl Coord {
+        /// 原点
+        pub const ORIGIN: Coord = Coord::new(0, 0);
+        /// 座標生成
         pub const fn new(row: usize, col: usize) -> Self {
             Self {
                 row: row as CoordType,
                 col: col as CoordType,
             }
         }
-        /// 縦取得
+        /// 行(y座標)を取得
         pub const fn row(&self) -> usize {
             self.row as usize
         }
-        // 横取得
+        /// 列(x座標)を取得
         pub const fn col(&self) -> usize {
             self.col as usize
         }
-        /// 連番取得
-        pub const fn to_sequence(self, col: usize) -> usize {
-            self.row() * col + self.col()
+        /// 2次元座標を1次元インデックスに変換
+        pub const fn to_sequence(self, cols: usize) -> usize {
+            self.row() * cols + self.col()
         }
-        /// 領域内チェック
-        pub const fn whitin(&self, r: usize, c: usize) -> bool {
-            self.row() < r && self.col() < c
+        /// 1次元インデックスから座標に変換
+        pub const fn from_sequence(idx: usize, cols: usize) -> Self {
+            Coord::new(idx / cols, idx % cols)
         }
-        /// 移動
+        /// 領域内に存在するかチェック
+        pub const fn within(&self, rows: usize, cols: usize) -> bool {
+            self.row() < rows && self.col() < cols
+        }
+        /// 指定方向へ移動した座標
         pub fn move_direction(self, d: Direction) -> Coord {
             self + d.to_coord()
         }
         /// 軸ごとの距離
-        const fn diff(&self, other: &Self) -> Self {
+        pub const fn diff(&self, other: &Self) -> Self {
             Self::new(
                 self.row().abs_diff(other.row()),
                 self.col().abs_diff(other.col()),
             )
         }
-        /// ユークリッド距離(直線)
+        /// ユークリッド距離(直線距離)を計算
         pub fn dist_euclidean(&self, other: &Self) -> f64 {
             let rowdiff = self.row().abs_diff(other.row());
             let coldiff = self.col().abs_diff(other.col());
-            ((rowdiff + coldiff) as f64).sqrt()
+            ((rowdiff * rowdiff + coldiff * coldiff) as f64).sqrt()
         }
-        /// マンハッタン距離(格子)
+        /// マンハッタン距離(上下左右の移動量の合計)を計算
         pub const fn dist_manhattan(&self, other: &Self) -> usize {
-            let dif = self.diff(other);
-            dif.row() + dif.col()
+            self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
         }
-        /// チェビシェフ距離(8方向)
-        pub fn dist_chebychev(&self, other: &Self) -> usize {
-            let dif = self.diff(other);
-            std::cmp::max(dif.row(), dif.col())
+        /// チェビシェフ距離(8方向移動時の最短手数)を計算
+        pub fn dist_chebyshev(&self, other: &Self) -> usize {
+            std::cmp::max(
+                self.row().abs_diff(other.row()),
+                self.col().abs_diff(other.col()),
+            )
+        }
+        /// タプルから変換
+        pub fn from_tuple(tuple: (usize, usize)) -> Self {
+            Self::new(tuple.0, tuple.1)
+        }
+        /// タプルに変換
+        pub fn to_tuple(&self) -> (usize, usize) {
+            (self.row(), self.col())
         }
     }
-    // + 演算子で座標の加算
+    /// + 演算子で座標の加算
     impl Add<Coord> for Coord {
         type Output = Coord;
         fn add(self, rhs: Coord) -> Self::Output {
@@ -200,13 +261,13 @@ mod module_of_coord {
             }
         }
     }
-    // += 演算子で座標の加算
+    /// += 演算子で座標の加算
     impl AddAssign<Coord> for Coord {
         fn add_assign(&mut self, rhs: Coord) {
-            self.row = self.row.wrapping_add(rhs.row);
-            self.col = self.col.wrapping_add(rhs.col);
+            *self = *self + rhs;
         }
     }
+    /// 出力形式
     impl Display for Coord {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result {
             write!(f, "{} {}", self.row, self.col)
@@ -328,59 +389,68 @@ mod module_of_timer {
     }
 }
 // unionfind
-#[rustfmt::skip]
 mod module_of_unionfind {
+    use std::collections::HashMap;
     pub struct UnionFind {
-        parent:Vec<isize>,
-        size:  Vec<usize>,
+        parent: Vec<usize>, // 各ノードの親
+        size: Vec<usize>,   // 各ノードが属するグループのサイズ
     }
     impl UnionFind {
+        /// 初期化
         pub fn new(n: usize) -> Self {
             Self {
-                parent: vec![-1; n],
-                size: vec![1; n],
+                parent: (0..n).collect(), // 初期状態では各ノードが自分自身を親に
+                size: vec![1; n],         // 各グループのサイズは1
             }
         }
-        // 根を求める
+        /// 根を求める (パス圧縮を行う)
         pub fn root(&mut self, x: usize) -> usize {
-            if self.parent[x] == -1 {
-                // 初期値なら x を返す
-                x
-            } else {
-                // 再帰的に根をたどる
-                self.parent[x] = self.root(self.parent[x] as usize) as isize;
-                self.parent[x] as usize
+            if self.parent[x] != x {
+                // パス圧縮
+                self.parent[x] = self.root(self.parent[x]);
             }
+            self.parent[x]
         }
-        // x と y が同じグループに属するかどうか (根が一致するかどうか)
-        pub fn isSame(&mut self, x: usize, y: usize) -> bool {
+        /// x と y が同じグループに属するかどうか
+        pub fn is_same(&mut self, x: usize, y: usize) -> bool {
             self.root(x) == self.root(y)
         }
-        // x を含むグループと y を含むグループとを併合する
+        /// x を含むグループと y を含むグループを併合する (サイズの併合)
         pub fn unite(&mut self, x: usize, y: usize) -> bool {
-            // x, y をそれぞれ根まで移動する
-            let mut x = self.root(x);
-            let mut y = self.root(y);
+            let x_root = self.root(x);
+            let y_root = self.root(y);
 
-            // すでに同じグループのときは何もしない
-            if x == y {
+            // すでに同じグループの場合は何もしない
+            if x_root == y_root {
                 return false;
             }
 
-            // union by size (y 側のサイズが小さくなるようにする)
-            if self.size[x] < self.size[y] {
-                std::mem::swap(&mut y, &mut x);
-            }
+            // union by size (小さい木を大きい木にくっつける)
+            let (smaller, larger) = if self.size[x_root] < self.size[y_root] {
+                (x_root, y_root)
+            } else {
+                (y_root, x_root)
+            };
 
-            // y を x の子とする
-            self.parent[y] = x as isize;
-            self.size[x] += self.size[y];
+            // smaller を larger の子にする
+            self.parent[smaller] = larger;
+            // larger のサイズを更新
+            self.size[larger] += self.size[smaller];
             true
         }
-        // x を含むグループのサイズ
+        /// x を含むグループのサイズ
         pub fn size(&mut self, x: usize) -> usize {
-            let r = self.root(x);
-            self.size[r]
+            let root = self.root(x);
+            self.size[root]
+        }
+        /// 全てのグループとそのメンバーをHashMapで返します。
+        pub fn get_groups(&mut self) -> HashMap<usize, Vec<usize>> {
+            let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+            for i in 0..self.parent.len() {
+                let root = self.root(i);
+                groups.entry(root).or_insert_with(Vec::new).push(i);
+            }
+            groups
         }
     }
 }
