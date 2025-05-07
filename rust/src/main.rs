@@ -4,13 +4,14 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
+const TIME_LIMIT: u128 = 0;
 fn main() {
     // 設定初期化
     Config::init();
     // 入力
     let input = Input::new();
     // 実行時間制限
-    let timer = Timer::new(395000);
+    let timer = Timer::new(TIME_LIMIT);
     // 出力用意
     let mut answer = Output::new();
 
@@ -30,80 +31,31 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) {
     let initial_state = State::new(input);
     let result: State;
 
-    const EXETYPE: usize = 1;
+    const EXETYPE: u8 = 0b0000;
 
-    if EXETYPE == 0 {
-        // 貪欲？
-        {
-            result = greedy(input, &initial_state);
-        }
-    } else if EXETYPE == 1 {
-        // 焼きなましっぽい
-        let s = SAParams::default();
-        let mut sa = SimulatedAnnealing::new(s);
-        result = sa.run(initial_state, timer, &mut rnd);
+    if EXETYPE == 0b0000 {
+        algo(timer, input, answer);
     } else {
-        // ビームサーチっぽい
-        result = State::new(input);
-    }
-    result.print_states();
-    let ans = ["", ""];
-    for i in ans {
-        answer.push(format!("{}", i));
-    }
-}
+        // 貪欲？
+        result = greedy(input, &initial_state);
 
-impl SimulatedAnnealing {
-    fn run(&mut self, mut current_state: State, timer: &Timer, rnd: &mut XorShift) -> State {
-        let mut current_score = current_state.evaluate();
-        let mut best_state = current_state.clone();
-        let mut best_score = current_score;
-
-        let mut accept_count = 0;
-        let mut trial_count = 0;
-
-        while !timer.isTimeout() {
-            for _ in 0..self.params.trial_per_temp {
-                let mut next_state = current_state.clone();
-                next_state.random_transition(rnd); // 遷移
-
-                let next_score = next_state.evaluate();
-                let diff = next_score as f64 - current_score as f64;
-
-                // 遷移判定
-                if self.accept_transition(diff) {
-                    current_state = next_state;
-                    current_score = next_score;
-                    accept_count += 1;
-
-                    if next_score > best_score {
-                        best_state = current_state.clone();
-                        best_score = next_score;
-                        self.since_improve = 0;
-                        self.stats.improve_count += 1;
-                    }
-                }
-                trial_count += 1;
-                self.since_improve += 1;
-                self.stats.trial_count += 1;
-            }
-
-            // 温度管理
-            let acceptance_rate = accept_count as f64 / trial_count as f64;
-            self.cool(acceptance_rate);
-
-            // 統計更新
-            self.stats.scores.push(current_score);
-            self.stats.temp_history.push(self.current_temp);
-            self.print_states();
-
-            accept_count = 0;
-            trial_count = 0;
+        if EXETYPE == 1 {
+            // 焼きなましっぽい
+            let s = SAParams::default();
+            let mut sa = SimulatedAnnealing::new(s);
+            result = sa.run(initial_state, timer, &mut rnd);
+        } else {
+            // ビームサーチっぽい
+            result = State::new(input);
         }
-
-        best_state
+        result.print_states();
+        let ans = ["", ""];
+        for i in ans {
+            answer.push(format!("{}", i));
+        }
     }
 }
+fn algo(timer: &Timer, input: &Input, answer: &mut Output) {}
 fn greedy(input: &Input, state: &State) -> State {
     State::new(input)
 }
@@ -127,9 +79,8 @@ impl State {
 
     // 次の状態を生成（ビームサーチ用）
     fn next_states(&self) -> Vec<State> {
-        let mut states = Vec::new();
         // 問題に応じた状態遷移を実装
-        states
+        vec![];
     }
 
     // 状態遷移(焼きなまし)
