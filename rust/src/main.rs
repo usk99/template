@@ -143,13 +143,13 @@ impl State {
 }
 
 #[derive(Clone)]
-struct Input {}
+pub struct Input {}
 impl Input {
     fn new() -> Self {
         Self {}
     }
 }
-struct Output {
+pub struct Output {
     output: Vec<String>,
 }
 impl Output {
@@ -473,6 +473,20 @@ mod module_of_vecseq {
         }
         pub fn iter(&self) -> std::slice::Iter<T> {
             self.vec.iter()
+        }
+    }
+    impl<T: Clone> From<Vec<Vec<T>>> for VecSeq<T> {
+        fn from(value: Vec<Vec<T>>) -> Self {
+            Self {
+                vec: value.concat(),
+                row: value.len(),
+                col: value.first().unwrap().len(),
+            }
+        }
+    }
+    impl<T: Clone> From<VecSeq<T>> for Vec<Vec<T>> {
+        fn from(val: VecSeq<T>) -> Self {
+            val.vec.chunks(val.col).map(|ch| ch.to_vec()).collect()
         }
     }
     impl<T: Default + Clone> VecSeq<T> {
