@@ -118,7 +118,7 @@ fn tuning(input: &Input) {
 }
 
 #[derive(Clone)]
-struct State {
+pub struct State {
     // 問題固有の状態を定義
     score: usize,
 }
