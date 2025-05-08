@@ -4,7 +4,8 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-const TIME_LIMIT: u128 = 0;
+const TIME_LIMIT: u128 = 100;
+const EXETYPE: u8 = 0b0000;
 fn main() {
     // 設定初期化
     Config::init();
@@ -16,7 +17,7 @@ fn main() {
     let mut answer = Output::new();
 
     // 解く
-    solve(&timer, &input, &mut answer);
+    let mut solve = solve(&timer, &input, &mut answer);
 
     // 出力
     let ans = answer.outstr();
@@ -24,47 +25,96 @@ fn main() {
         let _ = BufWriter::new(File::create("../output.txt").unwrap()).write(ans.as_bytes());
     }
     Output(ans);
-    eprintln!("time : {}", timer.getTimeStr());
-}
-fn solve(timer: &Timer, input: &Input, answer: &mut Output) {
-    let mut rnd = XorShift::new(123456789);
-    let initial_state = State::new(input);
-    let result: State;
 
-    const EXETYPE: u8 = 0b0000;
+    solve.push_str(&format!("       time : {:>6}ms", timer.getTimeStr()));
+    eprintln!("{}", solve);
+}
+fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
+    let mut rnd = XorShift::new(123456789);
+
+    // 温度とか幅の調整用
+    //tuning(input);
 
     if EXETYPE == 0b0000 {
-        algo(timer, input, answer);
+        algorithm(timer, input, answer, &mut rnd);
+        "Algorithm".to_string()
     } else {
         // 貪欲？
-        result = greedy(input, &initial_state);
+        let mut result = greedy(input, &State::new(input));
+        let mut best_solve = "Greedy";
 
-        if EXETYPE == 1 {
-            // 焼きなましっぽい
-            let s = SAParams::default();
-            let mut sa = SimulatedAnnealing::new(s);
-            result = sa.run(initial_state, timer, &mut rnd);
-        } else {
+        if EXETYPE & 0b0001 != 0 {
+            while !timer.isTimeout() {
+                // 焼きなましっぽい
+                let mut sa = SimulatedAnnealing::new(SAParams::default());
+                let sa = sa.run(result.clone(), timer, &mut rnd, input);
+                if sa.score > result.score {
+                    best_solve = "SimulatedAnnealing";
+                    result = sa;
+                }
+            }
+        } else if EXETYPE & 0b0010 != 0 {
             // ビームサーチっぽい
-            result = State::new(input);
+            let mut bs = BeamSearch::new(BeamParams::default());
+            let bs = bs.run(State::new(input), input, timer);
+            if bs.score > result.score {
+                best_solve = "BeamSearch";
+                result = bs;
+            }
         }
-        result.print_states();
-        let ans = ["", ""];
-        for i in ans {
-            answer.push(format!("{}", i));
-        }
+        answer.push(result.score);
+        let mut s = format!("Best  Solve : {:>6}\n", best_solve);
+        s.push_str(&format!("Final Score : {:>6}\n", result.score));
+        s
     }
 }
-fn algo(timer: &Timer, input: &Input, answer: &mut Output) {}
-fn greedy(input: &Input, state: &State) -> State {
+fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output, rnd: &mut XorShift) {
+    answer.push("algo");
+    answer.push(rnd.next());
+}
+fn greedy(input: &Input, _state: &State) -> State {
     State::new(input)
 }
+fn tuning(input: &Input) {
+    let mut params = HyperParameters::new();
+    let mut scores = Vec::new();
+    for i in 0..100 {
+        let timer = &Timer::new(TIME_LIMIT);
+        let mut rnd = XorShift::new(123456789);
+        let mut sa = SimulatedAnnealing::new(SAParams {
+            start_temp: params.sa_params["start_temp"],
+            end_temp: params.sa_params["end_temp"],
+            cooling_rate: params.sa_params["cooling_rate"],
+            ..Default::default()
+        });
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-enum FieldType {
-    #[default]
-    Empty,
-    Sector(u16),
+        // 記録
+        let score = sa.run(State::new(input), timer, &mut rnd, input);
+        scores.push(score.score as f64);
+
+        if i % 10 == 0 {
+            params.tune(&scores);
+            scores.clear();
+        }
+    }
+    eprintln!("{}", params.print_history());
+    for i in 0..100 {
+        let timer = &Timer::new(TIME_LIMIT);
+        let mut bs = BeamSearch::new(BeamParams {
+            beam_width: params.bs_params["beam_width"],
+            max_depth: params.bs_params["max_depth"],
+        });
+
+        // 記録
+        let score = bs.run(State::new(input), input, timer);
+        scores.push(score.score as f64);
+
+        if i % 10 == 0 {
+            params.tune(&scores);
+            scores.clear();
+        }
+    }
+    eprintln!("{}", params.print_history());
 }
 
 #[derive(Clone)]
@@ -73,28 +123,22 @@ struct State {
     score: usize,
 }
 impl State {
-    fn new(input: &Input) -> Self {
+    fn new(_input: &Input) -> Self {
         Self { score: 0 }
     }
 
     // 次の状態を生成（ビームサーチ用）
     fn next_states(&self) -> Vec<State> {
         // 問題に応じた状態遷移を実装
-        vec![];
+        vec![]
     }
 
     // 状態遷移(焼きなまし)
-    fn random_transition(&mut self, rnd: &mut XorShift) {}
+    fn random_transition(&mut self, _rnd: &mut XorShift) {}
 
     // 状態の評価
-    fn evaluate(&self) -> usize {
-        0
-    }
-
-    // 最終結果
-    fn print_states(&self) {
-        let mut res = "Result\n".to_string();
-        res.push_str(&format!("  Final score :{}\n", self.score));
+    fn evaluate(&mut self) {
+        self.score = 0;
     }
 }
 
@@ -677,23 +721,25 @@ mod module_of_random {
     }
 }
 // 便利定数
-mod module_of_consts {
+mod module_of_const {
     #![allow(non_upper_case_globals)]
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
 }
 
 mod module_of_simulatedannealing {
+    use super::Input;
     use crate::{module_of_random::XorShift, module_of_timer::Timer, State};
+    use core::time;
     use std::io::Write;
 
     /// 焼きなましパラメータ
     #[derive(Debug, Clone)]
     pub struct SAParams {
         /// 開始温度
-        pub start_temp: f64,
+        pub(crate) start_temp: f64,
         /// 終了温度
-        pub end_temp: f64,
+        pub(crate) end_temp: f64,
         /// 冷却率
         pub cooling_rate: f64,
         /// 温度ごとの試行回数
@@ -721,32 +767,30 @@ mod module_of_simulatedannealing {
 
     /// 焼きなまし統計情報
     #[derive(Debug, Default)]
-    pub struct SAStats {
+    struct SAStats {
         /// 受理回数
-        pub accept_count: usize,
+        accept_count: usize,
         /// 改善回数
-        pub improve_count: usize,
+        improve_count: usize,
         /// 総試行回数
-        pub trial_count: usize,
+        trial_count: usize,
         /// 最高スコア
-        pub best_score: usize,
+        best_score: usize,
         /// スコア履歴
-        pub scores: Vec<usize>,
+        scores: Vec<usize>,
         /// 温度履歴
-        pub temp_history: Vec<f64>,
+        temp_history: Vec<f64>,
     }
-
     pub struct SimulatedAnnealing {
         /// 現在の温度
-        pub current_temp: f64,
+        current_temp: f64,
         /// パラメータ
-        pub params: SAParams,
+        params: SAParams,
         /// 統計情報
-        pub stats: SAStats,
+        stats: SAStats,
         /// 改善からのインターバル
-        pub since_improve: usize,
+        since_improve: usize,
     }
-
     impl SimulatedAnnealing {
         pub fn new(params: SAParams) -> Self {
             Self {
@@ -758,7 +802,7 @@ mod module_of_simulatedannealing {
         }
 
         // 自動調整を含めた温度管理
-        pub fn cool(&mut self, acceptance_rate: f64) {
+        fn cool(&mut self, acceptance_rate: f64) {
             if self.params.auto_adjust {
                 if acceptance_rate < self.params.min_accept {
                     // 受理率が低すぎる場合は温度を上げる
@@ -778,7 +822,7 @@ mod module_of_simulatedannealing {
         }
 
         // 再加熱
-        pub fn reheat(&mut self) {
+        fn reheat(&mut self) {
             if self.since_improve > self.params.reheat_interbal {
                 self.current_temp = self.params.start_temp;
                 self.since_improve = 0;
@@ -786,12 +830,64 @@ mod module_of_simulatedannealing {
         }
 
         // 状態遷移の受理判定
-        pub fn accept_transition(&self, diff: f64) -> bool {
+        fn accept_transition(&self, diff: f64) -> bool {
             if diff >= 0.0 {
                 true
             } else {
                 rand::random::<f64>() < (diff / self.current_temp).exp()
             }
+        }
+
+        // 実行
+        pub fn run(
+            &mut self,
+            mut current_state: State,
+            timer: &Timer,
+            rnd: &mut XorShift,
+            _input: &Input,
+        ) -> State {
+            let mut best_state = current_state.clone();
+
+            let mut accept_count = 0;
+            let mut trial_count = 0;
+
+            while !timer.isTimeout() {
+                for _ in 0..self.params.trial_per_temp {
+                    let mut next_state = current_state.clone();
+                    next_state.random_transition(rnd);
+                    next_state.evaluate();
+
+                    let diff = current_state.score as f64 - next_state.score as f64;
+                    if self.accept_transition(diff) {
+                        current_state = next_state;
+                        accept_count += 1;
+
+                        if current_state.score > best_state.score {
+                            best_state = current_state.clone();
+                            self.since_improve = 0;
+                            self.stats.improve_count += 1;
+                        }
+                        break;
+                    }
+                    trial_count += 1;
+                    self.since_improve += 1;
+                    self.stats.trial_count += 1;
+                }
+
+                // 温度管理
+                let accept_rate = accept_count as f64 / trial_count as f64;
+                self.cool(accept_rate);
+
+                // 統計
+                self.stats.best_score = best_state.score;
+                self.stats.scores.push(current_state.score);
+                self.stats.temp_history.push(self.current_temp);
+                self.print_states();
+
+                accept_count = 0;
+                trial_count = 0;
+            }
+            best_state
         }
 
         // 統計情報の出力
@@ -809,12 +905,13 @@ mod module_of_simulatedannealing {
                 "  Improvements found: {}\n",
                 self.stats.improve_count
             ));
-            s.push_str(&format!("  Best score: {:.6}\n", self.stats.best_score));
+            s.push_str(&format!("  Best score: {:>6}\n", self.stats.best_score));
             s.push_str(&format!("  Final temperature: {:.6}\n", self.current_temp));
             eprintln!("{}", s);
 
             s.clear();
 
+            s = "Trial    Score  Temperture\n".to_string();
             // 出力
             for (i, (score, temp)) in self
                 .stats
@@ -823,15 +920,18 @@ mod module_of_simulatedannealing {
                 .zip(self.stats.temp_history.iter())
                 .enumerate()
             {
-                s.push_str(&format!("{}\t{:.6}\t{:.6}\n", i, score, temp));
+                s.push_str(&format!("{:>5}\t{:>6}\t{:>11.6}\n", i, score, temp));
             }
 
-            let _ = std::io::BufWriter::new(std::fs::File::create("../sa_progress.txt").unwrap())
+            let _ = std::io::BufWriter::new(std::fs::File::create("sa_progress.txt").unwrap())
                 .write(s.as_bytes());
         }
     }
 }
+
 mod module_of_beamsearch {
+    use super::Input;
+    use crate::{State, Timer};
     /// ビームサーチのパラメータ
     #[derive(Debug, Clone)]
     pub struct BeamParams {
@@ -839,77 +939,183 @@ mod module_of_beamsearch {
         pub beam_width: usize,
         /// 最大探索深さ
         pub max_depth: usize,
-        /// 枝刈り閾値
-        pub prune_threshold: f64,
     }
-
-    pub struct BeamSearch<T> {
+    impl Default for BeamParams {
+        fn default() -> Self {
+            Self {
+                beam_width: 100,
+                max_depth: 10,
+            }
+        }
+    }
+    pub struct BeamSearch {
         params: BeamParams,
-        candidates: Vec<(T, i64)>,
-        best_score: i64,
+        candidates: Vec<State>,
+        best_score: usize,
     }
-
-    impl<T: Clone> BeamSearch<T> {
-        pub fn new(params: &BeamParams) -> Self {
+    impl BeamSearch {
+        pub fn new(params: BeamParams) -> Self {
             Self {
                 params: params.clone(),
                 candidates: Vec::with_capacity(params.beam_width),
-                best_score: i64::MIN,
+                best_score: usize::MIN,
             }
         }
-
-        fn add_candidate(&mut self, state: T, score: i64) {
-            // スコアが閾値以上の場合のみ追加
-            if (score as f64) >= (self.best_score as f64 * self.params.prune_threshold) {
-                self.candidates.push((state, score));
+        // ビーム幅の調整
+        fn adjust_beam_width(&self, timer: &Timer) -> usize {
+            let p = timer.progress();
+            if p < 0.2 {
+                self.params.beam_width / 2
+            } else if p < 0.5 {
+                self.params.beam_width * 3 / 4
+            } else {
+                self.params.beam_width
+            }
+        }
+        fn add_candidate(&mut self, state: State, score: usize) {
+            if score >= self.best_score {
+                self.candidates.push(state);
                 if score > self.best_score {
                     self.best_score = score;
                 }
             }
         }
-
-        pub fn run<F, G>(&mut self, initial: T, eval: F, next_states: G) -> T
-        where
-            F: Fn(&T) -> i64,
-            G: Fn(&T) -> Vec<T>,
-        {
+        pub fn run(&mut self, initial: State, input: &Input, timer: &Timer) -> State {
             self.candidates.clear();
-            let initial_score = eval(&initial);
-            self.best_score = initial_score;
-            self.add_candidate(initial, initial_score);
 
             for _ in 0..self.params.max_depth {
-                let current = std::mem::take(&mut self.candidates);
+                let mut current = std::mem::take(&mut self.candidates);
 
-                // 各候補から次の状態を生成
-                for (state, _) in current {
-                    for next in next_states(&state) {
-                        let score = eval(&next);
-                        self.add_candidate(next, score);
+                // 次の状態生成
+                if current.is_empty() {
+                    current = initial.next_states();
+                    for next in current.iter_mut() {
+                        next.evaluate();
+                        self.candidates.push(next.clone());
+                    }
+                } else {
+                    for state in current.iter() {
+                        for next in state.next_states().iter_mut() {
+                            next.evaluate();
+                            self.candidates.push(next.clone());
+                        }
                     }
                 }
 
-                // 上位beam_width個を保持
-                self.candidates.sort_by_key(|(_, s)| -s);
-                self.candidates.truncate(self.params.beam_width);
+                // 上位を保持
+                self.candidates.sort_by_key(|s| usize::MAX - s.score);
+                self.candidates.truncate(self.adjust_beam_width(timer));
 
                 if self.candidates.is_empty() {
                     break;
                 }
+                if timer.isTimeout() {
+                    break;
+                }
             }
+            // 最良状態を返す
+            self.candidates.sort_by_key(|s| usize::MAX - s.score);
+            self.candidates
+                .first()
+                .unwrap_or(&State::new(input))
+                .clone()
+        }
+    }
+}
 
-            // 最良の状態を返す
-            self.candidates.sort_by_key(|(_, s)| -s);
-            self.candidates.first().unwrap().0.clone()
+mod module_of_turning {
+    use crate::{BeamParams, SAParams};
+    use std::collections::HashMap;
+    pub struct HyperParameters {
+        // 焼きなまし
+        pub sa_params: HashMap<String, f64>,
+        // ビームサーチ
+        pub bs_params: HashMap<String, usize>,
+        // スコア履歴
+        scores: Vec<f64>,
+        // 変更履歴
+        param_history: Vec<(String, f64)>,
+    }
+    impl HyperParameters {
+        pub fn new() -> Self {
+            let sap = SAParams::default();
+            let mut sa_params = HashMap::new();
+            sa_params.insert("start_temp".to_string(), sap.start_temp);
+            sa_params.insert("end_temp".to_string(), sap.end_temp);
+            sa_params.insert("cooling_rate".to_string(), sap.cooling_rate);
+            let bsp = BeamParams::default();
+            let mut bs_params = HashMap::new();
+            bs_params.insert("beam_width".to_string(), bsp.beam_width);
+            bs_params.insert("max_depth".to_string(), bsp.max_depth);
+            Self {
+                sa_params,
+                bs_params,
+                scores: Vec::new(),
+                param_history: Vec::new(),
+            }
+        }
+
+        // スコア履歴から最適なパラメータを推定
+        pub fn tune(&mut self, new_scores: &[f64]) {
+            self.scores.extend_from_slice(new_scores);
+
+            // スコアの統計情報を計算
+            let avg = self.scores.iter().sum::<f64>() / self.scores.len() as f64;
+            let var = self.scores.iter().map(|&x| (x - avg).powi(2)).sum::<f64>()
+                / self.scores.len() as f64;
+
+            // パラメータの調整
+            self.adjust_temperature(avg, var);
+            self.adjust_beam_width(avg);
+
+            // 履歴の保存
+            self.param_history.push(("score_avg".to_string(), avg));
+        }
+
+        // 温度パラメータの調整
+        fn adjust_temperature(&mut self, avg_score: f64, variance: f64) {
+            let current_temp = self.sa_params["start_temp"];
+
+            // スコアの変動が大きい場合は温度を上げる
+            if variance > avg_score * 0.1 {
+                self.sa_params
+                    .insert("start_temp".to_string(), current_temp * 1.2);
+            } else {
+                self.sa_params
+                    .insert("start_temp".to_string(), current_temp * 0.8);
+            }
+        }
+
+        // ビーム幅の調整
+        fn adjust_beam_width(&mut self, avg_score: f64) {
+            let current_width = self.bs_params["beam_width"];
+
+            // スコアが改善している場合はビーム幅を増やす
+            if self.scores.len() > 2
+                && !self.scores.is_empty()
+                && avg_score > self.scores[self.scores.len() - 2]
+            {
+                self.bs_params
+                    .insert("beam_width".to_string(), current_width + 10);
+            }
+        }
+
+        // パラメータ調整履歴の出力
+        pub fn print_history(&self) -> String {
+            let mut result = String::new();
+            for (param, value) in &self.param_history {
+                result.push_str(&format!("{}: {:.2}\n", param, value));
+            }
+            result
         }
     }
 }
 
 use crate::{
-    module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_consts::*,
+    module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_const::*,
     module_of_coord::*, module_of_direction::*, module_of_random::*,
-    module_of_simulatedannealing::*, module_of_timer::*, module_of_unionfind::*,
-    module_of_vecseq::*,
+    module_of_simulatedannealing::*, module_of_timer::*, module_of_turning::*,
+    module_of_unionfind::*, module_of_vecseq::*,
 };
 
 use {
