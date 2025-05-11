@@ -4,8 +4,8 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-const TIME_LIMIT: u128 = 100;
-const EXETYPE: u8 = 0b0000;
+const TIME_LIMIT: u128 = 0000;
+const EXETYPE: u8 = 0b00000000;
 fn main() {
     // 設定初期化
     Config::init();
@@ -15,10 +15,8 @@ fn main() {
     let timer = Timer::new(TIME_LIMIT);
     // 出力用意
     let mut answer = Output::new();
-
     // 解く
     let mut solve = solve(&timer, &input, &mut answer);
-
     // 出力
     let ans = answer.outstr();
     if isLocal() {
@@ -32,18 +30,22 @@ fn main() {
 fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
     let mut rnd = XorShift::new(123456789);
 
-    // 温度とか幅の調整用
-    //tuning(input);
-
-    if EXETYPE == 0b0000 {
+    if EXETYPE == 0b00000000 {
         algorithm(timer, input, answer, &mut rnd);
         "Algorithm".to_string()
     } else {
-        // 貪欲？
-        let mut result = greedy(input, &State::new(input));
-        let mut best_solve = "Greedy";
-
-        if EXETYPE & 0b0001 != 0 {
+        // 温度とか幅の調整用
+        //tuning(input);
+        let mut result = bare_minimum(input);
+        let mut best_solve = "bare_minimum";
+        if EXETYPE & 0b00000001 != 0 {
+            // 貪欲？
+            let mut gr = greedy(input, &State::new(input));
+            if gr.score > result.score {
+                result = gr;
+                best_solve = "Greedy";
+            }
+        } else if EXETYPE & 0b00000010 != 0 {
             while !timer.isTimeout() {
                 // 焼きなましっぽい
                 let mut sa = SimulatedAnnealing::new(SAParams::default());
@@ -53,7 +55,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
                     result = sa;
                 }
             }
-        } else if EXETYPE & 0b0010 != 0 {
+        } else if EXETYPE & 0b00000010 != 0 {
             // ビームサーチっぽい
             let mut bs = BeamSearch::new(BeamParams::default());
             let bs = bs.run(State::new(input), input, timer);
@@ -71,6 +73,9 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
 fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output, rnd: &mut XorShift) {
     answer.push("algo");
     answer.push(rnd.next());
+}
+fn bare_minimum(input: &Input) -> State {
+    State::new(input)
 }
 fn greedy(input: &Input, _state: &State) -> State {
     State::new(input)
@@ -871,7 +876,7 @@ mod module_of_simulatedannealing {
                     next_state.random_transition(rnd);
                     next_state.evaluate();
 
-                    let diff = current_state.score as f64 - next_state.score as f64;
+                    let diff = next_state.score as f64 - current_state.score as f64;
                     if self.accept_transition(diff) {
                         current_state = next_state;
                         accept_count += 1;
@@ -881,7 +886,6 @@ mod module_of_simulatedannealing {
                             self.since_improve = 0;
                             self.stats.improve_count += 1;
                         }
-                        break;
                     }
                     trial_count += 1;
                     self.since_improve += 1;
