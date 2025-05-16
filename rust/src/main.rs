@@ -31,7 +31,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
     let mut rnd = XorShift::new(123456789);
 
     if EXETYPE == 0b00000000 {
-        algorithm(timer, input, answer, &mut rnd);
+        algorithm(timer, input, answer);
         "Algorithm".to_string()
     } else {
         // 温度とか幅の調整用
@@ -40,7 +40,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
         let mut best_solve = "bare_minimum";
         if EXETYPE & 0b00000001 != 0 {
             // 貪欲？
-            let mut gr = greedy(input, &State::new(input));
+            let gr = greedy(input, &State::new(input));
             if gr.score > result.score {
                 result = gr;
                 best_solve = "Greedy";
@@ -55,7 +55,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
                     result = sa;
                 }
             }
-        } else if EXETYPE & 0b00000010 != 0 {
+        } else if EXETYPE & 0b00000100 != 0 {
             // ビームサーチっぽい
             let mut bs = BeamSearch::new(BeamParams::default());
             let bs = bs.run(State::new(input), input, timer);
@@ -70,9 +70,8 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
         s
     }
 }
-fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output, rnd: &mut XorShift) {
+fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
     answer.push("algo");
-    answer.push(rnd.next());
 }
 fn bare_minimum(input: &Input) -> State {
     State::new(input)
@@ -241,6 +240,7 @@ mod module_of_config {
 }
 // 座標
 mod module_of_coord {
+    use crate::Direction;
     use std::{
         fmt::{Display, Formatter, Result},
         ops::{Add, AddAssign},
@@ -249,7 +249,7 @@ mod module_of_coord {
     /// -  u8:<=255
     /// - u16:<=65,535
     /// - u32:<=4,294,967,295
-    type CoordType = u8;
+    pub type CoordType = u8;
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Coord {
         row: CoordType,
@@ -328,9 +328,23 @@ mod module_of_coord {
             }
         }
     }
+    impl Add<Direction> for Coord {
+        type Output = Coord;
+        fn add(self, rhs: Direction) -> Self::Output {
+            Coord {
+                row: self.row.wrapping_add(rhs.to_coord().row),
+                col: self.col.wrapping_add(rhs.to_coord().col),
+            }
+        }
+    }
     /// += 演算子で座標の加算
     impl AddAssign<Coord> for Coord {
         fn add_assign(&mut self, rhs: Coord) {
+            *self = *self + rhs;
+        }
+    }
+    impl AddAssign<Direction> for Coord {
+        fn add_assign(&mut self, rhs: Direction) {
             *self = *self + rhs;
         }
     }
@@ -414,10 +428,10 @@ mod module_of_direction {
         /// 方向を文字列に
         pub fn to_str(self) -> &'static str {
             match self {
-                Direction::U => "Up",
-                Direction::R => "Right",
-                Direction::D => "Down",
-                Direction::L => "Left",
+                Direction::U => "U",
+                Direction::R => "R",
+                Direction::D => "D",
+                Direction::L => "L",
             }
         }
         /// 4方向イテレータ
