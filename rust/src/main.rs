@@ -78,7 +78,7 @@ fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
 fn bare_minimum(input: &Input) -> State {
     State::new(input)
 }
-fn greedy(input: &Input, _state: &State) -> State {
+fn greedy(input: &Input) -> State {
     State::new(input)
 }
 fn tuning(input: &Input) {
