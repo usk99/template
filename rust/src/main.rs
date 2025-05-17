@@ -40,12 +40,13 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
         let mut best_solve = "bare_minimum";
         if EXETYPE & 0b00000001 != 0 {
             // 貪欲？
-            let gr = greedy(input, &State::new(input));
+            let gr = greedy(input);
             if gr.score > result.score {
                 result = gr;
                 best_solve = "Greedy";
             }
-        } else if EXETYPE & 0b00000010 != 0 {
+        }
+        if EXETYPE & 0b00000010 != 0 {
             while !timer.isTimeout() {
                 // 焼きなましっぽい
                 let mut sa = SimulatedAnnealing::new(SAParams::default());
@@ -55,7 +56,8 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
                     result = sa;
                 }
             }
-        } else if EXETYPE & 0b00000100 != 0 {
+        }
+        if EXETYPE & 0b00000100 != 0 {
             // ビームサーチっぽい
             let mut bs = BeamSearch::new(BeamParams::default());
             let bs = bs.run(State::new(input), input, timer);
