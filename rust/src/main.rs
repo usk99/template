@@ -75,6 +75,22 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
     }
 }
 fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
+    let N = InputNum();
+    let Q = InputNum();
+    let mut seg = LazySegTree::new_sum(N);
+    for _ in 0..Q {
+        if InputNum() == 0 {
+            let s = InputNum();
+            let t = InputNum();
+            let x = InputNum();
+            seg.add_range_impl(s, t, x);
+        } else {
+            let s = InputNum();
+            let t = InputNum();
+            answer.push(seg.get_range(s, t));
+        }
+    }
+
     answer.push("algo");
 }
 fn bare_minimum(input: &Input) -> State {
@@ -163,7 +179,7 @@ impl Output {
     }
     // 追加
     fn push<T: ChangeToString>(&mut self, element: T) {
-        self.output.push(element.change_to_string())
+        self.output.push(element.change_to_string());
     }
     // 初期化
     fn clear(&mut self) {
@@ -184,11 +200,11 @@ mod module_of_IO{
         loop{let mut u8b=[0];let mut buf=Vec::<u8>::with_capacity(16);
             loop{let res=stdin.read(&mut u8b).unwrap_or(0);
                 if res==0||u8b[0]<=b' '{break;}// 空白等で終了
-                else{buf.push(u8b[0]);}// 返却文字列追加
+                buf.push(u8b[0]);// 返却文字列追加
             }if !buf.is_empty(){return String::from_utf8(buf).unwrap();}// utf8をStringでreturn
         }
     }
-    macro_rules! define_input_functions {($($name:ident($($arg:ident:$t:ty),*)->$ret:ty=$body:expr);* $(;)*)=>{$(pub fn $name($($arg: $t),*)->$ret{$body})*}}
+    macro_rules! define_input_functions {($($name:ident($($arg:ident:$t:ty),*)->$ret:ty=$body:expr);* $(;)*)=>{$(pub fn $name($($arg:$t),*)->$ret{$body})*}}
     define_input_functions! {
         InputNum     ()               ->        usize   = get_word().parse().unwrap();
         InputNums    (n:usize)        ->    Vec<usize>  =(0..n).map(|_|InputNum()).collect();
@@ -198,22 +214,20 @@ mod module_of_IO{
         InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
     }
     // 出力
-    pub trait Output{fn output(self) -> String;}
+    trait Cts{fn cts(self)->String;}
+    macro_rules! impl_cts{($($t:ty),*)=>{$(impl Cts for $t {fn cts(self)->String{self.to_string()}})*}}
+    impl_cts!(f32,f64,i8,i16,i32,i64,i128,u8,u16,u32,u64,u128,isize,usize,&str,char,&String);
+    impl Cts for bool{fn cts(self)->String{(if self{"Yes"}else{"No"}).to_string()}}
+    impl Cts for String{fn cts(self)->String{self}}
+    pub trait ChangeToString{fn change_to_string(self)->String;}
+    impl<T:Cts+Display>ChangeToString for     T {fn change_to_string(self)->String{self.cts()}}
+    impl<T:Cts+Display>ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
+    impl ChangeToString for     Coord {fn change_to_string(self)->String{format!("{}",self)}}
+    impl ChangeToString for Direction {fn change_to_string(self)->String{format!("{}",self)}}
+    pub trait Output{fn output(self)->String;}
+    impl<T:ChangeToString>Output for T{fn output(self)->String{self.change_to_string()}}
     pub fn  Output(o:impl Output){ println!("{}",o.output())}
     pub fn EOutput(o:impl Output){eprintln!("{}",o.output())}
-    impl<T:ChangeToString>Output for T {fn output(self) -> String{self.change_to_string()}}
-    // 基本的な型の出力様式
-    trait Cts{fn cts(self) -> String;}
-    fn changetostring(element:impl Cts)->String{element.cts()}
-    impl Cts for   bool{fn cts(self)->String{(if self {"Yes"} else {"No"}).to_string()}}
-    macro_rules! impl_cts {($($t:ty),*)=>{$(impl Cts for $t {fn cts(self)->String{self.to_string()}})*}}
-    impl_cts!(f32,f64,i8,i16,i32,i64,i128,u8,u16,u32,u64,u128,isize,usize,&str,char,String,&String);
-    // vec対応
-    pub trait ChangeToString{fn change_to_string(self)->String;}
-    impl <T:Cts + Display>ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
-    impl <T:Cts + Display>ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
-    impl ChangeToString for     Coord{fn change_to_string(self)->String{format!("{}",self)}}
-    impl ChangeToString for Direction{fn change_to_string(self)->String{format!("{}",self)}}
 }
 // 設定
 #[rustfmt::skip]
@@ -1029,6 +1043,7 @@ mod module_of_const {
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
 }
+// 焼きなまし
 mod module_of_simulatedannealing {
     use {
         super::Input,
@@ -1215,6 +1230,7 @@ mod module_of_simulatedannealing {
         }
     }
 }
+// ビームサーチ
 mod module_of_beamsearch {
     use {
         super::Input,
@@ -1310,6 +1326,7 @@ mod module_of_beamsearch {
         }
     }
 }
+// 調整
 mod module_of_turning {
     use {
         crate::{BeamParams, SAParams},
@@ -1392,14 +1409,13 @@ mod module_of_turning {
     }
 }
 
-use crate::{
-    module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_const::*,
-    module_of_coord::*, module_of_direction::*, module_of_random::*, module_of_segmenttree::*,
-    module_of_simulatedannealing::*, module_of_timer::*, module_of_turning::*,
-    module_of_unionfind::*, module_of_vecseq::*,
-};
-
 use {
+    crate::{
+        module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_const::*,
+        module_of_coord::*, module_of_direction::*, module_of_random::*, module_of_segmenttree::*,
+        module_of_simulatedannealing::*, module_of_timer::*, module_of_turning::*,
+        module_of_unionfind::*, module_of_vecseq::*,
+    },
     itertools::Itertools,
     num::{pow::Pow, range, Integer},
     std::{
