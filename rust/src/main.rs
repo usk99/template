@@ -934,6 +934,31 @@ mod module_of_segmenttree {
             a ^ b
         }
     }
+    // gcdの実装
+    #[derive(Clone, Copy)]
+    pub struct Gcd;
+    impl Monoid for Gcd {
+        type S = usize;
+        fn identity() -> Self::S {
+            0
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            num::Integer::gcd(a, b)
+        }
+    }
+    // lcmの実装
+    #[derive(Clone, Copy)]
+    pub struct Lcm;
+    impl Monoid for Lcm {
+        type S = usize;
+        fn identity() -> Self::S {
+            1
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            num::Integer::lcm(a, b)
+        }
+    }
+
     impl LazySegTree<Sum> {
         pub fn new_sum(n: usize) -> Self {
             Self::new(n)
@@ -963,6 +988,22 @@ mod module_of_segmenttree {
             Self::new(n)
         }
         pub fn from_vec_xor(v: &[usize]) -> Self {
+            Self::from_vec(v)
+        }
+    }
+    impl LazySegTree<Gcd> {
+        pub fn new_gcd(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_gcd(v: &[usize]) -> Self {
+            Self::from_vec(v)
+        }
+    }
+    impl LazySegTree<Lcm> {
+        pub fn new_lcm(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_lcm(v: &[usize]) -> Self {
             Self::from_vec(v)
         }
     }
@@ -1021,8 +1062,8 @@ mod module_of_random {
         }
     }
 }
-// 便利定数
-mod module_of_const {
+// 便利
+mod module_of_util {
     #![allow(non_upper_case_globals)]
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
@@ -1142,7 +1183,6 @@ mod module_of_simulatedannealing {
             _input: &Input,
         ) -> State {
             let mut best_state = current_state.clone();
-
             let mut accept_count = 0;
             let mut trial_count = 0;
 
@@ -1151,7 +1191,6 @@ mod module_of_simulatedannealing {
                     let mut next_state = current_state.clone();
                     next_state.random_transition(rnd);
                     next_state.evaluate();
-
                     let diff = next_state.score as f64 - current_state.score as f64;
                     if self.accept_transition(diff) {
                         current_state = next_state;
@@ -1167,17 +1206,14 @@ mod module_of_simulatedannealing {
                     self.since_improve += 1;
                     self.stats.trial_count += 1;
                 }
-
                 // 温度管理
                 let accept_rate = accept_count as f64 / trial_count as f64;
                 self.cool(accept_rate);
-
                 // 統計
                 self.stats.best_score = best_state.score;
                 self.stats.scores.push(current_state.score);
                 self.stats.temp_history.push(self.current_temp);
                 self.print_states();
-
                 accept_count = 0;
                 trial_count = 0;
             }
@@ -1188,7 +1224,6 @@ mod module_of_simulatedannealing {
             if !crate::isLocal() {
                 return;
             }
-
             use std::fmt::Write;
             let mut s = String::new();
             writeln!(s, "SimulatedAnnealing").unwrap();
@@ -1197,7 +1232,6 @@ mod module_of_simulatedannealing {
             writeln!(s, "  Best score: {:>6}", self.stats.best_score).unwrap();
             writeln!(s, "  Final temperature: {:.6}", self.current_temp).unwrap();
             eprintln!("{}", s);
-
             // 進捗出力
             let mut progress = String::from("Trial    Score  Temperature\n");
             for (i, (score, temp)) in self
@@ -1209,7 +1243,6 @@ mod module_of_simulatedannealing {
             {
                 writeln!(progress, "{:>5}\t{:>6}\t{:>11.6}", i, score, temp).unwrap();
             }
-
             std::fs::write("sa_progress.txt", progress).unwrap();
         }
     }
@@ -1270,10 +1303,8 @@ mod module_of_beamsearch {
         }
         pub fn run(&mut self, initial: State, input: &Input, timer: &Timer) -> State {
             self.candidates.clear();
-
             for _ in 0..self.params.max_depth {
                 let mut current = std::mem::take(&mut self.candidates);
-
                 // 次の状態生成
                 if current.is_empty() {
                     current = initial.next_states();
@@ -1289,7 +1320,6 @@ mod module_of_beamsearch {
                         }
                     }
                 }
-
                 // 上位を保持
                 self.candidates.sort_by_key(|s| usize::MAX - s.score);
                 self.candidates.truncate(self.adjust_beam_width(timer));
@@ -1347,23 +1377,19 @@ mod module_of_turning {
         // スコア履歴から最適なパラメータを推定
         pub fn tune(&mut self, new_scores: &[f64]) {
             self.scores.extend_from_slice(new_scores);
-
             // スコアの統計情報を計算
             let avg = self.scores.iter().sum::<f64>() / self.scores.len() as f64;
             let var = self.scores.iter().map(|&x| (x - avg).powi(2)).sum::<f64>()
                 / self.scores.len() as f64;
-
             // パラメータの調整
             self.adjust_temperature(avg, var);
             self.adjust_beam_width(avg);
-
             // 履歴の保存
             self.param_history.push(("score_avg".to_string(), avg));
         }
         // 温度パラメータの調整
         fn adjust_temperature(&mut self, avg_score: f64, variance: f64) {
             let current_temp = self.sa_params["start_temp"];
-
             // スコアの変動が大きい場合は温度を上げる
             if variance > avg_score * 0.1 {
                 self.sa_params
@@ -1395,10 +1421,10 @@ mod module_of_turning {
 
 use {
     crate::{
-        module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_const::*,
-        module_of_coord::*, module_of_direction::*, module_of_random::*, module_of_segmenttree::*,
+        module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_coord::*,
+        module_of_direction::*, module_of_random::*, module_of_segmenttree::*,
         module_of_simulatedannealing::*, module_of_timer::*, module_of_turning::*,
-        module_of_unionfind::*, module_of_vecseq::*,
+        module_of_unionfind::*, module_of_util::*, module_of_vecseq::*,
     },
     itertools::Itertools,
     num::{pow::Pow, range, Integer},
