@@ -75,22 +75,6 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
     }
 }
 fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
-    let N = InputNum();
-    let Q = InputNum();
-    let mut seg = LazySegTree::new_sum(N);
-    for _ in 0..Q {
-        if InputNum() == 0 {
-            let s = InputNum();
-            let t = InputNum();
-            let x = InputNum();
-            seg.add_range_impl(s, t, x);
-        } else {
-            let s = InputNum();
-            let t = InputNum();
-            answer.push(seg.get_range(s, t));
-        }
-    }
-
     answer.push("algo");
 }
 fn bare_minimum(input: &Input) -> State {
