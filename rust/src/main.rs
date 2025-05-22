@@ -134,16 +134,13 @@ impl State {
     fn new(_input: &Input) -> Self {
         Self { score: 0 }
     }
-
     // 次の状態を生成（ビームサーチ用）
     fn next_states(&self) -> Vec<State> {
         // 問題に応じた状態遷移を実装
         vec![]
     }
-
     // 状態遷移(焼きなまし)
     fn random_transition(&mut self, _rnd: &mut XorShift) {}
-
     // 状態の評価
     fn evaluate(&mut self) {
         self.score = 0;
@@ -191,12 +188,15 @@ mod module_of_IO{
             }if !buf.is_empty(){return String::from_utf8(buf).unwrap();}// utf8をStringでreturn
         }
     }
-    pub fn InputNum     ()                ->        usize   {get_word().parse().unwrap()}
-    pub fn InputNums    (n: usize)        ->    Vec<usize>  {let mut v=Vec::    <usize>  ::new();for _ in 0..n{v.push(InputNum());}v}
-    pub fn InputsNums   (h: usize,w:usize)->Vec<Vec<usize>> {let mut v=Vec::<Vec<usize>> ::new();for _ in 0..h{v.push(InputNums(w));}v}
-    pub fn InputString  ()                ->        String  {get_word()}
-    pub fn InputStrings (n: usize)        ->    Vec<String> {let mut v=Vec::    <String> ::new();for _ in 0..n{v.push(InputString());}v}
-    pub fn InputsStrings(h: usize,w:usize)->Vec<Vec<String>>{let mut v=Vec::<Vec<String>>::new();for _ in 0..h{v.push(InputStrings(w));}v}
+    macro_rules! define_input_functions {($($name:ident($($arg:ident:$t:ty),*)->$ret:ty=$body:expr);* $(;)*)=>{$(pub fn $name($($arg: $t),*)->$ret{$body})*}}
+    define_input_functions! {
+        InputNum     ()               ->        usize   = get_word().parse().unwrap();
+        InputNums    (n:usize)        ->    Vec<usize>  =(0..n).map(|_|InputNum()).collect();
+        InputsNums   (h:usize,w:usize)->Vec<Vec<usize>> =(0..h).map(|_|InputNums(w)).collect();
+        InputString  ()               ->        String  =get_word();
+        InputStrings (n:usize)        ->    Vec<String> =(0..n).map(|_|InputString()).collect();
+        InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
+    }
     // 出力
     pub trait Output{fn output(self) -> String;}
     pub fn  Output(o:impl Output){ println!("{}",o.output())}
@@ -206,21 +206,14 @@ mod module_of_IO{
     trait Cts{fn cts(self) -> String;}
     fn changetostring(element:impl Cts)->String{element.cts()}
     impl Cts for   bool{fn cts(self)->String{(if self {"Yes"} else {"No"}).to_string()}}
-    impl Cts for    f32{fn cts(self)->String{self.to_string()}}impl Cts for    f64{fn cts(self)->String{self.to_string()}}
-    impl Cts for     i8{fn cts(self)->String{self.to_string()}}impl Cts for     u8{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i16{fn cts(self)->String{self.to_string()}}impl Cts for    u16{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i32{fn cts(self)->String{self.to_string()}}impl Cts for    u32{fn cts(self)->String{self.to_string()}}
-    impl Cts for    i64{fn cts(self)->String{self.to_string()}}impl Cts for    u64{fn cts(self)->String{self.to_string()}}
-    impl Cts for   i128{fn cts(self)->String{self.to_string()}}impl Cts for   u128{fn cts(self)->String{self.to_string()}}
-    impl Cts for  isize{fn cts(self)->String{self.to_string()}}impl Cts for  usize{fn cts(self)->String{self.to_string()}}
-    impl Cts for   &str{fn cts(self)->String{self.to_string()}}impl Cts for   char{fn cts(self)->String{self.to_string()}}
-    impl Cts for&String{fn cts(self)->String{self.to_string()}}impl Cts for String{fn cts(self)->String{self}}
+    macro_rules! impl_cts {($($t:ty),*)=>{$(impl Cts for $t {fn cts(self)->String{self.to_string()}})*}}
+    impl_cts!(f32,f64,i8,i16,i32,i64,i128,u8,u16,u32,u64,u128,isize,usize,&str,char,String,&String);
     // vec対応
     pub trait ChangeToString{fn change_to_string(self)->String;}
-    impl <T:Cts + Display> ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
-    impl <T:Cts + Display> ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
-    impl ChangeToString for     Coord{fn change_to_string(self)->String {format!("{}",self)}}
-    impl ChangeToString for Direction{fn change_to_string(self)->String {format!("{}",self)}}
+    impl <T:Cts + Display>ChangeToString for     T {fn change_to_string(self)->String{changetostring(self)}}
+    impl <T:Cts + Display>ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
+    impl ChangeToString for     Coord{fn change_to_string(self)->String{format!("{}",self)}}
+    impl ChangeToString for Direction{fn change_to_string(self)->String{format!("{}",self)}}
 }
 // 設定
 #[rustfmt::skip]
@@ -373,71 +366,114 @@ mod module_of_direction {
         /// 左
         L,
     }
+    #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
+    struct DirectionAdjacent {
+        oppsite: Direction,
+        clockwise: Direction,
+        counter_clockwise: Direction,
+    }
+    #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
+    struct DirectionData {
+        index: usize,
+        symbol: &'static str,
+        offset: (isize, isize),
+        odjacents: DirectionAdjacent,
+    }
+    type DirectionInfo = (Direction, DirectionData);
     impl Direction {
-        const DIRECTION_INFO: [(Direction, usize, &'static str, (i32, i32)); 4] = [
-            (Direction::U, 0, "U", (-1, 0)),
-            (Direction::R, 1, "R", (0, 1)),
-            (Direction::D, 2, "D", (1, 0)),
-            (Direction::L, 3, "L", (0, -1)),
+        const DIRECTION_INFO: [DirectionInfo; 4] = [
+            (
+                Direction::U,
+                DirectionData {
+                    index: 0,
+                    symbol: "U",
+                    offset: (-1, 0),
+                    odjacents: DirectionAdjacent {
+                        oppsite: Direction::D,
+                        clockwise: Direction::R,
+                        counter_clockwise: Direction::L,
+                    },
+                },
+            ),
+            (
+                Direction::R,
+                DirectionData {
+                    index: 1,
+                    symbol: "R",
+                    offset: (0, 1),
+                    odjacents: DirectionAdjacent {
+                        oppsite: Direction::L,
+                        clockwise: Direction::D,
+                        counter_clockwise: Direction::U,
+                    },
+                },
+            ),
+            (
+                Direction::D,
+                DirectionData {
+                    index: 2,
+                    symbol: "D",
+                    offset: (1, 0),
+                    odjacents: DirectionAdjacent {
+                        oppsite: Direction::U,
+                        clockwise: Direction::R,
+                        counter_clockwise: Direction::L,
+                    },
+                },
+            ),
+            (
+                Direction::L,
+                DirectionData {
+                    index: 3,
+                    symbol: "L",
+                    offset: (0, -1),
+                    odjacents: DirectionAdjacent {
+                        oppsite: Direction::R,
+                        clockwise: Direction::U,
+                        counter_clockwise: Direction::D,
+                    },
+                },
+            ),
         ];
-
-        const OPERATIONS: [(Direction, (Direction, Direction, Direction)); 4] = [
-            // (方向, 反対, 時計回り, 反時計回り)
-            (Direction::U, (Direction::D, Direction::R, Direction::L)),
-            (Direction::R, (Direction::L, Direction::D, Direction::U)),
-            (Direction::D, (Direction::U, Direction::L, Direction::R)),
-            (Direction::L, (Direction::R, Direction::U, Direction::D)),
-        ];
-        fn get_operation_info(self) -> (Direction, Direction, Direction) {
-            Self::OPERATIONS
+        fn get_direction_info(self) -> DirectionInfo {
+            Self::DIRECTION_INFO
                 .iter()
                 .find(|(dir, _)| *dir == self)
-                .map(|(_, ops)| *ops)
+                .copied()
                 .unwrap()
         }
         /// 方向を反転する
         pub fn opposite(self) -> Self {
-            self.get_operation_info().0
+            self.get_direction_info().1.odjacents.oppsite
         }
         /// 時計回りに90度
         pub fn clockwise(self) -> Self {
-            self.get_operation_info().1
+            self.get_direction_info().1.odjacents.clockwise
         }
         /// 反時計回りに90度
         pub fn counter_clockwise(self) -> Self {
-            self.get_operation_info().2
+            self.get_direction_info().1.odjacents.counter_clockwise
         }
         /// 座標に変換
         pub fn to_coord(self) -> Coord {
-            let (_, _, _, (row, col)) = Self::DIRECTION_INFO
-                .iter()
-                .find(|(dir, _, _, _)| *dir == self)
-                .unwrap();
-            Coord::new(*row as usize, *col as usize)
+            let (row, col) = self.get_direction_info().1.offset;
+            Coord::new(row as usize, col as usize)
         }
         /// 方向をインデックスに
         pub fn to_index(self) -> usize {
-            Self::DIRECTION_INFO
-                .iter()
-                .find(|(dir, _, _, _)| *dir == self)
-                .map(|(_, idx, _, _)| *idx)
-                .unwrap()
+            self.get_direction_info().1.index
         }
         /// インデックスを方向に
         pub fn from_index(ind: usize) -> Option<Self> {
             Self::DIRECTION_INFO
                 .iter()
-                .find(|(_, idx, _, _)| *idx == ind)
-                .map(|(dir, _, _, _)| *dir)
+                .find(|(_, idx)| idx.index == ind)
+                .map(|(dir, _)| *dir)
         }
     }
     impl std::fmt::Display for Direction {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let (_, _, s, _) = Self::DIRECTION_INFO
-                .iter()
-                .find(|(dir, _, _, _)| *dir == *self)
-                .unwrap();
-            write!(f, "{}", s)
+            write!(f, "{}", self.get_direction_info().1.symbol)
         }
     }
     pub const DIRECTIONS: [Coord; 4] = [
@@ -756,20 +792,20 @@ mod module_of_segmenttree {
         }
         /// 更新
         pub fn add(&mut self, k: usize, x: M::S) {
-            self.add_range_impl(k, k + 1, &x);
+            self.add_range_impl(k, k + 1, x);
         }
         pub fn update(&mut self, k: usize, x: M::S) {
-            self.update_range_impl(k, k + 1, &x);
+            self.update_range_impl(k, k + 1, x);
         }
         fn update_operation(&mut self, k: usize) {
             self.data[k] = M::binary_operation(&self.data[2 * k], &self.data[2 * k + 1]);
         }
         /// 区間加算
-        pub fn add_range_impl(&mut self, left: usize, right: usize, x: &M::S) {
+        pub fn add_range_impl(&mut self, left: usize, right: usize, x: M::S) {
             self.range_operation_impl(RangeOperationParams {
                 left,
                 right,
-                x: x.clone(),
+                x,
                 k: 1,
                 l: 0,
                 r: self.size,
@@ -777,11 +813,11 @@ mod module_of_segmenttree {
             });
         }
         /// 区間更新
-        pub fn update_range_impl(&mut self, left: usize, right: usize, x: &M::S) {
+        pub fn update_range_impl(&mut self, left: usize, right: usize, x: M::S) {
             self.range_operation_impl(RangeOperationParams {
                 left,
                 right,
-                x: x.clone(),
+                x,
                 k: 1,
                 l: 0,
                 r: self.size,
@@ -998,7 +1034,6 @@ mod module_of_simulatedannealing {
         super::Input,
         crate::{State, Timer, XorShift},
     };
-
     /// 焼きなましパラメータ
     #[derive(Debug, Clone)]
     pub struct SAParams {
