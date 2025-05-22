@@ -47,7 +47,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             }
         }
         if EXETYPE & 0b00000010 != 0 {
-            while !timer.isTimeout() {
+            while !timer.is_timeout() {
                 // 焼きなましっぽい
                 let mut sa = SimulatedAnnealing::new(SAParams::default());
                 let sa = sa.run(result.clone(), timer, &mut rnd, input);
@@ -67,8 +67,10 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             }
         }
         answer.push(result.score);
-        let mut s = format!("Best  Solve : {:>6}\n", best_solve);
-        s.push_str(&format!("Final Score : {:>6}\n", result.score));
+        use std::fmt::Write;
+        let mut s = String::new();
+        writeln!(s, "Best  Solve : {:>6}", best_solve).unwrap();
+        writeln!(s, "Final Score : {:>6}", result.score).unwrap();
         s
     }
 }
@@ -179,9 +181,7 @@ impl Output {
 // 入出力
 #[rustfmt::skip]
 mod module_of_IO{
-    use itertools::Itertools;use std::{fmt::Display,io::Read};
-    use crate::module_of_coord::Coord;
-    use crate::module_of_direction::Direction;
+    use {itertools::Itertools, std::{fmt::Display,io::Read},crate::{Coord, Direction}};
     // 入力
     fn get_word()->String{let mut stdin=std::io::stdin();
         loop{let mut u8b=[0];let mut buf=Vec::<u8>::with_capacity(16);
@@ -242,10 +242,12 @@ mod module_of_config {
 }
 // 座標
 mod module_of_coord {
-    use crate::Direction;
-    use std::{
-        fmt::{Display, Formatter, Result},
-        ops::{Add, AddAssign},
+    use {
+        crate::Direction,
+        std::{
+            fmt::{Display, Formatter, Result},
+            ops::{Add, AddAssign},
+        },
     };
     /// 座標の型
     /// -  u8:<=255
@@ -372,78 +374,70 @@ mod module_of_direction {
         L,
     }
     impl Direction {
+        const DIRECTION_INFO: [(Direction, usize, &'static str, (i32, i32)); 4] = [
+            (Direction::U, 0, "U", (-1, 0)),
+            (Direction::R, 1, "R", (0, 1)),
+            (Direction::D, 2, "D", (1, 0)),
+            (Direction::L, 3, "L", (0, -1)),
+        ];
+
+        const OPERATIONS: [(Direction, (Direction, Direction, Direction)); 4] = [
+            // (方向, 反対, 時計回り, 反時計回り)
+            (Direction::U, (Direction::D, Direction::R, Direction::L)),
+            (Direction::R, (Direction::L, Direction::D, Direction::U)),
+            (Direction::D, (Direction::U, Direction::L, Direction::R)),
+            (Direction::L, (Direction::R, Direction::U, Direction::D)),
+        ];
+        fn get_operation_info(self) -> (Direction, Direction, Direction) {
+            Self::OPERATIONS
+                .iter()
+                .find(|(dir, _)| *dir == self)
+                .map(|(_, ops)| *ops)
+                .unwrap()
+        }
         /// 方向を反転する
         pub fn opposite(self) -> Self {
-            match self {
-                Direction::U => Direction::D,
-                Direction::R => Direction::L,
-                Direction::D => Direction::U,
-                Direction::L => Direction::R,
-            }
+            self.get_operation_info().0
         }
         /// 時計回りに90度
         pub fn clockwise(self) -> Self {
-            match self {
-                Direction::U => Direction::R,
-                Direction::R => Direction::D,
-                Direction::D => Direction::L,
-                Direction::L => Direction::U,
-            }
+            self.get_operation_info().1
         }
         /// 反時計回りに90度
         pub fn counter_clockwise(self) -> Self {
-            match self {
-                Direction::U => Direction::L,
-                Direction::R => Direction::U,
-                Direction::D => Direction::R,
-                Direction::L => Direction::D,
-            }
+            self.get_operation_info().2
         }
         /// 座標に変換
         pub fn to_coord(self) -> Coord {
-            match self {
-                Direction::U => Coord::new(!0, 0), // -1, 0
-                Direction::R => Coord::new(0, 1),
-                Direction::D => Coord::new(1, 0),
-                Direction::L => Coord::new(0, !0), // 0, -1
-            }
+            let (_, _, _, (row, col)) = Self::DIRECTION_INFO
+                .iter()
+                .find(|(dir, _, _, _)| *dir == self)
+                .unwrap();
+            Coord::new(*row as usize, *col as usize)
         }
         /// 方向をインデックスに
         pub fn to_index(self) -> usize {
-            match self {
-                Direction::U => 0,
-                Direction::R => 1,
-                Direction::D => 2,
-                Direction::L => 3,
-            }
+            Self::DIRECTION_INFO
+                .iter()
+                .find(|(dir, _, _, _)| *dir == self)
+                .map(|(_, idx, _, _)| *idx)
+                .unwrap()
         }
         /// インデックスを方向に
         pub fn from_index(ind: usize) -> Option<Self> {
-            match ind {
-                0 => Some(Direction::U),
-                1 => Some(Direction::R),
-                2 => Some(Direction::D),
-                3 => Some(Direction::L),
-                _ => None,
-            }
-        }
-        /// 方向を文字列に
-        pub fn to_str(self) -> &'static str {
-            match self {
-                Direction::U => "U",
-                Direction::R => "R",
-                Direction::D => "D",
-                Direction::L => "L",
-            }
-        }
-        /// 4方向イテレータ
-        pub fn iter() -> impl Iterator<Item = Coord> {
-            DIRECTIONS.iter().copied()
+            Self::DIRECTION_INFO
+                .iter()
+                .find(|(_, idx, _, _)| *idx == ind)
+                .map(|(dir, _, _, _)| *dir)
         }
     }
     impl std::fmt::Display for Direction {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.to_str())
+            let (_, _, s, _) = Self::DIRECTION_INFO
+                .iter()
+                .find(|(dir, _, _, _)| *dir == *self)
+                .unwrap();
+            write!(f, "{}", s)
         }
     }
     pub const DIRECTIONS: [Coord; 4] = [
@@ -465,10 +459,12 @@ mod module_of_direction {
 }
 // 二次元を一次元で管理
 mod module_of_vecseq {
-    use crate::Coord;
-    use std::{
-        fmt::Display,
-        ops::{Index, IndexMut},
+    use {
+        crate::Coord,
+        std::{
+            fmt::Display,
+            ops::{Index, IndexMut},
+        },
     };
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     pub struct VecSeq<T> {
@@ -591,14 +587,17 @@ mod module_of_timer {
             self.instant.elapsed().as_millis()
         }
         // 時間取得(カンマ区切り文字列)
-        #[rustfmt::skip]
         pub fn getTimeStr(&self) -> String {
-            self.instant.elapsed().as_millis().to_string().chars().rev()
-                        .collect::<Vec<char>>().chunks(3).map(|cs| cs.iter().collect::<String>())
-                        .collect::<Vec<String>>().join(",").chars().rev().collect::<String>()
+            let mut s = self.getTime().to_string();
+            let mut i = s.len();
+            while i > 3 {
+                i -= 3;
+                s.insert(i, ',');
+            }
+            s
         }
         // 時間確認
-        pub fn isTimeout(&self) -> bool {
+        pub fn is_timeout(&self) -> bool {
             self.getTime() >= self.timelimit
         }
         // 再起動
@@ -606,7 +605,7 @@ mod module_of_timer {
             self.instant = std::time::Instant::now()
         }
         // 制限時間セット
-        pub fn setTimelimit(&mut self, timelimit: u128) {
+        pub fn set_limit(&mut self, timelimit: u128) {
             self.timelimit = timelimit;
         }
         // 進捗
@@ -652,19 +651,16 @@ mod module_of_unionfind {
         pub fn unite(&mut self, x: usize, y: usize) -> bool {
             let x_root = self.root(x);
             let y_root = self.root(y);
-
             // すでに同じグループの場合は何もしない
             if x_root == y_root {
                 return false;
             }
-
             // union by size (小さい木を大きい木にくっつける)
             let (smaller, larger) = if self.siz[x_root] < self.siz[y_root] {
                 (x_root, y_root)
             } else {
                 (y_root, x_root)
             };
-
             // smaller を larger の子にする
             self.par[smaller] = larger;
             // larger のサイズを更新
@@ -676,24 +672,264 @@ mod module_of_unionfind {
             let root = self.root(x);
             self.siz[root]
         }
-        /// 全てのグループとそのメンバーをHashMapで返す
+        /// 全グループ取得
         pub fn get_groups(&mut self) -> HashMap<usize, Vec<usize>> {
-            let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+            let mut groups = HashMap::new();
             for i in 0..self.par.len() {
-                let root = self.root(i);
-                groups.entry(root).or_default().push(i);
+                groups.entry(self.root(i)).or_insert(Vec::new()).push(i);
             }
             groups
         }
-        /// 特定のグループをVecで返す
+        /// 特定のグループを取得
         pub fn get_group(&mut self, target: usize) -> Vec<usize> {
-            let mut group = Vec::new();
-            for i in 0..self.par.len() {
-                if self.is_same(i, target) {
-                    group.push(i);
-                }
+            let target_root = self.root(target);
+            (0..self.par.len())
+                .filter(|&i| self.root(i) == target_root)
+                .collect()
+        }
+    }
+}
+// セグ木
+mod module_of_segmenttree {
+    #[derive(Clone)]
+    struct RangeOperationParams<S> {
+        left: usize,
+        right: usize,
+        x: S,
+        k: usize,
+        l: usize,
+        r: usize,
+        is_add: bool,
+    }
+    pub trait Monoid {
+        type S: Clone;
+        fn identity() -> Self::S;
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S;
+    }
+    #[derive(Debug, Clone)]
+    pub struct LazySegTree<M: Monoid> {
+        n: usize,
+        size: usize,
+        log: usize,
+        data: Vec<M::S>,
+        lazy: Vec<Option<M::S>>,
+    }
+    impl<M: Monoid> LazySegTree<M> {
+        // 新規作成
+        pub fn new(n: usize) -> Self {
+            let size = n.next_power_of_two();
+            Self {
+                n,
+                size,
+                log: size.trailing_zeros() as usize,
+                data: vec![M::identity(); size * 2],
+                lazy: vec![None; size * 2],
             }
-            group
+        }
+        // Vecから作成
+        pub fn from_vec(v: &[M::S]) -> Self {
+            let n = v.len();
+            let size = n.next_power_of_two();
+            let log = size.trailing_zeros() as usize;
+            let mut data = vec![M::identity(); size * 2];
+            data[size..size + n].clone_from_slice(v);
+            for i in (1..size).rev() {
+                data[i] = M::binary_operation(&data[i * 2], &data[i * 2 + 1]);
+            }
+            Self {
+                n,
+                size,
+                log,
+                data,
+                lazy: vec![None; size * 2],
+            }
+        }
+        // 伝搬
+        fn propagate(&mut self, k: usize) {
+            if let Some(x) = self.lazy[k].take() {
+                if k < self.size {
+                    self.lazy[k * 2] = Some(x.clone());
+                    self.lazy[k * 2 + 1] = Some(x.clone());
+                }
+                self.data[k] = x;
+            }
+        }
+        /// 更新
+        pub fn add(&mut self, k: usize, x: M::S) {
+            self.add_range_impl(k, k + 1, &x);
+        }
+        pub fn update(&mut self, k: usize, x: M::S) {
+            self.update_range_impl(k, k + 1, &x);
+        }
+        fn update_operation(&mut self, k: usize) {
+            self.data[k] = M::binary_operation(&self.data[2 * k], &self.data[2 * k + 1]);
+        }
+        /// 区間加算
+        pub fn add_range_impl(&mut self, left: usize, right: usize, x: &M::S) {
+            self.range_operation_impl(RangeOperationParams {
+                left,
+                right,
+                x: x.clone(),
+                k: 1,
+                l: 0,
+                r: self.size,
+                is_add: true,
+            });
+        }
+        /// 区間更新
+        pub fn update_range_impl(&mut self, left: usize, right: usize, x: &M::S) {
+            self.range_operation_impl(RangeOperationParams {
+                left,
+                right,
+                x: x.clone(),
+                k: 1,
+                l: 0,
+                r: self.size,
+                is_add: false,
+            });
+        }
+        fn range_operation_impl(&mut self, params: RangeOperationParams<M::S>) {
+            self.propagate(params.k);
+            if params.right <= params.l || params.r <= params.left {
+                return;
+            }
+            if params.left <= params.l && params.r <= params.right {
+                let value = if params.is_add {
+                    match &self.lazy[params.k] {
+                        Some(y) => M::binary_operation(y, &params.x),
+                        None => M::binary_operation(&self.data[params.k], &params.x),
+                    }
+                } else {
+                    params.x.clone()
+                };
+                self.lazy[params.k] = Some(value);
+                self.propagate(params.k);
+                return;
+            }
+            let mid = (params.l + params.r) / 2;
+            self.range_operation_impl(RangeOperationParams {
+                left: params.left,
+                right: params.right,
+                x: params.x.clone(),
+                k: params.k * 2,
+                l: params.l,
+                r: mid,
+                is_add: params.is_add,
+            });
+            self.range_operation_impl(RangeOperationParams {
+                left: params.left,
+                right: params.right,
+                x: params.x.clone(),
+                k: params.k * 2 + 1,
+                l: mid,
+                r: params.r,
+                is_add: params.is_add,
+            });
+            self.update_operation(params.k);
+        }
+        /// 区間取得
+        pub fn get_range(&mut self, left: usize, right: usize) -> M::S {
+            self.get_range_impl(left, right, 1, 0, self.size)
+        }
+        fn get_range_impl(
+            &mut self,
+            left: usize,
+            right: usize,
+            k: usize,
+            l: usize,
+            r: usize,
+        ) -> M::S {
+            self.propagate(k);
+            if right <= l || r <= left {
+                return M::identity();
+            }
+            if left <= l && r <= right {
+                return self.data[k].clone();
+            }
+            let mid = (l + r) / 2;
+            let vl = self.get_range_impl(left, right, k * 2, l, mid);
+            let vr = self.get_range_impl(left, right, k * 2 + 1, mid, r);
+            M::binary_operation(&vl, &vr)
+        }
+    }
+    // 和の実装
+    #[derive(Clone, Copy)]
+    pub struct Sum;
+    impl Monoid for Sum {
+        type S = usize;
+        fn identity() -> Self::S {
+            0
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            a + b
+        }
+    }
+    // 最小値の実装
+    #[derive(Clone, Copy)]
+    pub struct Min;
+    impl Monoid for Min {
+        type S = usize;
+        fn identity() -> Self::S {
+            usize::MAX
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            *a.min(b)
+        }
+    }
+    // 最大値の実装
+    #[derive(Clone, Copy)]
+    pub struct Max;
+    impl Monoid for Max {
+        type S = usize;
+        fn identity() -> Self::S {
+            usize::MIN
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            *a.max(b)
+        }
+    }
+    // XORの実装
+    #[derive(Clone, Copy)]
+    pub struct Xor;
+    impl Monoid for Xor {
+        type S = usize;
+        fn identity() -> Self::S {
+            0
+        }
+        fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
+            a ^ b
+        }
+    }
+    impl LazySegTree<Sum> {
+        pub fn new_sum(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_sum(v: &[usize]) -> Self {
+            Self::from_vec(v)
+        }
+    }
+    impl LazySegTree<Min> {
+        pub fn new_min(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_min(v: &[usize]) -> Self {
+            Self::from_vec(v)
+        }
+    }
+    impl LazySegTree<Max> {
+        pub fn new_max(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_max(v: &[usize]) -> Self {
+            Self::from_vec(v)
+        }
+    }
+    impl LazySegTree<Xor> {
+        pub fn new_xor(n: usize) -> Self {
+            Self::new(n)
+        }
+        pub fn from_vec_xor(v: &[usize]) -> Self {
+            Self::from_vec(v)
         }
     }
 }
@@ -726,8 +962,7 @@ mod module_of_macro {
 }
 // 乱数
 mod module_of_random {
-    use crate::module_of_coord::Coord;
-    use rand::prelude::*;
+    use {crate::Coord, rand::prelude::*};
     pub struct XorShift {
         state: u64,
     }
@@ -735,7 +970,6 @@ mod module_of_random {
         pub fn new(seed: u64) -> Self {
             Self { state: seed }
         }
-
         // 乱数生成
         pub fn next(&mut self) -> u64 {
             self.state ^= self.state << 13;
@@ -743,12 +977,10 @@ mod module_of_random {
             self.state ^= self.state << 17;
             self.state
         }
-
         // 範囲内
         pub fn next_range(&mut self, min: usize, max: usize) -> usize {
             min + (self.next() as usize % (max - min))
         }
-
         // ランダム座標生成
         pub fn rand_coord(&mut self, row: usize, col: usize) -> Coord {
             Coord::new(self.next_range(0, row), self.next_range(0, col))
@@ -761,12 +993,11 @@ mod module_of_const {
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
 }
-
 mod module_of_simulatedannealing {
-    use super::Input;
-    use crate::{module_of_random::XorShift, module_of_timer::Timer, State};
-    use core::time;
-    use std::io::Write;
+    use {
+        super::Input,
+        crate::{State, Timer, XorShift},
+    };
 
     /// 焼きなましパラメータ
     #[derive(Debug, Clone)]
@@ -799,7 +1030,6 @@ mod module_of_simulatedannealing {
             }
         }
     }
-
     /// 焼きなまし統計情報
     #[derive(Debug, Default)]
     struct SAStats {
@@ -835,7 +1065,6 @@ mod module_of_simulatedannealing {
                 since_improve: 0,
             }
         }
-
         // 自動調整を含めた温度管理
         fn cool(&mut self, acceptance_rate: f64) {
             if self.params.auto_adjust {
@@ -855,7 +1084,6 @@ mod module_of_simulatedannealing {
             }
             self.current_temp = self.current_temp.max(self.params.end_temp);
         }
-
         // 再加熱
         fn reheat(&mut self) {
             if self.since_improve > self.params.reheat_interbal {
@@ -863,7 +1091,6 @@ mod module_of_simulatedannealing {
                 self.since_improve = 0;
             }
         }
-
         // 状態遷移の受理判定
         fn accept_transition(&self, diff: f64) -> bool {
             if diff >= 0.0 {
@@ -872,7 +1099,6 @@ mod module_of_simulatedannealing {
                 rand::random::<f64>() < (diff / self.current_temp).exp()
             }
         }
-
         // 実行
         pub fn run(
             &mut self,
@@ -886,7 +1112,7 @@ mod module_of_simulatedannealing {
             let mut accept_count = 0;
             let mut trial_count = 0;
 
-            while !timer.isTimeout() {
+            while !timer.is_timeout() {
                 for _ in 0..self.params.trial_per_temp {
                     let mut next_state = current_state.clone();
                     next_state.random_transition(rnd);
@@ -923,30 +1149,23 @@ mod module_of_simulatedannealing {
             }
             best_state
         }
-
         // 統計情報の出力
         pub fn print_states(&self) {
             if !crate::isLocal() {
                 return;
             }
 
-            let mut s = "SimlatedAnnealing\n".to_string();
-            s.push_str(&format!(
-                "  Total trial_count: {}\n",
-                self.stats.trial_count
-            ));
-            s.push_str(&format!(
-                "  Improvements found: {}\n",
-                self.stats.improve_count
-            ));
-            s.push_str(&format!("  Best score: {:>6}\n", self.stats.best_score));
-            s.push_str(&format!("  Final temperature: {:.6}\n", self.current_temp));
+            use std::fmt::Write;
+            let mut s = String::new();
+            writeln!(s, "SimulatedAnnealing").unwrap();
+            writeln!(s, "  Total trial_count: {}", self.stats.trial_count).unwrap();
+            writeln!(s, "  Improvements found: {}", self.stats.improve_count).unwrap();
+            writeln!(s, "  Best score: {:>6}", self.stats.best_score).unwrap();
+            writeln!(s, "  Final temperature: {:.6}", self.current_temp).unwrap();
             eprintln!("{}", s);
 
-            s.clear();
-
-            s = "Trial    Score  Temperture\n".to_string();
-            // 出力
+            // 進捗出力
+            let mut progress = String::from("Trial    Score  Temperature\n");
             for (i, (score, temp)) in self
                 .stats
                 .scores
@@ -954,18 +1173,18 @@ mod module_of_simulatedannealing {
                 .zip(self.stats.temp_history.iter())
                 .enumerate()
             {
-                s.push_str(&format!("{:>5}\t{:>6}\t{:>11.6}\n", i, score, temp));
+                writeln!(progress, "{:>5}\t{:>6}\t{:>11.6}", i, score, temp).unwrap();
             }
 
-            let _ = std::io::BufWriter::new(std::fs::File::create("sa_progress.txt").unwrap())
-                .write(s.as_bytes());
+            std::fs::write("sa_progress.txt", progress).unwrap();
         }
     }
 }
-
 mod module_of_beamsearch {
-    use super::Input;
-    use crate::{State, Timer};
+    use {
+        super::Input,
+        crate::{State, Timer},
+    };
     /// ビームサーチのパラメータ
     #[derive(Debug, Clone)]
     pub struct BeamParams {
@@ -1043,7 +1262,7 @@ mod module_of_beamsearch {
                 if self.candidates.is_empty() {
                     break;
                 }
-                if timer.isTimeout() {
+                if timer.is_timeout() {
                     break;
                 }
             }
@@ -1056,10 +1275,11 @@ mod module_of_beamsearch {
         }
     }
 }
-
 mod module_of_turning {
-    use crate::{BeamParams, SAParams};
-    use std::collections::HashMap;
+    use {
+        crate::{BeamParams, SAParams},
+        std::{collections::HashMap, fmt::Write},
+    };
     pub struct HyperParameters {
         // 焼きなまし
         pub sa_params: HashMap<String, f64>,
@@ -1088,7 +1308,6 @@ mod module_of_turning {
                 param_history: Vec::new(),
             }
         }
-
         // スコア履歴から最適なパラメータを推定
         pub fn tune(&mut self, new_scores: &[f64]) {
             self.scores.extend_from_slice(new_scores);
@@ -1105,7 +1324,6 @@ mod module_of_turning {
             // 履歴の保存
             self.param_history.push(("score_avg".to_string(), avg));
         }
-
         // 温度パラメータの調整
         fn adjust_temperature(&mut self, avg_score: f64, variance: f64) {
             let current_temp = self.sa_params["start_temp"];
@@ -1119,26 +1337,20 @@ mod module_of_turning {
                     .insert("start_temp".to_string(), current_temp * 0.8);
             }
         }
-
         // ビーム幅の調整
         fn adjust_beam_width(&mut self, avg_score: f64) {
             let current_width = self.bs_params["beam_width"];
-
             // スコアが改善している場合はビーム幅を増やす
-            if self.scores.len() > 2
-                && !self.scores.is_empty()
-                && avg_score > self.scores[self.scores.len() - 2]
-            {
+            if self.scores.len() > 2 && avg_score > self.scores[self.scores.len() - 2] {
                 self.bs_params
                     .insert("beam_width".to_string(), current_width + 10);
             }
         }
-
         // パラメータ調整履歴の出力
         pub fn print_history(&self) -> String {
             let mut result = String::new();
             for (param, value) in &self.param_history {
-                result.push_str(&format!("{}: {:.2}\n", param, value));
+                writeln!(result, "{}: {:.2}", param, value).unwrap();
             }
             result
         }
@@ -1147,26 +1359,18 @@ mod module_of_turning {
 
 use crate::{
     module_of_IO::*, module_of_beamsearch::*, module_of_config::*, module_of_const::*,
-    module_of_coord::*, module_of_direction::*, module_of_random::*,
+    module_of_coord::*, module_of_direction::*, module_of_random::*, module_of_segmenttree::*,
     module_of_simulatedannealing::*, module_of_timer::*, module_of_turning::*,
     module_of_unionfind::*, module_of_vecseq::*,
 };
 
 use {
-    core::time,
     itertools::Itertools,
-    nalgebra::iter,
     num::{pow::Pow, range, Integer},
-    rand::Rng,
     std::{
         cmp::*,
         collections::*,
-        env,
-        fmt::{Display, Formatter},
         fs::File,
         io::{BufWriter, Write},
-        mem::swap,
-        num::Wrapping,
-        result, vec,
     },
 };
