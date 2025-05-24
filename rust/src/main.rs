@@ -34,8 +34,6 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
         algorithm(timer, input, answer);
         "Algorithm".to_string()
     } else {
-        // 温度とか幅の調整用
-        //tuning(input);
         let mut result = bare_minimum(input);
         let mut best_solve = "bare_minimum";
         if EXETYPE & 0b00000001 != 0 {
@@ -47,6 +45,8 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             }
         }
         if EXETYPE & 0b00000010 != 0 {
+            // 温度調整
+            //tune_simulated_annealing(input);
             while !timer.is_timeout() {
                 // 焼きなましっぽい
                 let mut sa = SimulatedAnnealing::new(SAParams::default());
@@ -58,6 +58,8 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             }
         }
         if EXETYPE & 0b00000100 != 0 {
+            // 幅調整
+            // tune_beam_search(input);
             // ビームサーチっぽい
             let mut bs = BeamSearch::new(BeamParams::default());
             let bs = bs.run(State::new(input), input, timer);
@@ -70,7 +72,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
         use std::fmt::Write;
         let mut s = String::new();
         writeln!(s, "Best  Solve : {:>6}", best_solve).unwrap();
-        writeln!(s, "Final Score : {:>6}", result.score).unwrap();
+        writeln!(s, "Final Score : {:>6}", comma(result.score)).unwrap();
         s
     }
 }
@@ -83,46 +85,91 @@ fn bare_minimum(input: &Input) -> State {
 fn greedy(input: &Input) -> State {
     State::new(input)
 }
-fn tuning(input: &Input) {
+fn tune_simulated_annealing(input: &Input) {
     let mut params = HyperParameters::new();
-    let mut scores = Vec::new();
-    for i in 0..100 {
-        let timer = &Timer::new(TIME_LIMIT);
-        let mut rnd = XorShift::new(123456789);
-        let mut sa = SimulatedAnnealing::new(SAParams {
-            start_temp: params.sa_params["start_temp"],
-            end_temp: params.sa_params["end_temp"],
-            cooling_rate: params.sa_params["cooling_rate"],
-            ..Default::default()
-        });
-
-        // 記録
-        let score = sa.run(State::new(input), timer, &mut rnd, input);
-        scores.push(score.score as f64);
-
-        if i % 10 == 0 {
-            params.tune(&scores);
-            scores.clear();
+    let mut best_score = 0.0;
+    let mut best_params = HashMap::new();
+    let sa_ranges = vec![
+        ("start_temp", (2000.0, 2000.0, 250.0)), // より効率的な範囲
+        ("end_temp", (9.5, 9.5, 0.5)),           // ステップ幅を大きく
+        ("cooling_rate", (0.970, 0.999, 0.001)), // 重要な範囲
+    ];
+    eprintln!("\n===== Simulated Annealing Tuning =====");
+    for (param_name, (min, max, step)) in sa_ranges {
+        let mut current = min;
+        while current <= max {
+            params.sa_params.insert(param_name.to_string(), current);
+            eprint!("{:>12}={:>8.3}/{:>8.3}：score = ", param_name, current, max);
+            let trial_scores = (0..3)
+                .map(|_| {
+                    let timer = &Timer::new(TIME_LIMIT / 2);
+                    let mut rnd = XorShift::new(rand::random::<u64>());
+                    let mut sa = SimulatedAnnealing::new(SAParams {
+                        start_temp: params.sa_params["start_temp"],
+                        end_temp: params.sa_params["end_temp"],
+                        cooling_rate: params.sa_params["cooling_rate"],
+                        ..Default::default()
+                    });
+                    sa.run(State::new(input), timer, &mut rnd, input).score as f64
+                })
+                .collect::<Vec<_>>();
+            let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
+            eprintln!("{:>12}", comma(avg_score.round() as usize));
+            if avg_score > best_score {
+                best_score = avg_score;
+                best_params.insert(param_name.to_string(), current);
+            }
+            current += step;
         }
     }
-    eprintln!("{}", params.print_history());
-    for i in 0..100 {
-        let timer = &Timer::new(TIME_LIMIT);
-        let mut bs = BeamSearch::new(BeamParams {
-            beam_width: params.bs_params["beam_width"],
-            max_depth: params.bs_params["max_depth"],
-        });
-
-        // 記録
-        let score = bs.run(State::new(input), input, timer);
-        scores.push(score.score as f64);
-
-        if i % 10 == 0 {
-            params.tune(&scores);
-            scores.clear();
+    eprintln!("\nBest SA Parameters:");
+    eprintln!("------------------------");
+    for (param, value) in best_params.iter() {
+        eprintln!("{:>12}={:>8.3}", param, value);
+    }
+    eprintln!("Best Score  = {:>8.0}", best_score);
+    eprintln!("------------------------");
+}
+fn tune_beam_search(input: &Input) {
+    let mut params = HyperParameters::new();
+    let mut best_score = 0.0;
+    let mut best_params = HashMap::new();
+    let bs_ranges = vec![
+        ("beam_width", (50, 200, 25)), // ビーム幅
+        ("max_depth", (5, 20, 5)),     // 探索深さ
+    ];
+    eprintln!("\n===== Beam Search Tuning =====");
+    for (param_name, (min, max, step)) in bs_ranges {
+        let mut current = min;
+        while current <= max {
+            params.bs_params.insert(param_name.to_string(), current);
+            eprint!("{:>12}={:>8.3}/{:>8.3}：score = ", param_name, current, max);
+            let trial_scores = (0..3)
+                .map(|_| {
+                    let timer = &Timer::new(TIME_LIMIT / 2);
+                    let mut bs = BeamSearch::new(BeamParams {
+                        beam_width: params.bs_params["beam_width"],
+                        max_depth: params.bs_params["max_depth"],
+                    });
+                    bs.run(State::new(input), input, timer).score as f64
+                })
+                .collect::<Vec<_>>();
+            let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
+            eprintln!("{:>12}", comma(avg_score as usize));
+            if avg_score > best_score {
+                best_score = avg_score;
+                best_params.insert(param_name.to_string(), current as f64);
+            }
+            current += step;
         }
     }
-    eprintln!("{}", params.print_history());
+    eprintln!("\nBest BS Parameters:");
+    eprintln!("------------------------");
+    for (param, value) in best_params.iter() {
+        eprintln!("{:>12}={:>8.3}", param, value);
+    }
+    eprintln!("Best Score  = {:>8.0}", best_score);
+    eprintln!("------------------------");
 }
 
 #[derive(Clone)]
@@ -604,6 +651,7 @@ mod module_of_vecseq {
 }
 // タイマー
 mod module_of_timer {
+    use crate::comma;
     pub struct Timer {
         instant: std::time::Instant,
         timelimit: u128, // 制限時間(ms)
@@ -622,13 +670,7 @@ mod module_of_timer {
         }
         // 時間取得(カンマ区切り文字列)
         pub fn getTimeStr(&self) -> String {
-            let mut s = self.getTime().to_string();
-            let mut i = s.len();
-            while i > 3 {
-                i -= 3;
-                s.insert(i, ',');
-            }
-            s
+            comma(self.getTime())
         }
         // 時間確認
         pub fn is_timeout(&self) -> bool {
@@ -1067,6 +1109,17 @@ mod module_of_util {
     #![allow(non_upper_case_globals)]
     pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+
+    // カンマ区切り文字列
+    pub fn comma<T: ToString>(element: T) -> String {
+        let mut s = element.to_string();
+        let mut i = s.len();
+        while i > 3 {
+            i -= 3;
+            s.insert(i, ',');
+        }
+        s
+    }
 }
 // 焼きなまし
 mod module_of_simulatedannealing {
@@ -1188,6 +1241,9 @@ mod module_of_simulatedannealing {
 
             while !timer.is_timeout() {
                 for _ in 0..self.params.trial_per_temp {
+                    if timer.is_timeout() {
+                        break;
+                    }
                     let mut next_state = current_state.clone();
                     next_state.random_transition(rnd);
                     next_state.evaluate();
@@ -1352,9 +1408,9 @@ mod module_of_turning {
         // ビームサーチ
         pub bs_params: HashMap<String, usize>,
         // スコア履歴
-        scores: Vec<f64>,
+        pub scores: Vec<f64>,
         // 変更履歴
-        param_history: Vec<(String, f64)>,
+        pub param_history: Vec<(String, f64)>,
     }
     impl HyperParameters {
         pub fn new() -> Self {
