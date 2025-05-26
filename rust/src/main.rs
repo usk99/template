@@ -6,6 +6,7 @@
 
 const TIME_LIMIT: u128 = 0000;
 const EXETYPE: u8 = 0b00000000;
+const RND_SEED: u64 = 123456789;
 fn main() {
     // 設定初期化
     Config::init();
@@ -16,7 +17,7 @@ fn main() {
     // 出力用意
     let mut answer = Output::new();
     // 解く
-    let mut solve = solve(&timer, &input, &mut answer);
+    let mut solve = solve(&timer, &mut XorShift::new(RND_SEED), &input, &mut answer);
     // 出力
     let ans = answer.outstr();
     if isLocal() {
@@ -27,18 +28,16 @@ fn main() {
     solve.push_str(&format!("       time : {:>6}ms", timer.getTimeStr()));
     eprintln!("{}", solve);
 }
-fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
-    let mut rnd = XorShift::new(123456789);
-
+fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) -> String {
     if EXETYPE == 0b00000000 {
         algorithm(timer, input, answer);
         "Algorithm".to_string()
     } else {
-        let mut result = bare_minimum(input);
+        let mut result = bare_minimum(input, timer, rnd);
         let mut best_solve = "bare_minimum";
         if EXETYPE & 0b00000001 != 0 {
             // 貪欲？
-            let gr = greedy(input);
+            let gr = greedy(input, timer, rnd);
             if gr.score > result.score {
                 result = gr;
                 best_solve = "Greedy";
@@ -50,7 +49,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             while !timer.is_timeout() {
                 // 焼きなましっぽい
                 let mut sa = SimulatedAnnealing::new(SAParams::default());
-                let sa = sa.run(result.clone(), timer, &mut rnd, input);
+                let sa = sa.run(result.clone(), input, timer, rnd);
                 if sa.score > result.score {
                     best_solve = "SimulatedAnnealing";
                     result = sa;
@@ -62,7 +61,7 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
             // tune_beam_search(input);
             // ビームサーチっぽい
             let mut bs = BeamSearch::new(BeamParams::default());
-            let bs = bs.run(State::new(input), input, timer);
+            let bs = bs.run(State::new(input), input, timer, rnd);
             if bs.score > result.score {
                 best_solve = "BeamSearch";
                 result = bs;
@@ -79,10 +78,10 @@ fn solve(timer: &Timer, input: &Input, answer: &mut Output) -> String {
 fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
     answer.push("algo");
 }
-fn bare_minimum(input: &Input) -> State {
+fn bare_minimum(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
     State::new(input)
 }
-fn greedy(input: &Input) -> State {
+fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
     State::new(input)
 }
 fn tune_simulated_annealing(input: &Input) {
@@ -103,14 +102,14 @@ fn tune_simulated_annealing(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2);
-                    let mut rnd = XorShift::new(rand::random::<u64>());
+                    let mut rnd = XorShift::new(RND_SEED);
                     let mut sa = SimulatedAnnealing::new(SAParams {
                         start_temp: params.sa_params["start_temp"],
                         end_temp: params.sa_params["end_temp"],
                         cooling_rate: params.sa_params["cooling_rate"],
                         ..Default::default()
                     });
-                    sa.run(State::new(input), timer, &mut rnd, input).score as f64
+                    sa.run(State::new(input), input, timer, &mut rnd).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -147,11 +146,12 @@ fn tune_beam_search(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2);
+                    let mut rnd = XorShift::new(RND_SEED);
                     let mut bs = BeamSearch::new(BeamParams {
                         beam_width: params.bs_params["beam_width"],
                         max_depth: params.bs_params["max_depth"],
                     });
-                    bs.run(State::new(input), input, timer).score as f64
+                    bs.run(State::new(input), input, timer, &mut rnd).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -308,10 +308,12 @@ mod module_of_coord {
             }
         }
         /// 行(y座標)を取得
+        #[inline(always)]
         pub const fn row(&self) -> usize {
             self.row as usize
         }
         /// 列(x座標)を取得
+        #[inline(always)]
         pub const fn col(&self) -> usize {
             self.col as usize
         }
@@ -333,6 +335,11 @@ mod module_of_coord {
                 self.row().abs_diff(other.row()),
                 self.col().abs_diff(other.col()),
             )
+        }
+        /// 面積取得
+        pub const fn area(&self, other: &Self) -> usize {
+            let diff = self.diff(other);
+            diff.row() * diff.col()
         }
         /// ユークリッド距離(直線距離)を計算
         pub fn dist_euclidean(&self, other: &Self) -> f64 {
@@ -370,6 +377,7 @@ mod module_of_coord {
             }
         }
     }
+    /// + 演算子で座標の加算
     impl Add<Direction> for Coord {
         type Output = Coord;
         fn add(self, rhs: Direction) -> Self::Output {
@@ -385,6 +393,7 @@ mod module_of_coord {
             *self = *self + rhs;
         }
     }
+    /// += 演算子で座標の加算
     impl AddAssign<Direction> for Coord {
         fn add_assign(&mut self, rhs: Direction) {
             *self = *self + rhs;
@@ -1231,9 +1240,9 @@ mod module_of_simulatedannealing {
         pub fn run(
             &mut self,
             mut current_state: State,
+            _input: &Input,
             timer: &Timer,
             rnd: &mut XorShift,
-            _input: &Input,
         ) -> State {
             let mut best_state = current_state.clone();
             let mut accept_count = 0;
@@ -1307,7 +1316,7 @@ mod module_of_simulatedannealing {
 mod module_of_beamsearch {
     use {
         super::Input,
-        crate::{State, Timer},
+        crate::{State, Timer, XorShift},
     };
     /// ビームサーチのパラメータ
     #[derive(Debug, Clone)]
@@ -1357,7 +1366,13 @@ mod module_of_beamsearch {
                 }
             }
         }
-        pub fn run(&mut self, initial: State, input: &Input, timer: &Timer) -> State {
+        pub fn run(
+            &mut self,
+            initial: State,
+            input: &Input,
+            timer: &Timer,
+            _rnd: &mut XorShift,
+        ) -> State {
             self.candidates.clear();
             for _ in 0..self.params.max_depth {
                 let mut current = std::mem::take(&mut self.candidates);
