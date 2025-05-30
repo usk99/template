@@ -4,8 +4,11 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
+/// 実行時間
 const TIME_LIMIT: u128 = 0000;
-const EXETYPE: u8 = 0b00000000;
+/// 実行タイプ
+const EXE_TYPE: u8 = 0b00000000;
+/// XORシフトのシード
 const RND_SEED: u64 = 123456789;
 fn main() {
     // 設定初期化
@@ -29,13 +32,13 @@ fn main() {
     eprintln!("{}", solve);
 }
 fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) -> String {
-    if EXETYPE == 0b00000000 {
+    if EXE_TYPE == 0b00000000 {
         algorithm(timer, input, answer);
         "Algorithm".to_string()
     } else {
         let mut result = bare_minimum(input, timer, rnd);
         let mut best_solve = "bare_minimum";
-        if EXETYPE & 0b00000001 != 0 {
+        if EXE_TYPE & 0b00000001 != 0 {
             // 貪欲？
             let gr = greedy(input, timer, rnd);
             if gr.score > result.score {
@@ -43,7 +46,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) 
                 best_solve = "Greedy";
             }
         }
-        if EXETYPE & 0b00000010 != 0 {
+        if EXE_TYPE & 0b00000010 != 0 {
             // 温度調整
             //tune_simulated_annealing(input);
             while !timer.is_timeout() {
@@ -56,7 +59,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) 
                 }
             }
         }
-        if EXETYPE & 0b00000100 != 0 {
+        if EXE_TYPE & 0b00000100 != 0 {
             // 幅調整
             // tune_beam_search(input);
             // ビームサーチっぽい
@@ -278,10 +281,47 @@ mod module_of_config {
     }
     pub fn isLocal() -> bool{CONFIG.get().unwrap().islocal}
 }
+// 便利
+#[rustfmt::skip]
+mod module_of_util {
+    #![allow(non_upper_case_globals)]
+    use std::{cmp::Reverse, collections::BinaryHeap};
+
+    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+
+    // カンマ区切り文字列
+    pub fn comma<T: ToString>(element: T) -> String {
+        let mut s = element.to_string();let mut i = s.len();
+        while i > 3 {i -= 3;s.insert(i, ',');}s
+    }
+
+    /// 優先度付きキューの最大ヒープ
+    pub type MaxHeap<T> = BinaryHeap<T>;
+    /// 優先度付きキューの最小ヒープ
+    pub struct  MinHeap<T>{heap:BinaryHeap<Reverse<T>>}
+    impl<T: Ord>MinHeap<T>{
+        pub const fn new()->Self {Self {heap: BinaryHeap::new(),}}
+        pub fn push(&mut self,value:T){self.heap.push(Reverse(value));}
+        pub fn pop(&mut self)->Option<T>{self.heap.pop().map(|Reverse(value)|value)}
+        pub fn peek(&self)->Option<&T>{self.heap.peek().map(|Reverse(value)|value)}
+        pub fn iter(&self)->impl Iterator<Item=&T>{self.heap.iter().map(|Reverse(value)|value)}
+        pub fn is_empty(&self)->bool{self.heap.is_empty()}
+        pub fn len(&self)->usize{self.heap.len()}
+        pub fn clear(&mut self){self.heap.clear();}
+    }
+
+    /// インデックスソート
+    pub fn index_sort<T: Ord>(arr:&[T]) -> Vec<usize> {
+        let mut indices=(0..arr.len ()).collect::<Vec<_>>();
+        indices.sort_by(|&a, &b| arr[a].cmp(&arr[b]));
+        indices
+    }
+}
 // 座標
 mod module_of_coord {
     use {
-        crate::Direction,
+        crate::{Direction, DIRECTIONS, DIRECTIONS_8},
         std::{
             fmt::{Display, Formatter, Result},
             ops::{Add, AddAssign},
@@ -359,12 +399,47 @@ mod module_of_coord {
             )
         }
         /// タプルから変換
-        pub fn from_tuple(tuple: (usize, usize)) -> Self {
+        pub const fn from_tuple(tuple: (usize, usize)) -> Self {
             Self::new(tuple.0, tuple.1)
         }
         /// タプルに変換
-        pub fn to_tuple(self) -> (usize, usize) {
+        pub const fn to_tuple(self) -> (usize, usize) {
             (self.row(), self.col())
+        }
+        /// 4方向の隣接座標
+        pub fn neighbors4(&self, rows: usize, cols: usize) -> Vec<Coord> {
+            let mut neighbors = Vec::new();
+            for dir in DIRECTIONS {
+                let next = *self + dir;
+                if next.within(rows, cols) {
+                    neighbors.push(next);
+                }
+            }
+            neighbors
+        }
+        /// 8方向の隣接座標
+        pub fn neighbors8(&self, rows: usize, cols: usize) -> Vec<Coord> {
+            let mut neighbors = Vec::new();
+            for dir in DIRECTIONS_8 {
+                let next = *self + dir;
+                if next.within(rows, cols) {
+                    neighbors.push(next);
+                }
+            }
+            neighbors
+        }
+        /// 指定座標への方向を取得
+        pub const fn direction_to(&self, other: &Self) -> Option<Direction> {
+            let row_diff = other.row() as i32 - self.row() as i32;
+            let col_diff = other.col() as i32 - self.col() as i32;
+
+            match (row_diff.signum(), col_diff.signum()) {
+                (-1, 0) => Some(Direction::U),
+                (1, 0) => Some(Direction::D),
+                (0, -1) => Some(Direction::L),
+                (0, 1) => Some(Direction::R),
+                _ => None,
+            }
         }
     }
     /// + 演算子で座標の加算
@@ -563,7 +638,7 @@ mod module_of_vecseq {
         col: usize,
     }
     impl<T> VecSeq<T> {
-        pub fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
+        pub const fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
             Self { vec, row, col }
         }
         pub fn swap(&mut self, i: usize, j: usize) {
@@ -572,10 +647,10 @@ mod module_of_vecseq {
         pub fn size(&self) -> usize {
             self.vec.len()
         }
-        pub fn row(&self) -> usize {
+        pub const fn row(&self) -> usize {
             self.row
         }
-        pub fn col(&self) -> usize {
+        pub const fn col(&self) -> usize {
             self.col
         }
         pub fn iter(&self) -> std::slice::Iter<T> {
@@ -623,6 +698,13 @@ mod module_of_vecseq {
             &self.vec[coord.to_sequence(self.col)]
         }
     }
+    impl<T> Index<(usize, usize)> for VecSeq<T> {
+        type Output = T;
+        #[inline]
+        fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+            &self.vec[row * self.col + col]
+        }
+    }
     impl<T> IndexMut<usize> for VecSeq<T> {
         #[inline]
         fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
@@ -639,6 +721,12 @@ mod module_of_vecseq {
         #[inline]
         fn index_mut(&mut self, coord: &Coord) -> &mut Self::Output {
             &mut self.vec[coord.to_sequence(self.col)]
+        }
+    }
+    impl<T> IndexMut<(usize, usize)> for VecSeq<T> {
+        #[inline]
+        fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
+            &mut self.vec[row * self.col + col]
         }
     }
     /// 視覚化
@@ -660,7 +748,6 @@ mod module_of_vecseq {
 }
 // タイマー
 mod module_of_timer {
-    use crate::comma;
     pub struct Timer {
         instant: std::time::Instant,
         timelimit: u128, // 制限時間(ms)
@@ -679,7 +766,7 @@ mod module_of_timer {
         }
         // 時間取得(カンマ区切り文字列)
         pub fn getTimeStr(&self) -> String {
-            comma(self.getTime())
+            crate::comma(self.getTime())
         }
         // 時間確認
         pub fn is_timeout(&self) -> bool {
@@ -690,7 +777,7 @@ mod module_of_timer {
             self.instant = std::time::Instant::now()
         }
         // 制限時間セット
-        pub fn set_limit(&mut self, timelimit: u128) {
+        pub const fn set_limit(&mut self, timelimit: u128) {
             self.timelimit = timelimit;
         }
         // 進捗
@@ -1093,41 +1180,38 @@ mod module_of_random {
         state: u64,
     }
     impl XorShift {
-        pub fn new(seed: u64) -> Self {
+        pub const fn new(seed: u64) -> Self {
             Self { state: seed }
         }
-        // 乱数生成
-        pub fn next(&mut self) -> u64 {
+        /// 乱数生成
+        pub const fn next(&mut self) -> u64 {
             self.state ^= self.state << 13;
             self.state ^= self.state >> 7;
             self.state ^= self.state << 17;
             self.state
         }
+        /// 0~1で乱数
+        pub const fn next_f64(&mut self) -> f64 {
+            (self.next() as f64) / (u64::MAX as f64)
+        }
+        /// 指定確率でtrueを返す
+        pub const fn next_bool(&mut self, prob: f64) -> bool {
+            self.next_f64() < prob
+        }
         // 範囲内
-        pub fn next_range(&mut self, min: usize, max: usize) -> usize {
+        pub const fn next_range(&mut self, min: usize, max: usize) -> usize {
             min + (self.next() as usize % (max - min))
         }
-        // ランダム座標生成
-        pub fn rand_coord(&mut self, row: usize, col: usize) -> Coord {
-            Coord::new(self.next_range(0, row), self.next_range(0, col))
+        /// ランダム選択
+        pub fn choose<'a, T: Clone>(&mut self, items: &'a [T]) -> &'a T {
+            &items[self.next_range(0, items.len())]
         }
-    }
-}
-// 便利
-mod module_of_util {
-    #![allow(non_upper_case_globals)]
-    pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
-
-    // カンマ区切り文字列
-    pub fn comma<T: ToString>(element: T) -> String {
-        let mut s = element.to_string();
-        let mut i = s.len();
-        while i > 3 {
-            i -= 3;
-            s.insert(i, ',');
+        /// シャッフル
+        pub fn shuffle<T>(&mut self, items: &mut [T]) {
+            for i in (1..items.len()).rev() {
+                items.swap(i, self.next_range(0, i + 1));
+            }
         }
-        s
     }
 }
 // 焼きなまし
@@ -1504,5 +1588,6 @@ use {
         collections::*,
         fs::File,
         io::{BufWriter, Write},
+        vec,
     },
 };
