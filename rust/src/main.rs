@@ -301,7 +301,7 @@ mod module_of_util {
     /// 優先度付きキューの最小ヒープ
     pub struct  MinHeap<T>{heap:BinaryHeap<Reverse<T>>}
     impl<T: Ord>MinHeap<T>{
-        pub const fn new()->Self {Self {heap: BinaryHeap::new(),}}
+        pub fn new()->Self {Self {heap: BinaryHeap::new()}}
         pub fn push(&mut self,value:T){self.heap.push(Reverse(value));}
         pub fn pop(&mut self)->Option<T>{self.heap.pop().map(|Reverse(value)|value)}
         pub fn peek(&self)->Option<&T>{self.heap.peek().map(|Reverse(value)|value)}
@@ -312,9 +312,9 @@ mod module_of_util {
     }
 
     /// インデックスソート
-    pub fn index_sort<T: Ord>(arr:&[T]) -> Vec<usize> {
+    pub fn index_sort<T: PartialOrd>(arr:&[T]) -> Vec<usize> {
         let mut indices=(0..arr.len ()).collect::<Vec<_>>();
-        indices.sort_by(|&a, &b| arr[a].cmp(&arr[b]));
+        indices.sort_by(|&a, &b| arr[a].partial_cmp(&arr[b]).unwrap());
         indices
     }
 }
@@ -777,7 +777,7 @@ mod module_of_timer {
             self.instant = std::time::Instant::now()
         }
         // 制限時間セット
-        pub const fn set_limit(&mut self, timelimit: u128) {
+        pub fn set_limit(&mut self, timelimit: u128) {
             self.timelimit = timelimit;
         }
         // 進捗
@@ -1184,22 +1184,22 @@ mod module_of_random {
             Self { state: seed }
         }
         /// 乱数生成
-        pub const fn next(&mut self) -> u64 {
+        pub fn next(&mut self) -> u64 {
             self.state ^= self.state << 13;
             self.state ^= self.state >> 7;
             self.state ^= self.state << 17;
             self.state
         }
         /// 0~1で乱数
-        pub const fn next_f64(&mut self) -> f64 {
+        pub fn next_f64(&mut self) -> f64 {
             (self.next() as f64) / (u64::MAX as f64)
         }
         /// 指定確率でtrueを返す
-        pub const fn next_bool(&mut self, prob: f64) -> bool {
+        pub fn next_bool(&mut self, prob: f64) -> bool {
             self.next_f64() < prob
         }
         // 範囲内
-        pub const fn next_range(&mut self, min: usize, max: usize) -> usize {
+        pub fn next_range(&mut self, min: usize, max: usize) -> usize {
             min + (self.next() as usize % (max - min))
         }
         /// ランダム選択
