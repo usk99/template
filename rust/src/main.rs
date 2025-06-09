@@ -79,6 +79,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) 
     }
 }
 fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
+    // ＊＊＊ 数値型はusizeにしないと掛け算でオーバーフローする可能性ある！！ ＊＊＊
     answer.push("algo");
 }
 fn bare_minimum(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
