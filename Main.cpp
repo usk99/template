@@ -1,8 +1,8 @@
 #if !__INCLUDE_LEVEL__
 #  include __FILE__
+using namespace IO;
+void any() {}
 void Solve() {
-    using namespace IO;
-    using Extensions::string, Extensions::vector;
 
     auto A = InputNum();
     auto B = InputNums(2);
@@ -24,7 +24,6 @@ void Solve() {
 
     return;
 }
-
 int main() {
     Solve();
     return 0;
@@ -69,80 +68,9 @@ namespace Define {
 #  define eps          (1e-10)
 #  define Equals(a, b) (fabs((a) - (b)) < eps)
 } // namespace Define
-// 拡張メソッド的なもの
-namespace Extensions {
-    using namespace std;
-    struct string : std::string {
-            using std::string::string;
-            string() : std::string() {}
-            string(const char *str) : std::string(str) {}
-            string(const std::string str) : std::string(str) {}
-            string TrimEnd() {
-                string &target = *this;
-                while (this->back() == ' ') {
-                    this->pop_back();
-                }
-                return target;
-            }
-            string TrimStart() {
-                string &target = *this;
-                while (this->front() == ' ') {
-                    this->erase(this->begin());
-                }
-                return target;
-            }
-            string Trim() {
-                string &target = *this;
-                while (this->back() == ' ') {
-                    this->pop_back();
-                }
-                return this->TrimStart();
-            }
-
-            auto Replace(const string &oldValue, const string &newValue) {
-                string &target = *this;
-                if (oldValue == "")
-                    return target;
-                size_t pos    = 0;
-                size_t offset = 0;
-                size_t len    = oldValue.length();
-                while ((pos = this->find(oldValue, offset)) != std::string::npos) {
-                    this->replace(pos, len, newValue);
-                    offset = pos + newValue.length();
-                }
-                return target;
-            }
-    };
-
-    template<typename T, typename A = std::allocator<T>>
-    class vector : public std::vector<T, A> {
-            using std::vector<T, A>::vector;
-
-        public:
-            string Join(string sep = "") {
-                std::ostringstream oss;
-                if (!this->empty()) {
-                    oss << this->at(0);
-                    rep(i, 1, this->size()) oss << sep << this->at(i);
-                }
-                return string(oss.str().c_str());
-            }
-    };
-
-    // vector型判定
-    template<typename>
-    struct is_vec : std::false_type {};
-    template<typename T>
-    struct is_vec<std::vector<T>> : std::true_type {};
-    template<typename T>
-    constexpr bool is_vector = is_vec<T>::value;
-    template<typename T>
-    constexpr bool is_num = std::is_integral_v<T> || std::is_floating_point_v<T>;
-} // namespace Extensions
 // いろいろ
 namespace Contest {
-    using namespace Extensions;
-    using std::pair, std::set, std::map, Extensions::string, Extensions::vector;
+    using namespace std;
     // clang-format off
 	using ll   = long long;
 	using pii  = pair<int, int>;   using pll  = pair<ll, ll>;     using pss = pair<string, string>;
@@ -160,8 +88,8 @@ namespace Contest {
     const double PI     = acos(-1);
     const int    DY4[4] = { 0, 1, 0, -1 };
     const int    DX4[4] = { 1, 0, -1, 0 }; // (右,下,左,上)
-    const int    DY8[4] = { 0, 1, 0, -1, -1, 1, 1, -1 };
-    const int    DX8[4] = { 1, 0, -1, 0, 1, 1, -1, -1 }; // (右,下,左,上,右上,右下,左下,左上)
+    const int    DY8[8] = { 0, 1, 0, -1, -1, 1, 1, -1 };
+    const int    DX8[8] = { 1, 0, -1, 0, 1, 1, -1, -1 }; // (右,下,左,上,右上,右下,左下,左上)
     const int    INF    = 1001001001;
     const ll     INFL   = 4004004003094073385LL; // (int)INFL = INF, (int)(-INFL) = -INF;
     const string ABC    = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -181,6 +109,29 @@ namespace Contest {
         bool compare = a > b;
         if (compare) a = b;
         return compare;
+    }
+
+    // vectorの要素を文字列に結合
+    template<typename T>
+    string Join(const vector<T> &vec, const string &sep = " ") {
+        if (vec.empty()) return "";
+        string ret;
+        rep(i, vec.size()) {
+            if (i > 0) ret += sep;
+            ret += std::to_string(vec[i]);
+        }
+        return ret;
+    }
+    // std::string 型特殊化
+    template<>
+    string Join(const vector<string> &vec, const string &sep) {
+        if (vec.empty()) return "";
+        string ret;
+        rep(i, vec.size()) {
+            if (i > 0) ret += sep;
+            ret += vec[i];
+        }
+        return ret;
     }
 
     // 文字列区切り
@@ -218,7 +169,6 @@ namespace Contest {
 // 入出力
 namespace IO {
     using namespace Contest;
-    using Extensions::vector, Extensions::string;
     class Scanner {
         private:
             int            _int;
@@ -245,7 +195,7 @@ namespace IO {
                     vector<string> vec(_str.size() - _int);
                     std::copy(_str.begin() + _int, _str.end(), vec.begin());
                     string s = " ";
-                    s += vec.Join(" ");
+                    s += Join(vec);
                     _str.clear();
                     return s;
                 }
@@ -313,18 +263,17 @@ namespace IO {
     void Output(double n, string end = el) { std::cout << n << end; }
     void Output(string n, string end = el) { std::cout << n << end; }
     void Output(const char *n) { Output(string(n)); }
-    void Output(vs n, string sep = " ", string end = el) { Output(n.Join(sep), end); }
-    void Output(vvs n, string sep = " ", string end = el) { rep(i, n.size()) Output(n[i].Join(sep), end); }
+    void Output(vs n, string sep = " ", string end = el) { Output(Join(n, sep), end); }
+    void Output(vvs n, string sep = " ", string end = el) { rep(i, n.size()) Output(Join(n[i], sep), end); }
     void Output(ll n, string end = el) { std::cout << n << end; }
     void Output(pll n, string sep = " ", string end = el) { std::cout << n.first << sep << n.second << end; }
     void Output(vpll n, string sep = " ", string end = el) { rep(i, n.size()) Output(n[i], sep, end); }
-    void Output(vl n, string sep = " ") { Output(n.Join(sep)); }
-    void Output(vvl n, string sep = " ", string end = el) { rep(i, n.size()) Output(n[i].Join(sep), end); }
+    void Output(vl n, string sep = " ") { Output(Join(n, sep)); }
+    void Output(vvl n, string sep = " ", string end = el) { rep(i, n.size()) Output(Join(n[i], sep), end); }
 } // namespace IO
 // UnionFInd
 namespace UnionFind {
     using namespace Contest;
-    using Extensions::vector, Extensions::string;
     struct UnionFind {
             vector<ll> parent, rank, siz;
             // 構造体の初期化
@@ -346,16 +295,42 @@ namespace UnionFind {
                 ll rx = root(x), ry = root(y); // x 側と y 側の根を取得する
                 if (rx == ry) return false;    // すでに同じグループのときは何もしない
                 // union by rank
-                if (rank[rx] < rank[ry]) swap(rx, ry); // ry 側の rank が小さくなるようにする
-                parent[ry] = rx;                       // ry を rx の子とする
-                if (rank[rx] == rank[ry]) rank[rx]++;  // rx 側の rank を調整する
-                siz[rx] += siz[ry];                    // rx 側の siz を調整する
+                if (rank[rx] < rank[ry]) std::swap(rx, ry); // ry 側の rank が小さくなるようにする
+                parent[ry] = rx;                            // ry を rx の子とする
+                if (rank[rx] == rank[ry]) rank[rx]++;       // rx 側の rank を調整する
+                siz[rx] += siz[ry];                         // rx 側の siz を調整する
                 return true;
             }
 
             // x を含む根付き木のサイズを求める
             ll size(ll x) {
                 return siz[root(x)];
+            }
+
+            // 全てのグループを取得
+            vvl groups() {
+                map<ll, vl> grp;
+                rep(i, parent.size()) {
+                    ll r = root(i);
+                    grp[r].push_back(i);
+                }
+                vvl ret;
+                for (auto &[r, v] : grp) {
+                    ret.push_back(v);
+                }
+                return ret;
+            }
+
+            // 特定の要素が属するグループを取得
+            vl group(ll x) {
+                ll r = root(x);
+                vl ret;
+                rep(i, parent.size()) {
+                    if (root(i) == r) {
+                        ret.push_back(i);
+                    }
+                }
+                return ret;
             }
     };
 } // namespace UnionFind
