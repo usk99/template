@@ -1591,4 +1591,5 @@ use {
         io::{BufWriter, Write},
         vec,
     },
+    superslice::Ext,
 };
