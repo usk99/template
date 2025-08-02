@@ -29,7 +29,7 @@ fn main() {
     Output(ans);
 
     solve.push_str(&format!("       time : {:>6}ms", timer.getTimeStr()));
-    eprintln!("{}", solve);
+    eprintln!("{solve}");
 }
 fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) -> String {
     if EXE_TYPE == 0b00000000 {
@@ -73,7 +73,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) 
         answer.push(result.score);
         use std::fmt::Write;
         let mut s = String::new();
-        writeln!(s, "Best  Solve : {:>6}", best_solve).unwrap();
+        writeln!(s, "Best  Solve : {best_solve:>6}").unwrap();
         writeln!(s, "Final Score : {:>6}", comma(result.score)).unwrap();
         s
     }
@@ -102,7 +102,7 @@ fn tune_simulated_annealing(input: &Input) {
         let mut current = min;
         while current <= max {
             params.sa_params.insert(param_name.to_string(), current);
-            eprint!("{:>12}={:>8.3}/{:>8.3}：score = ", param_name, current, max);
+            eprint!("{param_name:>12}={current:>8.3}/{max:>8.3}：score = ");
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2);
@@ -128,9 +128,9 @@ fn tune_simulated_annealing(input: &Input) {
     eprintln!("\nBest SA Parameters:");
     eprintln!("------------------------");
     for (param, value) in best_params.iter() {
-        eprintln!("{:>12}={:>8.3}", param, value);
+        eprintln!("{param:>12}={value:>8.3}");
     }
-    eprintln!("Best Score  = {:>8.0}", best_score);
+    eprintln!("Best Score  = {best_score:>8.0}");
     eprintln!("------------------------");
 }
 fn tune_beam_search(input: &Input) {
@@ -146,7 +146,7 @@ fn tune_beam_search(input: &Input) {
         let mut current = min;
         while current <= max {
             params.bs_params.insert(param_name.to_string(), current);
-            eprint!("{:>12}={:>8.3}/{:>8.3}：score = ", param_name, current, max);
+            eprint!("{param_name:>12}={current:>8.3}/{max:>8.3}：score = ");
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2);
@@ -170,9 +170,9 @@ fn tune_beam_search(input: &Input) {
     eprintln!("\nBest BS Parameters:");
     eprintln!("------------------------");
     for (param, value) in best_params.iter() {
-        eprintln!("{:>12}={:>8.3}", param, value);
+        eprintln!("{param:>12}={value:>8.3}");
     }
-    eprintln!("Best Score  = {:>8.0}", best_score);
+    eprintln!("Best Score  = {best_score:>8.0}");
     eprintln!("------------------------");
 }
 
@@ -257,8 +257,8 @@ mod module_of_IO{
     pub trait ChangeToString{fn change_to_string(self)->String;}
     impl<T:Cts+Display>ChangeToString for     T {fn change_to_string(self)->String{self.cts()}}
     impl<T:Cts+Display>ChangeToString for Vec<T>{fn change_to_string(self)->String{self.iter().join(" ")}}
-    impl ChangeToString for     Coord {fn change_to_string(self)->String{format!("{}",self)}}
-    impl ChangeToString for Direction {fn change_to_string(self)->String{format!("{}",self)}}
+    impl ChangeToString for     Coord {fn change_to_string(self)->String{format!("{self}")}}
+    impl ChangeToString for Direction {fn change_to_string(self)->String{format!("{self}")}}
     pub trait Output{fn output(self)->String;}
     impl<T:ChangeToString>Output for T{fn output(self)->String{self.change_to_string()}}
     pub fn  Output(o:impl Output){ println!("{}",o.output())}
@@ -741,7 +741,7 @@ mod module_of_vecseq {
                 result.push('\n');
             }
             if crate::isLocal() {
-                eprintln!("{}", result);
+                eprintln!("{result}");
             }
             result
         }
@@ -1381,7 +1381,7 @@ mod module_of_simulatedannealing {
             writeln!(s, "  Improvements found: {}", self.stats.improve_count).unwrap();
             writeln!(s, "  Best score: {:>6}", self.stats.best_score).unwrap();
             writeln!(s, "  Final temperature: {:.6}", self.current_temp).unwrap();
-            eprintln!("{}", s);
+            eprintln!("{s}");
             // 進捗出力
             let mut progress = String::from("Trial    Score  Temperature\n");
             for (i, (score, temp)) in self
@@ -1391,7 +1391,7 @@ mod module_of_simulatedannealing {
                 .zip(self.stats.temp_history.iter())
                 .enumerate()
             {
-                writeln!(progress, "{:>5}\t{:>6}\t{:>11.6}", i, score, temp).unwrap();
+                writeln!(progress, "{i:>5}\t{score:>6}\t{temp:>11.6}").unwrap();
             }
             std::fs::write("sa_progress.txt", progress).unwrap();
         }
@@ -1568,7 +1568,7 @@ mod module_of_turning {
         pub fn print_history(&self) -> String {
             let mut result = String::new();
             for (param, value) in &self.param_history {
-                writeln!(result, "{}: {:.2}", param, value).unwrap();
+                writeln!(result, "{param}: {value:.2}").unwrap();
             }
             result
         }
