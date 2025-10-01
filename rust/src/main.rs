@@ -627,6 +627,7 @@ mod module_of_direction {
 mod module_of_vecseq {
     use {
         crate::Coord,
+        core::panic,
         std::{
             fmt::Display,
             ops::{Index, IndexMut},
@@ -640,6 +641,11 @@ mod module_of_vecseq {
     }
     impl<T> VecSeq<T> {
         pub const fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
+            if row == 0 {
+                panic!("0行")
+            } else if col == 0 {
+                panic!("0列")
+            }
             Self { vec, row, col }
         }
         pub fn swap(&mut self, i: usize, j: usize) {
@@ -648,14 +654,33 @@ mod module_of_vecseq {
         pub fn size(&self) -> usize {
             self.vec.len()
         }
+        #[inline(always)]
+        pub fn iter(&self) -> std::slice::Iter<T> {
+            self.vec.iter()
+        }
+        #[inline(always)]
+        pub fn iter_mut(&mut self) -> std::slice::IterMut<T> {
+            self.vec.iter_mut()
+        }
+        #[inline(always)]
+        pub fn as_slice(&self) -> &[T] {
+            &self.vec
+        }
+        #[inline(always)]
+        pub fn as_mut_slice(&mut self) -> &mut [T] {
+            &mut self.vec
+        }
+        #[inline(always)]
         pub const fn row(&self) -> usize {
             self.row
         }
+        #[inline(always)]
         pub const fn col(&self) -> usize {
             self.col
         }
-        pub fn iter(&self) -> std::slice::Iter<T> {
-            self.vec.iter()
+        #[inline(always)]
+        pub const fn get_idx(&self, row: usize, col: usize) -> usize {
+            row * self.col + col
         }
     }
     impl<T: Clone> From<Vec<Vec<T>>> for VecSeq<T> {
@@ -673,43 +698,34 @@ mod module_of_vecseq {
         }
     }
     impl<T: Default + Clone> VecSeq<T> {
-        pub fn with_default(row: usize, col: usize) -> Self {
-            let vec = vec![T::default(); row * col];
-            Self { vec, row, col }
+        pub fn from_default(row: usize, col: usize, default: T) -> Self {
+            Self {
+                vec: vec![default; row * col],
+                row,
+                col,
+            }
         }
     }
+
     impl<T> Index<usize> for VecSeq<T> {
         type Output = T;
-        #[inline]
+        #[inline(always)]
         fn index(&self, idx: usize) -> &Self::Output {
             &self.vec[idx]
         }
     }
+    impl<T> IndexMut<usize> for VecSeq<T> {
+        #[inline(always)]
+        fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+            &mut self.vec[idx]
+        }
+    }
+
     impl<T> Index<Coord> for VecSeq<T> {
         type Output = T;
         #[inline]
         fn index(&self, coord: Coord) -> &Self::Output {
             &self.vec[coord.to_sequence(self.col)]
-        }
-    }
-    impl<T> Index<&Coord> for VecSeq<T> {
-        type Output = T;
-        #[inline]
-        fn index(&self, coord: &Coord) -> &Self::Output {
-            &self.vec[coord.to_sequence(self.col)]
-        }
-    }
-    impl<T> Index<(usize, usize)> for VecSeq<T> {
-        type Output = T;
-        #[inline]
-        fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-            &self.vec[row * self.col + col]
-        }
-    }
-    impl<T> IndexMut<usize> for VecSeq<T> {
-        #[inline]
-        fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
-            &mut self.vec[idx]
         }
     }
     impl<T> IndexMut<Coord> for VecSeq<T> {
@@ -718,10 +734,26 @@ mod module_of_vecseq {
             &mut self.vec[coord.to_sequence(self.col)]
         }
     }
+
+    impl<T> Index<&Coord> for VecSeq<T> {
+        type Output = T;
+        #[inline]
+        fn index(&self, coord: &Coord) -> &Self::Output {
+            &self.vec[coord.to_sequence(self.col)]
+        }
+    }
     impl<T> IndexMut<&Coord> for VecSeq<T> {
         #[inline]
         fn index_mut(&mut self, coord: &Coord) -> &mut Self::Output {
             &mut self.vec[coord.to_sequence(self.col)]
+        }
+    }
+
+    impl<T> Index<(usize, usize)> for VecSeq<T> {
+        type Output = T;
+        #[inline]
+        fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+            &self.vec[row * self.col + col]
         }
     }
     impl<T> IndexMut<(usize, usize)> for VecSeq<T> {
@@ -730,6 +762,7 @@ mod module_of_vecseq {
             &mut self.vec[row * self.col + col]
         }
     }
+
     /// 視覚化
     impl<T: Display> VecSeq<T> {
         pub fn visualize(&self) -> String {
