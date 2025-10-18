@@ -655,11 +655,11 @@ mod module_of_vecseq {
             self.vec.len()
         }
         #[inline(always)]
-        pub fn iter(&self) -> std::slice::Iter<T> {
+        pub fn iter(&self) -> std::slice::Iter<'_, T> {
             self.vec.iter()
         }
         #[inline(always)]
-        pub fn iter_mut(&mut self) -> std::slice::IterMut<T> {
+        pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
             self.vec.iter_mut()
         }
         #[inline(always)]
