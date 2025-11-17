@@ -322,7 +322,7 @@ mod module_of_util {
 // 座標
 mod module_of_coord {
     use {
-        crate::{Direction, DIRECTIONS, DIRECTIONS_8},
+        crate::{Direction, NEIGHBOR, NEIGHBOR_8},
         std::{
             fmt::{Display, Formatter, Result},
             ops::{Add, AddAssign},
@@ -410,7 +410,7 @@ mod module_of_coord {
         /// 4方向の隣接座標
         pub fn neighbors4(&self, rows: usize, cols: usize) -> Vec<Coord> {
             let mut neighbors = Vec::new();
-            for dir in DIRECTIONS {
+            for dir in NEIGHBOR {
                 let next = *self + dir;
                 if next.within(rows, cols) {
                     neighbors.push(next);
@@ -421,7 +421,7 @@ mod module_of_coord {
         /// 8方向の隣接座標
         pub fn neighbors8(&self, rows: usize, cols: usize) -> Vec<Coord> {
             let mut neighbors = Vec::new();
-            for dir in DIRECTIONS_8 {
+            for dir in NEIGHBOR_8 {
                 let next = *self + dir;
                 if next.within(rows, cols) {
                     neighbors.push(next);
@@ -606,13 +606,14 @@ mod module_of_direction {
             write!(f, "{}", self.get_direction_info().1.symbol)
         }
     }
-    pub const DIRECTIONS: [Coord; 4] = [
+    pub const DIRECTION: [Direction; 4] = [Direction::U, Direction::R, Direction::D, Direction::L];
+    pub const NEIGHBOR: [Coord; 4] = [
         Coord::new(!0, 0), // ↑
         Coord::new(0, 1),  // →
         Coord::new(1, 0),  // ↓
         Coord::new(0, !0), // ←
     ];
-    pub const DIRECTIONS_8: [Coord; 8] = [
+    pub const NEIGHBOR_8: [Coord; 8] = [
         Coord::new(!0, 0),  // ↑
         Coord::new(0, 1),   // →
         Coord::new(1, 0),   // ↓
@@ -714,6 +715,7 @@ mod module_of_vecseq {
             &self.vec[idx]
         }
     }
+
     impl<T> IndexMut<usize> for VecSeq<T> {
         #[inline(always)]
         fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
