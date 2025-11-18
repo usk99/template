@@ -12,7 +12,8 @@
             "package.json",
             "memo",
             ".vscode",
-            "rust"
+            "rust",
+            "create_submit.sh"
         ],
         "submit": "Program.cs"
     }
