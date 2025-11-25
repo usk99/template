@@ -13,7 +13,8 @@
             "memo",
             ".vscode",
             "rust",
-            "create_submit.sh"
+            "create_submit.sh",
+            "visualizer"
         ],
         "submit": "Program.cs"
     }
