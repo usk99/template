@@ -1,1 +1,5 @@
 find [検索対象フォルダのパス] -type f -print | xargs grep '[検索したい文字列]'
+
+wasm-pack build --target web --out-dir ../public/wasm
+
+yarn dev
