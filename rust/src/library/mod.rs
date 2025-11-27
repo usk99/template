@@ -2,6 +2,7 @@ pub mod config;
 pub mod coord;
 pub mod direction;
 pub mod io;
+pub mod prime;
 pub mod random;
 pub mod seg;
 pub mod timer;

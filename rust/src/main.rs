@@ -575,6 +575,7 @@ use rust::library::config::*;
 use rust::library::coord::*;
 use rust::library::direction::*;
 use rust::library::io::*;
+use rust::library::prime::*;
 use rust::library::random::*;
 use rust::library::seg::*;
 use rust::library::timer::*;
