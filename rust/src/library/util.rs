@@ -6,8 +6,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-pub const ABC: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-pub const abc: &str = "abcdefghijklmnopqrstuvwxyz";
+pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+pub const ABC_L: &str = "abcdefghijklmnopqrstuvwxyz";
 
 // カンマ区切り文字列
 pub fn comma<T: ToString>(n: T) -> String {
