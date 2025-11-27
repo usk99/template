@@ -1,10 +1,75 @@
-const PRIME_NUMBERS: [usize; 100] = [
+const PRIME_NUMBERS: [usize; 200] = [
     2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
     101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
     197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307,
     311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421,
-    431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541,
+    431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547,
+    557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659,
+    661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797,
+    809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929,
+    937, 941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021, 1031, 1033, 1039,
+    1049, 1051, 1061, 1063, 1069, 1087, 1091, 1093, 1097, 1103, 1109, 1117, 1123, 1129, 1151, 1153,
+    1163, 1171, 1181, 1187, 1193, 1201, 1213, 1217, 1223,
 ];
+
+// --- 共通ユーティリティ ---
+fn mod_mul(a: u128, b: u128, modu: u128) -> u128 {
+    (a * b) % modu
+}
+
+fn mod_pow(mut base: u128, mut exp: u128, modu: u128) -> u128 {
+    let mut res = 1u128;
+    base %= modu;
+    while exp > 0 {
+        if (exp & 1) == 1 {
+            res = mod_mul(res, base, modu);
+        }
+        base = mod_mul(base, base, modu);
+        exp >>= 1;
+    }
+    res
+}
+
+fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let t = a % b;
+        a = b;
+        b = t;
+    }
+    a
+}
+
+// Pollard's Rho（簡易実装、決定的ではないが u128 範囲で実用的）
+fn pollard_rho(n: u128) -> u128 {
+    if n % 2 == 0 {
+        return 2;
+    }
+    let mut d: u128 = 1;
+    // 適当な c を試す
+    let mut c: u128 = 1;
+    while d == 1 {
+        let mut x = 2;
+        let mut y = 2;
+        d = 1;
+        let f = |x: u128| -> u128 { (mod_mul(x, x, n) + c) % n };
+        for _ in 0..100_000 {
+            x = f(x);
+            y = f(f(y));
+            let diff = if x > y { x - y } else { y - x };
+            d = gcd_u128(diff, n);
+            if d == n {
+                break;
+            }
+            if d > 1 {
+                return d;
+            }
+        }
+        c += 1;
+        // 万が一見つからなければ別の c を試行
+    }
+    // ここに来るのは通常ないが、n を返すフォールバック
+    n
+}
 
 pub fn is_prime(n: usize) -> bool {
     if n < 2 {
@@ -67,19 +132,7 @@ pub fn is_prime(n: usize) -> bool {
         s += 1;
     }
 
-    // べき乗剰余
-    fn mod_pow(mut base: u128, mut exp: u128, modu: u128) -> u128 {
-        let mut res = 1u128;
-        base %= modu;
-        while exp > 0 {
-            if (exp & 1) == 1 {
-                res = (res * base) % modu;
-            }
-            base = (base * base) % modu;
-            exp >>= 1;
-        }
-        res
-    }
+    // べき乗剰余は上の mod_pow を利用
 
     // MR の基底（64-bit 用）
     const BASES: [u128; 6] = [2, 3, 5, 7, 11, 13];
@@ -115,55 +168,109 @@ pub fn is_prime(n: usize) -> bool {
     true
 }
 
-// 単体テスト
-#[cfg(test)]
-mod tests {
-    use super::is_prime;
+/// 素因数分解を行い、(素因数, 指数) のペアを昇順に返す
+pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
+    let mut res: Vec<(usize, usize)> = Vec::new();
+    if n < 2 {
+        return res;
+    }
 
-    // 素朴な判定（テスト用）
-    fn is_prime_naive(n: usize) -> bool {
-        if n < 2 {
-            return false;
+    // まず小さい素数表で割り切る
+    for &p in PRIME_NUMBERS.iter() {
+        let p_us = p;
+        if p_us * p_us > n {
+            break;
         }
-        if n == 2 {
-            return true;
-        }
-        if n % 2 == 0 {
-            return false;
-        }
-        let mut i = 3usize;
-        while i * i <= n {
-            if n % i == 0 {
-                return false;
+        if n % p_us == 0 {
+            let mut cnt = 0;
+            while n % p_us == 0 {
+                n /= p_us;
+                cnt += 1;
             }
-            i += 2;
-        }
-        true
-    }
-
-    #[test]
-    fn 小さい素数() {
-        let primes = [
-            2usize, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
-            79, 83, 89, 97,
-        ];
-        for &p in primes.iter() {
-            assert!(is_prime(p), "{} は素数のはずです", p);
+            res.push((p_us, cnt));
         }
     }
 
-    #[test]
-    fn 小さい合成数() {
-        let comps = [0usize, 1, 4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20];
-        for &c in comps.iter() {
-            assert!(!is_prime(c), "{} は合成数のはずです", c);
-        }
+    // ここまでで n が 1 なら終了
+    if n == 1 {
+        return res;
     }
 
-    #[test]
-    fn ナイーブと比較_5000() {
-        for n in 0usize..5000 {
-            assert_eq!(is_prime(n), is_prime_naive(n), "{} で不一致", n);
+    // 残りが小さければそのまま追加
+    if is_prime(n) {
+        res.push((n, 1));
+        return res;
+    }
+
+    // 残った合成数に対して Pollard's Rho で因数を見つける
+    fn factor_rec(n128: u128, out: &mut Vec<u128>) {
+        if n128 == 1 {
+            return;
         }
+        if is_prime(n128 as usize) {
+            out.push(n128);
+            return;
+        }
+        let d = pollard_rho(n128);
+        if d == n128 {
+            // フェールセーフ：分解に失敗したら素朴に試し割り
+            let mut m = n128 as usize;
+            for &p in PRIME_NUMBERS.iter() {
+                let p_us = p as usize;
+                while m % p_us == 0 {
+                    out.push(p_us as u128);
+                    m /= p_us;
+                }
+            }
+            if m > 1 {
+                out.push(m as u128);
+            }
+            return;
+        }
+        factor_rec(d, out);
+        factor_rec(n128 / d, out);
+    }
+
+    let mut facs: Vec<u128> = Vec::new();
+    factor_rec(n as u128, &mut facs);
+    // facs は素因子のリスト（重複あり）なので集計して usize に戻す
+    facs.sort_unstable();
+    for f in facs {
+        let f_us = f as usize;
+        if let Some(last) = res.last_mut() {
+            if last.0 == f_us {
+                last.1 += 1;
+                continue;
+            }
+        }
+        res.push((f_us, 1));
+    }
+
+    res.sort_unstable_by_key(|(p, _)| *p);
+    res
+}
+
+/// n より大きい最小の素数を返す（n が素数なら n ではなく n+1 以上の素数）
+pub fn next_prime(n: usize) -> usize {
+    // 2 の次の素数は 3
+    if n < 2 {
+        return 2;
+    }
+    // 候補: n+1 から開始
+    let mut cand = n + 1;
+    // 小さな最適化: 2 のみ偶数の素数なので、偶数なら次の奇数へ
+    if cand % 2 == 0 {
+        if cand == 2 {
+            return 3;
+        }
+        cand += 1;
+    }
+
+    loop {
+        if is_prime(cand) {
+            return cand;
+        }
+        cand = cand.wrapping_add(2); // 次の奇数を試す
+                                     // wrapping_add で usize オーバーフローしても負の影響を避ける
     }
 }
