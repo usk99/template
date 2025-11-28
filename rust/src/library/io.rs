@@ -49,6 +49,7 @@ define_input_functions! {
     InputNums    (n:usize)        ->    Vec<usize>  =(0..n).map(|_|InputNum()).collect();
     InputsNums   (h:usize,w:usize)->Vec<Vec<usize>> =(0..h).map(|_|InputNums(w)).collect();
     InputString  ()               ->        String  =get_word();
+    InputChars   ()               ->    Vec<char>   =InputString().chars().collect();
     InputStrings (n:usize)        ->    Vec<String> =(0..n).map(|_|InputString()).collect();
     InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
 }

@@ -1,5 +1,6 @@
 // 便利
 #![allow(non_upper_case_globals)]
+use itertools::Itertools;
 use std::{
     cmp::Reverse,
     collections::BinaryHeap,
@@ -103,23 +104,11 @@ pub fn lcm(a: u64, b: u64) -> u64 {
     }
 }
 
-/// ランレングス圧縮
-pub fn rle<T: PartialEq + Copy>(s: &[T]) -> Vec<(T, usize)> {
-    if s.is_empty() {
-        return vec![];
-    }
-    let mut res = vec![];
-    let mut pre = s[0];
-    let mut cnt = 1;
-    for &c in &s[1..] {
-        if c == pre {
-            cnt += 1;
-        } else {
-            res.push((pre, cnt));
-            pre = c;
-            cnt = 1;
-        }
-    }
-    res.push((pre, cnt));
-    res
+/// ランレングス圧縮 (Run Length Encoding)
+pub fn rle<T: PartialEq + Clone>(s: &[T]) -> Vec<(T, usize)> {
+    s.iter()
+        .cloned()
+        .dedup_with_count()
+        .map(|(count, value)| (value, count))
+        .collect()
 }
