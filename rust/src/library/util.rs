@@ -8,7 +8,15 @@ use std::{
 };
 
 pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+pub const ABC_U_CHARS: [char; 26] = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+    'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+];
 pub const ABC_L: &str = "abcdefghijklmnopqrstuvwxyz";
+pub const ABC_L_CHARS: [char; 26] = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+    't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
 
 // カンマ区切り文字列
 pub fn comma<T: ToString>(n: T) -> String {
