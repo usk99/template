@@ -94,24 +94,6 @@ pub fn index_sort<T: PartialOrd>(arr: &[T]) -> Vec<usize> {
     indices
 }
 
-/// 最大公約数
-pub fn gcd(a: u64, b: u64) -> u64 {
-    if b == 0 {
-        a
-    } else {
-        gcd(b, a % b)
-    }
-}
-
-/// 最小公倍数
-pub fn lcm(a: u64, b: u64) -> u64 {
-    if a == 0 || b == 0 {
-        0
-    } else {
-        a / gcd(a, b) * b
-    }
-}
-
 /// ランレングス圧縮 (Run Length Encoding)
 pub fn rle<T: PartialEq + Clone>(s: &[T]) -> Vec<(T, usize)> {
     s.iter()
@@ -119,4 +101,44 @@ pub fn rle<T: PartialEq + Clone>(s: &[T]) -> Vec<(T, usize)> {
         .dedup_with_count()
         .map(|(count, value)| (value, count))
         .collect()
+}
+
+pub trait NumVecExt<T> {
+    fn sum_all(&self) -> T
+    where
+        T: std::iter::Sum;
+
+    fn gcd_all(&self) -> Option<T>
+    where
+        T: num::Integer;
+
+    fn lcm_all(&self) -> Option<T>
+    where
+        T: num::Integer;
+}
+
+impl<T> NumVecExt<T> for Vec<T>
+where
+    T: Copy,
+{
+    fn sum_all(&self) -> T
+    where
+        T: std::iter::Sum,
+    {
+        self.iter().copied().sum()
+    }
+
+    fn gcd_all(&self) -> Option<T>
+    where
+        T: num::Integer,
+    {
+        self.iter().copied().reduce(|acc, x| acc.gcd(&x))
+    }
+
+    fn lcm_all(&self) -> Option<T>
+    where
+        T: num::Integer,
+    {
+        self.iter().copied().reduce(|acc, x| acc.lcm(&x))
+    }
 }
