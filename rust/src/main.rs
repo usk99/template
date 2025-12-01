@@ -321,11 +321,11 @@ impl SimulatedAnnealing {
         }
     }
     // 状態遷移の受理判定
-    fn accept_transition(&self, diff: f64) -> bool {
+    fn accept_transition(&self, diff: f64, rnd: &mut XorShift) -> bool {
         if diff >= 0.0 {
             true
         } else {
-            rand::random::<f64>() < (diff / self.current_temp).exp()
+            rnd.next_f64() < (diff / self.current_temp).exp()
         }
     }
     // 実行
@@ -349,7 +349,7 @@ impl SimulatedAnnealing {
                 next_state.random_transition(rnd);
                 next_state.evaluate();
                 let diff = next_state.score as f64 - current_state.score as f64;
-                if self.accept_transition(diff) {
+                if self.accept_transition(diff, rnd) {
                     current_state = next_state;
                     accept_count += 1;
 
