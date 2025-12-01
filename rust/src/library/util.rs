@@ -1,9 +1,9 @@
 // 便利
 #![allow(non_upper_case_globals)]
-use std::{
-    cmp::Reverse,
-    collections::{BinaryHeap, HashMap},
-};
+use itertools::Itertools;
+use num_integer::*;
+use num_traits::*;
+use std::{cmp::*, collections::*, hash::*, iter::*, ops::*};
 
 pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 pub const ABC_U_CHARS: [char; 26] = [
@@ -68,13 +68,13 @@ impl<T: Ord> MinHeap<T> {
         self.heap.peek().map(|Reverse(value)| value)
     }
 }
-impl<T> std::ops::Deref for MinHeap<T> {
+impl<T> Deref for MinHeap<T> {
     type Target = BinaryHeap<Reverse<T>>;
     fn deref(&self) -> &Self::Target {
         &self.heap
     }
 }
-impl<T> std::ops::DerefMut for MinHeap<T> {
+impl<T> DerefMut for MinHeap<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.heap
     }
@@ -94,18 +94,18 @@ impl<T: Ord> Default for MinHeap<T> {
 #[rustfmt::skip]
 pub trait SliceExt<T> {
     /// 合計値取得
-    fn sum_all(&self) -> T where T: std::iter::Sum;
+    fn sum_all(&self) -> T where T: Sum;
     /// 積取得
-    fn product_all(&self) -> T where T: std::iter::Product;
+    fn product_all(&self) -> T where T: Product;
     /// 平均値取得
-    fn average(&self) -> f64 where T: num::ToPrimitive;
+    fn average(&self) -> f64 where T: ToPrimitive;
     /// 累積和取得
-    fn cumsum(&self) -> Vec<T> where T: Default + std::ops::Add<Output = T> + Copy;
+    fn cumsum(&self) -> Vec<T> where T: Default + Add<Output = T> + Copy;
 
     /// 最大公約数取得
-    fn gcd_all(&self) -> Option<T> where T: num::Integer;
+    fn gcd_all(&self) -> Option<T> where T: Integer;
     /// 最小公倍数取得
-    fn lcm_all(&self) -> Option<T> where T: num::Integer;
+    fn lcm_all(&self) -> Option<T> where T: Integer;
     /// 最小値取得
     fn min_all(&self) -> Option<T> where T: Ord;
     /// 最大値取得
@@ -116,7 +116,7 @@ pub trait SliceExt<T> {
     /// ランレングス圧縮取得
     fn rle(&self) -> Vec<(T, usize)> where T: PartialEq + Clone;
     /// 出現数カウント
-    fn counter(&self) -> HashMap<T, usize> where T: std::hash::Hash + Eq + Clone;
+    fn counter(&self) -> HashMap<T, usize> where T: Hash + Eq + Clone;
 
     /// lower_bound取得
     fn lower_bound(&self, x: &T) -> usize where T: Ord;
@@ -124,7 +124,7 @@ pub trait SliceExt<T> {
     fn upper_bound(&self, x: &T) -> usize where T: Ord;
 
     /// xと等しい範囲を返す
-    fn equal_range(&self, x: &T) -> std::ops::Range<usize> where T: Ord;
+    fn equal_range(&self, x: &T) -> Range<usize> where T: Ord;
     /// 次の順列
     fn next_permutation(&mut self) -> bool where T: Ord;
     /// 前の順列
@@ -147,21 +147,21 @@ where
 {
     fn sum_all(&self) -> T
     where
-        T: std::iter::Sum,
+        T: Sum,
     {
         self.iter().copied().sum()
     }
 
     fn product_all(&self) -> T
     where
-        T: std::iter::Product,
+        T: Product,
     {
         self.iter().copied().product()
     }
 
     fn average(&self) -> f64
     where
-        T: num::ToPrimitive,
+        T: ToPrimitive,
     {
         if self.is_empty() {
             return 0.0;
@@ -171,7 +171,7 @@ where
 
     fn cumsum(&self) -> Vec<T>
     where
-        T: Default + std::ops::Add<Output = T> + Copy,
+        T: Default + Add<Output = T> + Copy,
     {
         let mut acc = T::default();
         let mut res = Vec::with_capacity(self.len() + 1);
@@ -184,8 +184,8 @@ where
     }
 
     // メソッド名,トレイト,処理
-    impl_reduce!(gcd_all, num::Integer, |a, b| a.gcd(&b));
-    impl_reduce!(lcm_all, num::Integer, |a, b| a.lcm(&b));
+    impl_reduce!(gcd_all, Integer, |a, b| a.gcd(&b));
+    impl_reduce!(lcm_all, Integer, |a, b| a.lcm(&b));
     impl_reduce!(min_all, Ord, |a, b| a.min(b));
     impl_reduce!(max_all, Ord, |a, b| a.max(b));
 
@@ -197,7 +197,7 @@ where
         indices.sort_by(|&a, &b| {
             self[a]
                 .partial_cmp(&self[b])
-                .unwrap_or(std::cmp::Ordering::Equal)
+                .unwrap_or(Ordering::Equal)
                 .then_with(|| a.cmp(&b))
         });
         indices
@@ -207,7 +207,6 @@ where
     where
         T: PartialEq + Clone,
     {
-        use itertools::Itertools;
         self.iter()
             .cloned()
             .dedup_with_count()
@@ -217,7 +216,7 @@ where
 
     fn counter(&self) -> HashMap<T, usize>
     where
-        T: std::hash::Hash + Eq + Clone,
+        T: Hash + Eq + Clone,
     {
         let mut map = HashMap::new();
         for v in self.iter().cloned() {
@@ -240,7 +239,7 @@ where
         self.partition_point(|v| v <= x)
     }
 
-    fn equal_range(&self, x: &T) -> std::ops::Range<usize>
+    fn equal_range(&self, x: &T) -> Range<usize>
     where
         T: Ord,
     {

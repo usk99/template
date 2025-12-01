@@ -1,5 +1,6 @@
 // 方向
 use super::coord::Coord;
+use std::fmt::*;
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
 pub enum Direction {
     /// 上
@@ -59,8 +60,8 @@ impl Direction {
         Self::from_index_(self as usize + 3)
     }
 }
-impl std::fmt::Display for Direction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
             "{}",

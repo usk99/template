@@ -11,6 +11,9 @@
 //! - **Min/Maxで区間加算が必要**: `SegTree`を使用
 //! - **区間加算が不要**: どちらでも可（`LazySegTree`を推奨）
 
+use num_integer::*;
+use std::fmt::*;
+
 #[derive(Clone)]
 struct RangeOperationParams<S> {
     left: usize,
@@ -291,7 +294,7 @@ impl<M: Monoid> LazySegTree<M> {
     /// 木構造を視覚的に表示し、各ノードのデータ、遅延情報、区間長を出力します。
     pub fn debug_print(&mut self)
     where
-        M::S: std::fmt::Debug,
+        M::S: Debug,
     {
         println!("=== LazySegTree Debug Info ===");
         println!("n={}, size={}, log={}", self.n, self.size, self.log);
@@ -424,7 +427,7 @@ impl Monoid for Gcd {
         0
     }
     fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        num::Integer::gcd(a, b)
+        a.gcd(b)
     }
     fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
         value
@@ -445,7 +448,7 @@ impl Monoid for Lcm {
         1
     }
     fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        num::Integer::lcm(a, b)
+        a.lcm(b)
     }
     fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
         value
@@ -615,7 +618,7 @@ impl<M: Monoid> SegTree<M> {
     /// 木構造を視覚的に表示し、各ノードのデータを出力します。
     pub fn debug_print(&self)
     where
-        M::S: std::fmt::Debug,
+        M::S: Debug,
     {
         println!("=== SegTree Debug Info ===");
         println!("n={}, size={}", self.n, self.size);

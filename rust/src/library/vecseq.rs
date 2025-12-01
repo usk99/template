@@ -3,10 +3,7 @@ use {
     super::{config::*, coord::*},
     crate::log,
     core::panic,
-    std::{
-        fmt::Display,
-        ops::{Index, IndexMut},
-    },
+    std::{fmt::*, ops::*, slice::*},
 };
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VecSeq<T> {
@@ -61,12 +58,12 @@ impl<T> VecSeq<T> {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         self.vec.iter()
     }
 
     #[inline(always)]
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         self.vec.iter_mut()
     }
 

@@ -23,9 +23,7 @@ fn main() {
     // 出力
     let ans = answer.outstr();
     if is_local() {
-        use std::fs::File;
-        use std::io::BufWriter;
-        use std::io::Write;
+        use std::io::*;
         let _ = BufWriter::new(File::create("../output.txt").unwrap()).write(ans.as_bytes());
     }
     Output(ans);
@@ -73,7 +71,6 @@ fn solve(timer: &Timer, rnd: &mut XorShift, input: &Input, answer: &mut Output) 
             }
         }
         answer.push(result.score);
-        use std::fmt::Write;
         let mut s = String::new();
         writeln!(s, "Best  Solve : {best_solve:>6}").unwrap();
         writeln!(s, "Final Score : {:>6}", comma(result.score)).unwrap();
@@ -461,7 +458,7 @@ impl BeamSearch {
     ) -> State {
         self.candidates.clear();
         for _ in 0..self.params.max_depth {
-            let mut current = std::mem::take(&mut self.candidates);
+            let mut current = take(&mut self.candidates);
             // 次の状態生成
             if current.is_empty() {
                 current = initial.next_states();
@@ -586,4 +583,4 @@ use rust::library::vecseq::*;
 use rust::*;
 
 use itertools::Itertools;
-use std::collections::*;
+use std::{collections::*, fmt::*, fs::*, mem::*};

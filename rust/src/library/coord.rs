@@ -1,10 +1,7 @@
 // 座標
 use {
     super::direction::{Direction, NEIGHBOR, NEIGHBOR_8},
-    std::{
-        fmt::{Display, Formatter, Result},
-        ops::{Add, AddAssign, Sub, SubAssign},
-    },
+    std::{cmp::*, fmt::*, ops::*},
 };
 
 /// 座標の型
@@ -84,7 +81,7 @@ impl Coord {
 
     /// チェビシェフ距離(8方向移動時の最短手数)を計算
     pub fn dist_chebyshev(&self, other: &Self) -> usize {
-        std::cmp::max(
+        max(
             self.row().abs_diff(other.row()),
             self.col().abs_diff(other.col()),
         )

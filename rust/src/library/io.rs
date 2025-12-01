@@ -4,18 +4,14 @@
 use {
     super::{coord::Coord, direction::Direction},
     itertools::Itertools,
-    std::{
-        cell::RefCell,
-        fmt::Display,
-        io::{self, Read},
-    },
+    std::{cell::RefCell, fmt::Display, io::*},
 };
 
 // 入力 (内部実装をインタラクティブ対応版に置換)
 fn get_word() -> String {
     thread_local! {
         // スレッドごとに標準入力のイテレータを保持する（プログラム終了まで維持される）
-        static READER: RefCell<io::Bytes<io::Stdin>> = RefCell::new(io::stdin().bytes());
+        static READER: RefCell<Bytes<Stdin>> = RefCell::new(stdin().bytes());
     }
 
     READER.with(|reader| {

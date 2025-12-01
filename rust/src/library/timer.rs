@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 // タイマー
 use super::util::*;
-use std::time::Instant;
+use std::time::*;
 pub struct Timer {
     start_time: Instant,
     time_limit: f64, // 制限時間(ms)
