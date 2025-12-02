@@ -129,6 +129,9 @@ pub trait SliceExt<T> {
     fn next_permutation(&mut self) -> bool where T: Ord;
     /// 前の順列
     fn prev_permutation(&mut self) -> bool where T: Ord;
+
+    /// 回文判定
+    fn is_palindrome(&self) -> bool where T: PartialEq;
 }
 
 macro_rules! impl_reduce {
@@ -290,5 +293,19 @@ where
         self.swap(i - 1, j);
         self[i..].reverse();
         true
+    }
+
+    fn is_palindrome(&self) -> bool
+    where
+        T: PartialEq,
+    {
+        if self.len() < 2 {
+            return true;
+        }
+        let len = self.len();
+        self.iter()
+            .zip(self.iter().rev())
+            .take(len / 2)
+            .all(|(a, b)| a == b)
     }
 }
