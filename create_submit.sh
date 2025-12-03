@@ -1,14 +1,16 @@
 base_file=./rust/src/main.rs
 submit_file=./rust/src/submit.rs
 library_dir=./rust/src/library
-rm -f $submit_file
+# ディレクトリ名からクレート名を取得 (例: abc400/a -> abc400_a)
+crate_name=$(basename "$(dirname "$PWD")")_$(basename "$PWD")
 
+rm -f $submit_file
 
 echo -ne "提出用ファイルを生成します"
 # mod xxx; 以外を抜き出して提出ファイルに追加
-cat $base_file | grep -v "^use rust::library::*" | sed '/^use rust::\*;/d' > $submit_file
+cat $base_file | grep -v "^use ${crate_name}::library::*" | sed "/^use ${crate_name}::\*;/d" > $submit_file
 # mod xxx; からxxxを抽出
-items=(`cat $base_file | grep "^use rust::library::*" | sed -E "s/use rust::library::(.*)::\*;(.*)/\1/"`)
+items=(`cat $base_file | grep "^use ${crate_name}::library::*" | sed -E "s/use ${crate_name}::library::(.*)::\*;(.*)/\1/"`)
 
 for item in "${items[@]}" ; do
 # echo $item

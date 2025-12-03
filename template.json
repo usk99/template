@@ -14,8 +14,10 @@
             ".vscode",
             "rust",
             "create_submit.sh",
-            "visualizer"
+            "visualizer",
+            "setup.py"
         ],
-        "submit": "Program.cs"
+        "submit": "Program.cs",
+        "cmd": "python3 setup.py"
     }
 }
