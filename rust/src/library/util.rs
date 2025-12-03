@@ -309,3 +309,16 @@ where
             .all(|(a, b)| a == b)
     }
 }
+
+/// nビットの全パターン取得
+pub fn bit_pattern(n: usize) -> Vec<Vec<bool>> {
+    let mut bool = Vec::with_capacity(Pow::pow(2, n) as usize);
+    for i in 0..(1 << n) {
+        let mut b = Vec::with_capacity(n);
+        for j in 0..n {
+            b.push((i >> j) & 1 == 1);
+        }
+        bool.push(b);
+    }
+    bool
+}
