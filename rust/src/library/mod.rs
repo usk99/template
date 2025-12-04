@@ -1,6 +1,7 @@
 pub mod config;
 pub mod coord;
 pub mod direction;
+pub mod heuristic;
 pub mod io;
 pub mod prime;
 pub mod random;

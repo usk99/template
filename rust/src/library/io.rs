@@ -41,14 +41,43 @@ macro_rules! define_input_functions {
         )*
     }
 }
+type NumType = usize;
 define_input_functions! {
-    InputNum     ()               ->        usize   = get_word().parse().unwrap();
-    InputNums    (n:usize)        ->    Vec<usize>  =(0..n).map(|_|InputNum()).collect();
-    InputsNums   (h:usize,w:usize)->Vec<Vec<usize>> =(0..h).map(|_|InputNums(w)).collect();
-    InputString  ()               ->        String  =get_word();
-    InputChars   ()               ->    Vec<char>   =InputString().chars().collect();
-    InputStrings (n:usize)        ->    Vec<String> =(0..n).map(|_|InputString()).collect();
-    InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
+    InputNum     ()               ->        NumType   = get_word().parse().unwrap();
+    InputNums    (n:usize)        ->    Vec<NumType>  = (0..n).map(|_|InputNum()).collect();
+    InputNumsSelf()               ->    Vec<NumType>  =  InputNums(InputNum());
+    InputsNums   (h:usize,w:usize)->Vec<Vec<NumType>> = (0..h).map(|_|InputNums(w)).collect();
+    InputsNumsSelf()              ->Vec<Vec<NumType>> = InputsNums(InputNum(),InputNum());
+    InputString  ()               ->         String   = get_word();
+    InputChars   ()               ->     Vec<char>    = InputString().chars().collect();
+    InputsChars  (n:usize)        ->   Vec<Vec<char>> = (0..n).map(|_|InputChars()).collect();
+    InputsCharsSelf()             ->   Vec<Vec<char>> = InputsChars(InputNum());
+    InputStrings (n:usize)        ->     Vec<String>  = (0..n).map(|_|InputString()).collect();
+    InputStringsSelf()            ->     Vec<String>  = InputStrings(InputNum());
+    InputsStrings(h:usize,w:usize)-> Vec<Vec<String>> = (0..h).map(|_|InputStrings(w)).collect();
+    InputsStringsSelf()           -> Vec<Vec<String>> = InputsStrings(InputNum(),InputNum());
+}
+
+#[derive(Default)]
+pub struct Output {
+    output: Vec<String>,
+}
+impl Output {
+    pub const fn new() -> Self {
+        Self { output: Vec::new() }
+    }
+    // 追加
+    pub fn push<T: Printable>(&mut self, element: T) {
+        self.output.push(element.output_str());
+    }
+    // 初期化
+    pub fn clear(&mut self) {
+        self.output.clear();
+    }
+    // 文字列化
+    pub fn outstr(&self) -> String {
+        self.output.iter().join("\n")
+    }
 }
 
 pub trait Elem {

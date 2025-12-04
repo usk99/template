@@ -252,12 +252,17 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
 
 /// n より大きい最小の素数を返す（n が素数なら n ではなく n+1 以上の素数）
 pub fn next_prime(n: usize) -> usize {
+    // 2 の次の素数は 3
     if n < 2 {
         return 2;
     }
     // 候補: n+1 から開始
     let mut cand = n + 1;
+    // 小さな最適化: 2 のみ偶数の素数なので、偶数なら次の奇数へ
     if cand % 2 == 0 {
+        if cand == 2 {
+            return 3;
+        }
         cand += 1;
     }
 
@@ -266,5 +271,6 @@ pub fn next_prime(n: usize) -> usize {
             return cand;
         }
         cand = cand.wrapping_add(2); // 次の奇数を試す
+        // wrapping_add で usize オーバーフローしても負の影響を避ける
     }
 }
