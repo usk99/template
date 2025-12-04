@@ -215,8 +215,8 @@ impl Output {
         Self { output: Vec::new() }
     }
     // 追加
-    fn push<T: ChangeToString>(&mut self, element: T) {
-        self.output.push(element.change_to_string());
+    fn push<T: Elem>(&mut self, element: T) {
+        self.output.push(element.to_s());
     }
     // 初期化
     fn clear(&mut self) {
