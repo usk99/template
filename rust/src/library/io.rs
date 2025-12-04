@@ -8,12 +8,12 @@ use {
 };
 
 // 入力 (内部実装をインタラクティブ対応版に置換)
-fn get_word() -> String {
-    thread_local! {
-        // スレッドごとに標準入力のイテレータを保持する（プログラム終了まで維持される）
-        static READER: RefCell<Bytes<BufReader<Stdin>>> = RefCell::new(BufReader::new(stdin()).bytes());
-    }
+thread_local! {
+    // スレッドごとに標準入力のイテレータを保持する（プログラム終了まで維持される）
+    static READER: RefCell<Bytes<BufReader<Stdin>>> = RefCell::new(BufReader::new(stdin()).bytes());
+}
 
+fn get_word() -> String {
     READER.with(|reader| {
         let mut reader = reader.borrow_mut();
         let mut token = String::new();
@@ -34,7 +34,13 @@ fn get_word() -> String {
     })
 }
 
-macro_rules! define_input_functions {($($name:ident($($arg:ident:$t:ty),*)->$ret:ty=$body:expr);* $(;)*)=>{$(pub fn $name($($arg:$t),*)->$ret{$body})*}}
+macro_rules! define_input_functions {
+    ($($name:ident($($arg:ident:$t:ty),*) -> $ret:ty = $code:expr);* $(;)*) => {
+        $(
+            pub fn $name($($arg:$t),*) -> $ret { $code }
+        )*
+    }
+}
 define_input_functions! {
     InputNum     ()               ->        usize   = get_word().parse().unwrap();
     InputNums    (n:usize)        ->    Vec<usize>  =(0..n).map(|_|InputNum()).collect();
@@ -45,67 +51,46 @@ define_input_functions! {
     InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
 }
 
-// 出力
-trait Cts {
-    fn cts(self) -> String;
+pub trait Elem {
+    fn to_s(&self) -> String;
 }
-macro_rules! impl_cts{($($t:ty),*)=>{$(impl Cts for $t {fn cts(self)->String{self.to_string()}})*}}
-impl_cts!(
-    f32, f64, i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, isize, usize, &str, char, &String
-);
-impl Cts for bool {
-    fn cts(self) -> String {
-        (if self { "Yes" } else { "No" }).to_string()
+macro_rules! impl_elem {
+    ($($t:ty),*) => {
+        $( impl Elem for $t { fn to_s(&self) -> String { self.to_string() } } )*
     }
 }
-impl Cts for String {
-    fn cts(self) -> String {
-        self
+impl_elem!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, char, &str, String,
+    Coord, Direction
+);
+impl Elem for bool {
+    fn to_s(&self) -> String {
+        String::from(if *self { "Yes" } else { "No" })
     }
 }
 
-pub trait ChangeToString {
-    fn change_to_string(self) -> String;
+pub trait Printable {
+    fn output_str(&self) -> String;
 }
-impl<T: Cts + Display> ChangeToString for T {
-    fn change_to_string(self) -> String {
-        self.cts()
+impl<T: Elem> Printable for T {
+    fn output_str(&self) -> String {
+        self.to_s()
     }
 }
-impl<T: Cts + Display> ChangeToString for Vec<T> {
-    fn change_to_string(self) -> String {
+impl<T: Elem + Display> Printable for Vec<T> {
+    fn output_str(&self) -> String {
         self.iter().join(" ")
     }
 }
-impl<T: Cts + Display> ChangeToString for Vec<Vec<T>> {
-    fn change_to_string(self) -> String {
-        self.into_iter().map(|v| v.change_to_string()).join("\n")
-    }
-}
-impl ChangeToString for Coord {
-    fn change_to_string(self) -> String {
-        format!("{self}")
-    }
-}
-impl ChangeToString for Direction {
-    fn change_to_string(self) -> String {
-        format!("{self}")
+impl<T: Elem + Display> Printable for Vec<Vec<T>> {
+    fn output_str(&self) -> String {
+        self.iter().map(|v| v.iter().join(" ")).join("\n")
     }
 }
 
-pub trait Output {
-    fn output(self) -> String;
+pub fn Output(obj: impl Printable) {
+    println!("{}", obj.output_str());
 }
-impl<T: ChangeToString> Output for T {
-    fn output(self) -> String {
-        self.change_to_string()
-    }
-}
-
-pub fn Output(o: impl Output) {
-    println!("{}", o.output())
-}
-
-pub fn EOutput(o: impl Output) {
-    eprintln!("{}", o.output())
+pub fn EOutput(obj: impl Printable) {
+    eprintln!("{}", obj.output_str());
 }
