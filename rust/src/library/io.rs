@@ -44,6 +44,7 @@ define_input_functions! {
     InputStrings (n:usize)        ->    Vec<String> =(0..n).map(|_|InputString()).collect();
     InputsStrings(h:usize,w:usize)->Vec<Vec<String>>=(0..h).map(|_|InputStrings(w)).collect();
 }
+
 // 出力
 trait Cts {
     fn cts(self) -> String;
@@ -62,6 +63,7 @@ impl Cts for String {
         self
     }
 }
+
 pub trait ChangeToString {
     fn change_to_string(self) -> String;
 }
@@ -75,6 +77,11 @@ impl<T: Cts + Display> ChangeToString for Vec<T> {
         self.iter().join(" ")
     }
 }
+impl<T: Cts + Display> ChangeToString for Vec<Vec<T>> {
+    fn change_to_string(self) -> String {
+        self.into_iter().map(|v| v.change_to_string()).join("\n")
+    }
+}
 impl ChangeToString for Coord {
     fn change_to_string(self) -> String {
         format!("{self}")
@@ -85,6 +92,7 @@ impl ChangeToString for Direction {
         format!("{self}")
     }
 }
+
 pub trait Output {
     fn output(self) -> String;
 }
@@ -93,9 +101,11 @@ impl<T: ChangeToString> Output for T {
         self.change_to_string()
     }
 }
+
 pub fn Output(o: impl Output) {
     println!("{}", o.output())
 }
+
 pub fn EOutput(o: impl Output) {
     eprintln!("{}", o.output())
 }

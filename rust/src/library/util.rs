@@ -320,3 +320,13 @@ pub fn bit_pattern(n: usize) -> Vec<Vec<bool>> {
     }
     bool
 }
+
+pub trait StringExt {
+    fn counter(&self) -> HashMap<char, usize>;
+}
+impl StringExt for &str {
+    fn counter(&self) -> HashMap<char, usize> {
+        let chars = self.chars().collect::<Vec<_>>();
+        chars.counter()
+    }
+}
