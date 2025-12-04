@@ -16,7 +16,7 @@ pub struct Coord {
 }
 impl Coord {
     /// 原点
-    pub const ORIGIN: Coord = Coord::new(0, 0);
+    pub const ORIGIN: Self = Self::new(0, 0);
 
     /// 座標生成
     pub const fn new(row: usize, col: usize) -> Self {
@@ -45,7 +45,7 @@ impl Coord {
 
     /// 1次元インデックスから座標に変換
     pub const fn from_index(idx: usize, cols: usize) -> Self {
-        Coord::new(idx / cols, idx % cols)
+        Self::new(idx / cols, idx % cols)
     }
 
     /// 領域内に存在するかチェック
@@ -98,7 +98,7 @@ impl Coord {
     }
 
     /// 4方向の隣接座標イテレータ
-    pub fn neighbors4(&self, rows: usize, cols: usize) -> impl Iterator<Item = Coord> + '_ {
+    pub fn neighbors4(&self, rows: usize, cols: usize) -> impl Iterator<Item = Self> + '_ {
         NEIGHBOR.iter().filter_map(move |&dir| {
             let next = *self + dir;
             if next.within(rows, cols) {
@@ -110,7 +110,7 @@ impl Coord {
     }
 
     /// 8方向の隣接座標イテレータ
-    pub fn neighbors8(&self, rows: usize, cols: usize) -> impl Iterator<Item = Coord> + '_ {
+    pub fn neighbors8(&self, rows: usize, cols: usize) -> impl Iterator<Item = Self> + '_ {
         NEIGHBOR_8.iter().filter_map(move |&dir| {
             let next = *self + dir;
             if next.within(rows, cols) {
@@ -138,19 +138,15 @@ impl Coord {
     /// 指定した方向に移動する。グリッド外なら None を返す。
     pub fn next(&self, dir: Direction, h: usize, w: usize) -> Option<Self> {
         let nxt = *self + dir;
-        if nxt.within(h, w) {
-            Some(nxt)
-        } else {
-            None
-        }
+        if nxt.within(h, w) { Some(nxt) } else { None }
     }
 }
 
 /// + 演算子で座標の加算
-impl Add<Coord> for Coord {
-    type Output = Coord;
-    fn add(self, rhs: Coord) -> Self::Output {
-        Coord {
+impl Add<Self> for Coord {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
             row: self.row.wrapping_add(rhs.row),
             col: self.col.wrapping_add(rhs.col),
         }
@@ -159,10 +155,10 @@ impl Add<Coord> for Coord {
 
 /// + 演算子で座標の加算
 impl Add<Direction> for Coord {
-    type Output = Coord;
+    type Output = Self;
     fn add(self, rhs: Direction) -> Self::Output {
         let (dr, dc) = rhs.to_delta();
-        Coord {
+        Self {
             row: self.row.wrapping_add(dr as CoordType),
             col: self.col.wrapping_add(dc as CoordType),
         }
@@ -170,8 +166,8 @@ impl Add<Direction> for Coord {
 }
 
 /// += 演算子で座標の加算
-impl AddAssign<Coord> for Coord {
-    fn add_assign(&mut self, rhs: Coord) {
+impl AddAssign<Self> for Coord {
+    fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
@@ -184,10 +180,10 @@ impl AddAssign<Direction> for Coord {
 }
 
 /// - 演算子で座標の減算
-impl Sub<Coord> for Coord {
-    type Output = Coord;
-    fn sub(self, rhs: Coord) -> Self::Output {
-        Coord {
+impl Sub<Self> for Coord {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
             row: self.row.wrapping_sub(rhs.row),
             col: self.col.wrapping_sub(rhs.col),
         }
@@ -195,8 +191,8 @@ impl Sub<Coord> for Coord {
 }
 
 /// -= 演算子で座標の減算
-impl SubAssign<Coord> for Coord {
-    fn sub_assign(&mut self, rhs: Coord) {
+impl SubAssign<Self> for Coord {
+    fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }

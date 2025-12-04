@@ -61,14 +61,14 @@ impl Timer {
 
     /// 制限時間セット
     #[inline]
-    pub fn set_limit(&mut self, timelimit: f64) {
+    pub const fn set_limit(&mut self, timelimit: f64) {
         self.time_limit = timelimit;
     }
 
     /// 温度管理(焼きなまし用)
     #[inline]
     pub fn get_temp(&self, start_temp: f64, end_temp: f64) -> f64 {
-        start_temp + (end_temp - start_temp) * self.progress()
+        (end_temp - start_temp).mul_add(self.progress(), start_temp)
     }
 
     /// 指数温度管理

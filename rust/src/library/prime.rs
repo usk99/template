@@ -13,11 +13,11 @@ pub const PRIME_NUMBERS: [usize; 200] = [
 ];
 
 // --- 共通ユーティリティ ---
-fn mod_mul(a: u128, b: u128, modu: u128) -> u128 {
+const fn mod_mul(a: u128, b: u128, modu: u128) -> u128 {
     (a * b) % modu
 }
 
-fn mod_pow(mut base: u128, mut exp: u128, modu: u128) -> u128 {
+const fn mod_pow(mut base: u128, mut exp: u128, modu: u128) -> u128 {
     let mut res = 1u128;
     base %= modu;
     while exp > 0 {
@@ -30,7 +30,7 @@ fn mod_pow(mut base: u128, mut exp: u128, modu: u128) -> u128 {
     res
 }
 
-fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+const fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
     while b != 0 {
         let t = a % b;
         a = b;

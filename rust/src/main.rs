@@ -81,12 +81,13 @@ fn algorithm(_timer: &Timer, _input: &Input, answer: &mut Output) {
     // ＊＊＊ 数値型はusizeにしないと掛け算でオーバーフローする可能性ある！！ ＊＊＊
     answer.push("algo");
 }
-fn bare_minimum(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
+const fn bare_minimum(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
     State::new(input)
 }
-fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
+const fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
     State::new(input)
 }
+#[allow(clippy::while_float)]
 fn tune_simulated_annealing(input: &Input) {
     let mut params = HyperParameters::new();
     let mut best_score = 0.0;
@@ -181,18 +182,20 @@ pub struct State {
     score: usize,
 }
 impl State {
-    fn new(_input: &Input) -> Self {
+    const fn new(_input: &Input) -> Self {
         Self { score: 0 }
     }
     // 次の状態を生成（ビームサーチ用）
-    fn next_states(&self) -> Vec<State> {
+    const fn next_states(&self) -> Vec<Self> {
         // 問題に応じた状態遷移を実装
         vec![]
     }
     // 状態遷移(焼きなまし)
-    fn random_transition(&mut self, _rnd: &mut XorShift) {}
+    const fn random_transition(&mut self, _rnd: &mut XorShift) {
+        self.score = 0;
+    }
     // 状態の評価
-    fn evaluate(&mut self) {
+    const fn evaluate(&mut self) {
         self.score = 0;
     }
 }
@@ -200,7 +203,7 @@ impl State {
 #[derive(Clone)]
 pub struct Input {}
 impl Input {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {}
     }
 }
@@ -208,7 +211,7 @@ pub struct Output {
     output: Vec<String>,
 }
 impl Output {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { output: Vec::new() }
     }
     // 追加
@@ -311,7 +314,7 @@ impl SimulatedAnnealing {
         self.current_temp = self.current_temp.max(self.params.end_temp);
     }
     // 再加熱
-    fn reheat(&mut self) {
+    const fn reheat(&mut self) {
         if self.since_improve > self.params.reheat_interbal {
             self.current_temp = self.params.start_temp;
             self.since_improve = 0;
@@ -489,8 +492,8 @@ impl BeamSearch {
         self.candidates.sort_by_key(|s| usize::MAX - s.score);
         self.candidates
             .first()
-            .unwrap_or(&State::new(input))
-            .clone()
+            .cloned()
+            .unwrap_or_else(|| State::new(input))
     }
 }
 

@@ -40,7 +40,7 @@ impl<T> VecSeq<T> {
     }
 
     #[inline(always)]
-    pub fn is_valid(&self, coord: Coord) -> bool {
+    pub const fn is_valid(&self, coord: Coord) -> bool {
         coord.within(self.row, self.col)
     }
 
@@ -53,7 +53,7 @@ impl<T> VecSeq<T> {
     }
 
     #[inline(always)]
-    pub fn size(&self) -> usize {
+    pub const fn size(&self) -> usize {
         self.vec.len()
     }
 

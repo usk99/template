@@ -12,7 +12,7 @@ impl XorShift {
     }
 
     /// 乱数生成
-    fn next(&mut self) -> u64 {
+    const fn next(&mut self) -> u64 {
         let mut x = self.state;
         x ^= x << 13;
         x ^= x >> 7;
@@ -22,13 +22,13 @@ impl XorShift {
     }
 
     /// ランダム選択
-    pub fn gen_range(&mut self, max: usize) -> usize {
+    pub const fn gen_range(&mut self, max: usize) -> usize {
         ((self.next() as u128 * max as u128) >> 64) as usize
     }
 
     // 範囲内
     #[inline]
-    pub fn next_range(&mut self, min: usize, max: usize) -> usize {
+    pub const fn next_range(&mut self, min: usize, max: usize) -> usize {
         min + self.gen_range(max - min)
     }
 

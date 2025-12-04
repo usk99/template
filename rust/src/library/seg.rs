@@ -113,12 +113,12 @@ impl<M: Monoid> LazySegTree<M> {
     }
 
     /// 元配列のサイズを取得
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.n
     }
 
     /// 空かどうかを判定
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.n == 0
     }
 

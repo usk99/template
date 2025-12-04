@@ -19,11 +19,9 @@ pub const ABC_L_CHARS: [char; 26] = [
 // カンマ区切り文字列
 pub fn comma<T: ToString>(n: T) -> String {
     let s = n.to_string();
-    let (sign, num_str) = if let Some(stripped) = s.strip_prefix('-') {
-        ("-", stripped)
-    } else {
-        ("", &s[..])
-    };
+    let (sign, num_str) = s
+        .strip_prefix('-')
+        .map_or_else(|| ("", &s[..]), |stripped| ("-", stripped));
 
     let mut res = String::with_capacity(s.len() + s.len() / 3);
     res.push_str(sign);
@@ -50,7 +48,7 @@ pub struct MinHeap<T> {
     heap: BinaryHeap<Reverse<T>>,
 }
 impl<T: Ord> MinHeap<T> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             heap: BinaryHeap::new(),
         }

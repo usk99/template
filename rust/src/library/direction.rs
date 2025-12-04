@@ -17,36 +17,36 @@ impl Direction {
     /// インデックスを方向へ
     pub fn from_index_(i: usize) -> Self {
         match i % 4 {
-            0 => Direction::U,
-            1 => Direction::R,
-            2 => Direction::D,
-            3 => Direction::L,
+            0 => Self::U,
+            1 => Self::R,
+            2 => Self::D,
+            3 => Self::L,
             _ => unreachable!(),
         }
     }
 
     /// 方向をインデックスに
-    pub fn to_index_(self) -> usize {
+    pub const fn to_index_(self) -> usize {
         self as usize
     }
 
     /// 差分 (dr, dc) を取得
-    pub fn to_delta(self) -> (isize, isize) {
+    pub const fn to_delta(self) -> (isize, isize) {
         match self {
-            Direction::U => (-1, 0),
-            Direction::R => (0, 1),
-            Direction::D => (1, 0),
-            Direction::L => (0, -1),
+            Self::U => (-1, 0),
+            Self::R => (0, 1),
+            Self::D => (1, 0),
+            Self::L => (0, -1),
         }
     }
 
     /// 反対方向
-    pub fn opposite_(self) -> Self {
+    pub const fn opposite_(self) -> Self {
         match self {
-            Direction::U => Direction::D,
-            Direction::R => Direction::L,
-            Direction::D => Direction::U,
-            Direction::L => Direction::R,
+            Self::U => Self::D,
+            Self::R => Self::L,
+            Self::D => Self::U,
+            Self::L => Self::R,
         }
     }
 
@@ -66,10 +66,10 @@ impl Display for Direction {
             f,
             "{}",
             match self {
-                Direction::U => "U",
-                Direction::R => "R",
-                Direction::D => "D",
-                Direction::L => "L",
+                Self::U => "U",
+                Self::R => "R",
+                Self::D => "D",
+                Self::L => "L",
             }
         )
     }

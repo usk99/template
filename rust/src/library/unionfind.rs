@@ -77,7 +77,7 @@ impl UnionFind {
 
     /// グループの数
     #[inline]
-    pub fn group_count(&self) -> usize {
+    pub const fn group_count(&self) -> usize {
         self.group_count
     }
 }
