@@ -11,7 +11,7 @@ use {
 fn get_word() -> String {
     thread_local! {
         // スレッドごとに標準入力のイテレータを保持する（プログラム終了まで維持される）
-        static READER: RefCell<Bytes<Stdin>> = RefCell::new(stdin().bytes());
+        static READER: RefCell<Bytes<BufReader<Stdin>>> = RefCell::new(BufReader::new(stdin()).bytes());
     }
 
     READER.with(|reader| {
@@ -19,20 +19,15 @@ fn get_word() -> String {
         let mut token = String::new();
         let mut started = false;
 
-        loop {
+        while let Some(Ok(b)) = reader.next() {
             // 1バイト読み出す
-            match reader.next() {
-                Some(Ok(b)) => {
-                    if b <= b' ' {
-                        if started {
-                            break;
-                        }
-                    } else {
-                        started = true;
-                        token.push(b as char);
-                    }
+            if b <= b' ' {
+                if started {
+                    break;
                 }
-                _ => break,
+            } else {
+                started = true;
+                token.push(b as char);
             }
         }
         token

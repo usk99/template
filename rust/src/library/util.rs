@@ -19,8 +19,8 @@ pub const ABC_L_CHARS: [char; 26] = [
 // カンマ区切り文字列
 pub fn comma<T: ToString>(n: T) -> String {
     let s = n.to_string();
-    let (sign, num_str) = if s.starts_with('-') {
-        ("-", &s[1..])
+    let (sign, num_str) = if let Some(stripped) = s.strip_prefix('-') {
+        ("-", stripped)
     } else {
         ("", &s[..])
     };

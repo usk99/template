@@ -2,9 +2,9 @@
 //!
 //! ## 2つの実装
 //! - `LazySegTree<M>`: 遅延評価あり。Sumモノイドでadd_rangeがO(log n)で高速だが、
-//!                    Min/Maxでは正しく動作しない
+//!   Min/Maxでは正しく動作しない
 //! - `SegTree<M>`: 遅延評価なし。すべてのモノイドでadd_rangeが正しく動作するが、
-//!                 add_range/update_rangeはO(n)
+//!   add_range/update_rangeはO(n)
 //!
 //! ## 使い分け
 //! - **高速な区間加算が必要（Sum）**: `LazySegTree`を使用
@@ -71,9 +71,7 @@ impl<M: Monoid> LazySegTree<M> {
     pub fn new(n: usize) -> Self {
         let size = n.next_power_of_two();
         let mut len = vec![0; size * 2];
-        for i in size..size * 2 {
-            len[i] = 1;
-        }
+        len[size..size * 2].fill(1);
         for i in (1..size).rev() {
             len[i] = len[i * 2] + len[i * 2 + 1];
         }
@@ -99,9 +97,7 @@ impl<M: Monoid> LazySegTree<M> {
             data[i] = M::binary_operation(&data[i * 2], &data[i * 2 + 1]);
         }
         let mut len = vec![0; size * 2];
-        for i in size..size * 2 {
-            len[i] = 1;
-        }
+        len[size..size * 2].fill(1);
         for i in (1..size).rev() {
             len[i] = len[i * 2] + len[i * 2 + 1];
         }
@@ -213,7 +209,9 @@ impl<M: Monoid> LazySegTree<M> {
     /// 区間加算
     pub fn add_range(&mut self, left: usize, right: usize, x: M::S) {
         if !M::supports_add_range() {
-            eprintln!("警告: このモノイドではadd_rangeは正しく動作しません。Sumモノイドのみ対応しています。");
+            eprintln!(
+                "警告: このモノイドではadd_rangeは正しく動作しません。Sumモノイドのみ対応しています。"
+            );
         }
         self.add_range_recursive(left, right, x, 1, 0, self.size);
     }

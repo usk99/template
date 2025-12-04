@@ -12,7 +12,7 @@ impl XorShift {
     }
 
     /// 乱数生成
-    pub fn next(&mut self) -> u64 {
+    fn next(&mut self) -> u64 {
         let mut x = self.state;
         x ^= x << 13;
         x ^= x >> 7;

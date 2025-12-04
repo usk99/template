@@ -55,7 +55,7 @@ fn pollard_rho(n: u128) -> u128 {
         for _ in 0..100_000 {
             x = f(x);
             y = f(f(y));
-            let diff = if x > y { x - y } else { y - x };
+            let diff = x.abs_diff(y);
             d = gcd_u128(diff, n);
             if d == n {
                 break;
@@ -83,7 +83,7 @@ pub fn is_prime(n: usize) -> bool {
         }
     }
     let max_small = *PRIME_NUMBERS.last().unwrap();
-    if (n as usize) <= max_small * max_small {
+    if n <= max_small * max_small {
         return true;
     }
 
@@ -216,7 +216,7 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
             // フェールセーフ：分解に失敗したら素朴に試し割り
             let mut m = n128 as usize;
             for &p in PRIME_NUMBERS.iter() {
-                let p_us = p as usize;
+                let p_us = p;
                 while m % p_us == 0 {
                     out.push(p_us as u128);
                     m /= p_us;
@@ -237,11 +237,11 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
     facs.sort_unstable();
     for f in facs {
         let f_us = f as usize;
-        if let Some(last) = res.last_mut() {
-            if last.0 == f_us {
-                last.1 += 1;
-                continue;
-            }
+        if let Some(last) = res.last_mut()
+            && last.0 == f_us
+        {
+            last.1 += 1;
+            continue;
         }
         res.push((f_us, 1));
     }
@@ -271,6 +271,6 @@ pub fn next_prime(n: usize) -> usize {
             return cand;
         }
         cand = cand.wrapping_add(2); // 次の奇数を試す
-                                     // wrapping_add で usize オーバーフローしても負の影響を避ける
+        // wrapping_add で usize オーバーフローしても負の影響を避ける
     }
 }

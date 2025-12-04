@@ -41,7 +41,7 @@ impl Timer {
         p.min(1.0)
     }
 
-    ///
+    /// 残り時間(ms)
     #[inline]
     pub fn remaining(&self) -> f64 {
         (self.time_limit - self.get_time()).max(0.0)

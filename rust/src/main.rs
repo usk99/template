@@ -505,6 +505,12 @@ pub struct HyperParameters {
     // 変更履歴
     pub param_history: Vec<(String, f64)>,
 }
+impl Default for HyperParameters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HyperParameters {
     pub fn new() -> Self {
         let sap = SAParams::default();
