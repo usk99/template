@@ -3,9 +3,41 @@
 #![allow(unused_imports)]
 
 use {
-    super::{config::*, io::*, random::*, timer::*, util::*},
+    super::{config::*, coord::*, direction::*, io::*, random::*, timer::*, util::*, vecseq::*},
     std::{collections::*, mem::*},
 };
+
+#[derive(Clone, Default)]
+pub struct Input {}
+impl Input {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone)]
+pub struct State {
+    // 問題固有の状態を定義
+    pub score: usize,
+}
+impl State {
+    pub fn new(_input: &Input) -> Self {
+        Self { score: 0 }
+    }
+    // 次の状態を生成（ビームサーチ用）
+    fn next_states(&self) -> Vec<Self> {
+        // 問題に応じた状態遷移を実装
+        vec![]
+    }
+    // 状態遷移(焼きなまし)
+    fn random_transition(&mut self, _rnd: &mut XorShift) {
+        self.score = 0;
+    }
+    // 状態の評価
+    fn evaluate(&mut self) {
+        self.score = 0;
+    }
+}
 
 #[allow(clippy::while_float)]
 pub fn tune_simulated_annealing(input: &Input) {
@@ -94,43 +126,6 @@ pub fn tune_beam_search(input: &Input) {
     }
     eprintln!("Best Score  = {best_score:>8.0}");
     eprintln!("------------------------");
-}
-
-#[derive(Clone)]
-pub struct State {
-    // 問題固有の状態を定義
-    pub score: usize,
-}
-impl State {
-    pub fn new(_input: &Input) -> Self {
-        Self { score: 0 }
-    }
-    // 次の状態を生成（ビームサーチ用）
-    fn next_states(&self) -> Vec<Self> {
-        // 問題に応じた状態遷移を実装
-        vec![]
-    }
-    // 状態遷移(焼きなまし)
-    fn random_transition(&mut self, _rnd: &mut XorShift) {
-        self.score = 0;
-    }
-    // 状態の評価
-    fn evaluate(&mut self) {
-        self.score = 0;
-    }
-}
-
-#[derive(Clone)]
-pub struct Input {}
-impl Input {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-impl Default for Input {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 /// 焼きなましパラメータ
