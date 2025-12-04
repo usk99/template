@@ -215,8 +215,8 @@ impl Output {
         Self { output: Vec::new() }
     }
     // 追加
-    fn push<T: Elem>(&mut self, element: T) {
-        self.output.push(element.to_s());
+    fn push<T: Printable>(&mut self, element: T) {
+        self.output.push(element.output_str());
     }
     // 初期化
     fn clear(&mut self) {

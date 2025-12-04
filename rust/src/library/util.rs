@@ -330,3 +330,54 @@ impl StringExt for &str {
         chars.counter()
     }
 }
+
+pub trait GridExt<T> {
+    /// 90度右回転（時計回り）
+    fn rotate_right(&self) -> Vec<Vec<T>>;
+    /// 90度左回転（反時計回り）
+    fn rotate_left(&self) -> Vec<Vec<T>>;
+    /// 180度回転
+    fn rotate_180(&self) -> Vec<Vec<T>>;
+    /// 転置（行と列の入れ替え）
+    fn transpose(&self) -> Vec<Vec<T>>;
+}
+
+impl<T: Clone> GridExt<T> for [Vec<T>] {
+    fn rotate_right(&self) -> Vec<Vec<T>> {
+        if self.is_empty() {
+            return vec![];
+        }
+        let (h, w) = (self.len(), self[0].len());
+        (0..w)
+            .map(|j| (0..h).rev().map(|i| self[i][j].clone()).collect())
+            .collect()
+    }
+
+    fn rotate_left(&self) -> Vec<Vec<T>> {
+        if self.is_empty() {
+            return vec![];
+        }
+        let (h, w) = (self.len(), self[0].len());
+        (0..w)
+            .rev()
+            .map(|j| (0..h).map(|i| self[i][j].clone()).collect())
+            .collect()
+    }
+
+    fn rotate_180(&self) -> Vec<Vec<T>> {
+        self.iter()
+            .rev()
+            .map(|v| v.iter().rev().cloned().collect())
+            .collect()
+    }
+
+    fn transpose(&self) -> Vec<Vec<T>> {
+        if self.is_empty() {
+            return vec![];
+        }
+        let (h, w) = (self.len(), self[0].len());
+        (0..w)
+            .map(|j| (0..h).map(|i| self[i][j].clone()).collect())
+            .collect()
+    }
+}
