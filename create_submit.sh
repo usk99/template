@@ -28,6 +28,8 @@ done
 rustfmt $submit_file
 cat $submit_file | xsel -bi
 
-echo -e "\r\033[k提出用ファイルを生成&コピーしました"
-du -h $submit_file
+rm -f $submit_file
+#echo -e "\r\033[k提出用ファイルを生成&コピーしました"
+#du -h $submit_file
+echo -e "\r\033[k提出用ファイルをコピーしました"
 echo "念のため動作確認をしましょう"
