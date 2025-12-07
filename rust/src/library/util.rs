@@ -3,7 +3,7 @@
 use itertools::Itertools;
 use num_integer::*;
 use num_traits::*;
-use std::{cmp::*, collections::*, hash::*, iter::*, ops::*};
+use std::{cmp::*, collections::*, fmt::*, hash::*, iter::*, ops::*};
 
 pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 pub const ABC_U_CHARS: [char; 26] = [
@@ -91,6 +91,9 @@ impl<T: Ord> Default for MinHeap<T> {
 
 #[rustfmt::skip]
 pub trait SliceExt<T> {
+    /// 文字列化
+    fn to_string(&self,sep:&str)->String where T:Display;
+
     /// 合計値取得
     fn sum_all(&self) -> T where T: Sum;
     /// 積取得
@@ -146,6 +149,13 @@ impl<T> SliceExt<T> for [T]
 where
     T: Copy,
 {
+    fn to_string(&self, sep: &str) -> String
+    where
+        T: Display,
+    {
+        self.iter().join(sep)
+    }
+
     fn sum_all(&self) -> T
     where
         T: Sum,
@@ -308,19 +318,6 @@ where
     }
 }
 
-/// nビットの全パターン取得
-pub fn bit_pattern(n: usize) -> Vec<Vec<bool>> {
-    let mut bool = Vec::with_capacity(Pow::pow(2, n) as usize);
-    for i in 0..(1 << n) {
-        let mut b = Vec::with_capacity(n);
-        for j in 0..n {
-            b.push((i >> j) & 1 == 1);
-        }
-        bool.push(b);
-    }
-    bool
-}
-
 pub trait StringExt {
     fn counter(&self) -> HashMap<char, usize>;
 }
@@ -328,6 +325,23 @@ impl StringExt for &str {
     fn counter(&self) -> HashMap<char, usize> {
         let chars = self.chars().collect::<Vec<_>>();
         chars.counter()
+    }
+}
+
+pub trait CharExt {
+    fn to_num(self) -> usize;
+    fn is_lower(&self) -> bool;
+    fn is_upper(&self) -> bool;
+}
+impl CharExt for char {
+    fn to_num(self) -> usize {
+        (self as u8 - b'0') as usize
+    }
+    fn is_lower(&self) -> bool {
+        self.is_lowercase()
+    }
+    fn is_upper(&self) -> bool {
+        self.is_uppercase()
     }
 }
 
@@ -380,4 +394,17 @@ impl<T: Clone> GridExt<T> for [Vec<T>] {
             .map(|j| (0..h).map(|i| self[i][j].clone()).collect())
             .collect()
     }
+}
+
+/// nビットの全パターン取得
+pub fn bit_pattern(n: usize) -> Vec<Vec<bool>> {
+    let mut bool = Vec::with_capacity(Pow::pow(2, n) as usize);
+    for i in 0..(1 << n) {
+        let mut b = Vec::with_capacity(n);
+        for j in 0..n {
+            b.push((i >> j) & 1 == 1);
+        }
+        bool.push(b);
+    }
+    bool
 }
