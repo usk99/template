@@ -89,7 +89,8 @@ pub fn is_prime(n: usize) -> bool {
 
     // 30ホイールでの追加試し割り（上限 max_trial）
     let sqrt_n = (n as f64).sqrt() as usize + 1;
-    let max_trial = 100_000usize; // 試し割り上限（必要なら調整可）
+    // 試し割り上限（必要なら調整可）
+    let max_trial = 100_000usize;
     let limit = sqrt_n.min(max_trial);
 
     // 30 ホイール上で 30k + r の形の r 値（30 と互いに素）
@@ -146,7 +147,8 @@ pub fn is_prime(n: usize) -> bool {
 
         let mut x = mod_pow(a, d, n128);
         if x == 1 || x == n128 - 1 {
-            continue; // 合格
+            // 合格
+            continue;
         }
 
         // x が n-1 になるまで平方を繰り返す
@@ -160,7 +162,8 @@ pub fn is_prime(n: usize) -> bool {
         }
 
         if composite {
-            return false; // 合成数
+            // 合成数
+            return false;
         }
     }
 
@@ -270,7 +273,8 @@ pub fn next_prime(n: usize) -> usize {
         if is_prime(cand) {
             return cand;
         }
-        cand = cand.wrapping_add(2); // 次の奇数を試す
+        // 次の奇数を試す
         // wrapping_add で usize オーバーフローしても負の影響を避ける
+        cand = cand.wrapping_add(2);
     }
 }

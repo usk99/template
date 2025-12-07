@@ -410,7 +410,8 @@ impl Monoid for Xor {
         value
     }
     fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        current // XORは加算非対応
+        // XORは加算非対応
+        current
     }
     fn add_identity() -> Self::S {
         0
@@ -431,7 +432,8 @@ impl Monoid for Gcd {
         value
     }
     fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        current // GCDは加算非対応
+        // GCDは加算非対応
+        current
     }
     fn add_identity() -> Self::S {
         0
@@ -452,7 +454,8 @@ impl Monoid for Lcm {
         value
     }
     fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        current // LCMは加算非対応
+        // LCMは加算非対応
+        current
     }
     fn add_identity() -> Self::S {
         0
