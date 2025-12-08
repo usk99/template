@@ -3,6 +3,7 @@ submit_file=./rust/src/submit.rs
 library_dir=./rust/src/library
 # ディレクトリ名からクレート名を取得 (例: abc400/a -> abc400_a)
 crate_name=$(basename "$(dirname "$PWD")")_$(basename "$PWD")
+crate_name=${crate_name//-/_}
 
 rm -f $submit_file
 
