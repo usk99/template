@@ -14,6 +14,7 @@
             ".vscode",
             "rust",
             "create_submit.sh",
+            "minify_braces.pl",
             "visualizer",
             "setup.py"
         ],
