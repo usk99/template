@@ -1,4 +1,3 @@
-// ファイル分割したから提出時動作確認！！！
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 #![allow(unused_imports)]

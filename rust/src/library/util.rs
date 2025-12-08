@@ -464,8 +464,8 @@ impl ToComma for String {
 }
 macro_rules! C{
     (@ $n:expr,$neg:expr)=>{{let(mut n,mut b,mut p)=($n,[0u8;50],50);if n==0{return "0".into()}let mut c=0;while n>0{if c>0&&c%3==0{p-=1;b[p]=b','}p-=1;b[p]=b'0'+(n%10)as u8;n/=10;c+=1}if $neg{p-=1;b[p]=b'-'}unsafe{String::from_utf8_unchecked(b[p..].to_vec())}}};
-    (S $($t:ty),*)=>{$(impl ToComma for$t{fn comma(&self)->String{C!(@ self.unsigned_abs()as u128,*self<0)}})*};
-    (U $($t:ty),*)=>{$(impl ToComma for$t{fn comma(&self)->String{C!(@ *self as u128,false)}})*};
+    (S $($t:ty),*)=>{$(impl ToComma for$t{fn comma(&self)->String{C!(@self.unsigned_abs()as u128,*self<0)}})*};
+    (U $($t:ty),*)=>{$(impl ToComma for$t{fn comma(&self)->String{C!(@*self as u128,false)}})*};
 }
 C!(S i8,i16,i32,i64,i128,isize);
 C!(U u8,u16,u32,u64,u128,usize);
