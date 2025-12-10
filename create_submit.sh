@@ -71,8 +71,8 @@ perl minify_braces.pl
 
 cat $submit_file | xsel -bi
 
-rm -f $submit_file
 #echo -e "\r\033[k提出用ファイルを生成&コピーしました"
 echo -e "\r\033[k提出用ファイルをコピーしました"
 du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+rm -f $submit_file
 echo "念のため動作確認をしましょう"
