@@ -16,47 +16,6 @@ pub const ABC_L_CHARS: [char; 26] = [
     't', 'u', 'v', 'w', 'x', 'y', 'z',
 ];
 
-// カンマ区切り文字列
-pub fn comma<T: ToString>(n: T) -> String {
-    let s = n.to_string();
-    let bytes = s.as_bytes();
-
-    // 負の数の処理
-    let (sign_len, num_slice) = if bytes.first() == Some(&b'-') {
-        (1, &bytes[1..])
-    } else {
-        (0, bytes)
-    };
-
-    let len = num_slice.len();
-    if len <= 3 {
-        return s;
-    }
-
-    // 必要な容量を一度に確保（アロケーション回数削減）
-    let comma_cnt = (len - 1) / 3;
-    let mut res = Vec::with_capacity(s.len() + comma_cnt);
-
-    // 符号があれば追加
-    if sign_len > 0 {
-        res.push(b'-');
-    }
-
-    // 先頭の端数部分（1〜3文字）を計算して追加
-    // 例: 12345 (len=5) -> head=2 ("12")
-    let head = (len - 1) % 3 + 1;
-    res.extend_from_slice(&num_slice[..head]);
-
-    // 残りを3文字ごとの塊（チャンク）にしてコンマと共に追加
-    for chunk in num_slice[head..].chunks(3) {
-        res.push(b',');
-        res.extend_from_slice(chunk);
-    }
-
-    // SAFETY: 元が数字と記号のみの文字列なのでUTF-8チェックをスキップして高速化
-    unsafe { String::from_utf8_unchecked(res) }
-}
-
 /// 優先度付きキュー(最大)
 pub type MaxHeap<T> = BinaryHeap<T>;
 /// 優先度付きキュー(最小)
@@ -131,6 +90,8 @@ pub trait SliceExt<T> {
 
     /// インデックスソート取得
     fn index_sort(&self) -> Vec<usize> where T: PartialOrd;
+    /// 圧縮取得
+    fn compress(&self)->(Vec<T>,Vec<usize>) where T:Ord + Clone;
     /// ランレングス圧縮取得
     fn rle(&self) -> Vec<(T, usize)> where T: PartialEq + Clone;
     /// 出現数カウント
@@ -229,6 +190,20 @@ where
                 .then_with(|| a.cmp(&b))
         });
         indices
+    }
+
+    fn compress(&self) -> (Vec<T>, Vec<usize>)
+    where
+        T: Ord + Clone,
+    {
+        let mut vals = self.to_vec();
+        vals.sort();
+        vals.dedup();
+        let encoded = self
+            .iter()
+            .map(|x| vals.binary_search(x).unwrap())
+            .collect();
+        (vals, encoded)
     }
 
     fn rle(&self) -> Vec<(T, usize)>
@@ -458,6 +433,7 @@ impl ToComma for str {
     }
 }
 impl ToComma for String {
+    #[inline]
     fn comma(&self) -> String {
         (**self).comma()
     }
@@ -469,3 +445,25 @@ macro_rules! C{
 }
 C!(S i8,i16,i32,i64,i128,isize);
 C!(U u8,u16,u32,u64,u128,usize);
+
+impl ToComma for f64 {
+    #[inline]
+    fn comma(&self) -> String {
+        self.to_string().comma()
+    }
+}
+
+pub fn bisect<F>(mut ok: i64, mut ng: i64, mut check: F) -> i64
+where
+    F: FnMut(i64) -> bool,
+{
+    while (ok - ng).abs() > 1 {
+        let mid = (ok + ng) / 2;
+        if check(mid) {
+            ok = mid;
+        } else {
+            ng = mid;
+        }
+    }
+    ok
+}

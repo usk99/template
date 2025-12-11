@@ -69,7 +69,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, answer: &mut Answer) -> String {
         answer.push(result.score);
         let mut s = String::new();
         writeln!(s, "Best  Solve : {best_solve:>6}").unwrap();
-        writeln!(s, "Final Score : {:>6}", comma(result.score)).unwrap();
+        writeln!(s, "Final Score : {:>6}", result.score.comma()).unwrap();
         s
     }
 }

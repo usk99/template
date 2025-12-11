@@ -25,7 +25,7 @@ impl Timer {
     /// 時間取得(カンマ区切り文字列)
     #[inline]
     pub fn get_time_str(&self) -> String {
-        format!("{}ms", comma(self.get_time() as usize))
+        format!("{}ms", (self.get_time() as usize).comma())
     }
 
     /// 進捗

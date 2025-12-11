@@ -69,7 +69,7 @@ pub fn tune_simulated_annealing(input: &Input) {
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
-            eprintln!("{:>12}", comma(avg_score.round() as usize));
+            eprintln!("{:>12}", (avg_score.round() as usize).comma());
             if avg_score > best_score {
                 best_score = avg_score;
                 best_params.insert(param_name.to_string(), current);
@@ -111,7 +111,7 @@ pub fn tune_beam_search(input: &Input) {
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
-            eprintln!("{:>12}", comma(avg_score as usize));
+            eprintln!("{:>12}", (avg_score as usize).comma());
             if avg_score > best_score {
                 best_score = avg_score;
                 best_params.insert(param_name.to_string(), current as f64);
