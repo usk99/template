@@ -28,17 +28,11 @@ impl Timer {
         format!("{}ms", comma(self.get_time() as usize))
     }
 
-    /// 時間超過確認
-    #[inline]
-    pub fn is_time_over(&self) -> bool {
-        self.get_time() >= self.time_limit
-    }
-
     /// 進捗
     #[inline]
     pub fn progress(&self) -> f64 {
         let p = self.get_time() / self.time_limit;
-        p.min(1.0)
+        p.clamp(0.0, 1.0)
     }
 
     /// 残り時間(ms)

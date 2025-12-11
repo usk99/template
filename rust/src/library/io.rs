@@ -68,7 +68,7 @@ pub struct Answer {
     output: Vec<String>,
 }
 impl Answer {
-    /// 新規作成
+    /// 初期化
     pub const fn new() -> Self {
         Self { output: Vec::new() }
     }
