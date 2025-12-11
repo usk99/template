@@ -41,13 +41,18 @@ macro_rules! define_input_functions {
         )*
     }
 }
-type NumType = usize;
+
 define_input_functions! {
-    InputNum     ()               ->        NumType   = get_word().parse().unwrap();
-    InputNums    (n:usize)        ->    Vec<NumType>  = (0..n).map(|_|InputNum()).collect();
-    InputNumsSelf()               ->    Vec<NumType>  =  InputNums(InputNum());
-    InputsNums   (h:usize,w:usize)->Vec<Vec<NumType>> = (0..h).map(|_|InputNums(w)).collect();
-    InputsNumsSelf()              ->Vec<Vec<NumType>> = InputsNums(InputNum(),InputNum());
+    InputNum     ()               ->        usize   = get_word().parse().unwrap();
+    InputNums    (n:usize)        ->    Vec<usize>  = (0..n).map(|_|InputNum()).collect();
+    InputNumsSelf()               ->    Vec<usize>  =  InputNums(InputNum());
+    InputsNums   (h:usize,w:usize)->Vec<Vec<usize>> = (0..h).map(|_|InputNums(w)).collect();
+    InputsNumsSelf()              ->Vec<Vec<usize>> = InputsNums(InputNum(),InputNum());
+    InputInt     ()               ->        isize   = get_word().parse().unwrap();
+    InputInts    (n:usize)        ->    Vec<isize>  = (0..n).map(|_|InputInt()).collect();
+    InputIntsSelf()               ->    Vec<isize>  =  InputInts(InputNum());
+    InputsInts   (h:usize,w:usize)->Vec<Vec<isize>> = (0..h).map(|_|InputInts(w)).collect();
+    InputsIntsSelf()              ->Vec<Vec<isize>> = InputsInts(InputNum(),InputNum());
     InputString  ()               ->         String   = get_word();
     InputChars   ()               ->     Vec<char>    = InputString().chars().collect();
     InputsChars  (n:usize)        ->   Vec<Vec<char>> = (0..n).map(|_|InputChars()).collect();
@@ -59,61 +64,97 @@ define_input_functions! {
 }
 
 #[derive(Default)]
-pub struct Output {
+pub struct Answer {
     output: Vec<String>,
 }
-impl Output {
+impl Answer {
+    /// 新規作成
     pub const fn new() -> Self {
         Self { output: Vec::new() }
     }
-    // 追加
+
+    /// 追加
+    #[inline]
     pub fn push<T: Printable>(&mut self, element: T) {
         self.output.push(element.output_str());
     }
-    // 初期化
+
+    /// 初期化
+    #[inline]
     pub fn clear(&mut self) {
         self.output.clear();
     }
-    // 文字列化
+
+    /// 文字列化
     pub fn outstr(&self) -> String {
         self.output.iter().join("\n")
     }
 }
 
-pub trait Elem {
-    fn to_s(&self) -> String;
+pub trait Elem: Display {
+    fn to_s(&self) -> String {
+        self.to_string()
+    }
+    fn vec_to_s(data: &[Self]) -> String
+    where
+        Self: Sized,
+    {
+        data.iter().join(" ")
+    }
 }
 macro_rules! impl_elem {
     ($($t:ty),*) => {
-        $( impl Elem for $t { fn to_s(&self) -> String { self.to_string() } } )*
+        $(
+            impl Elem for $t {
+                #[inline]
+                fn to_s(&self) -> String { self.to_string() }
+            }
+        )*
     }
 }
+
 impl_elem!(
     i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, char, &str, String,
     Coord, Direction
 );
+
 impl Elem for bool {
+    #[inline]
     fn to_s(&self) -> String {
         String::from(if *self { "Yes" } else { "No" })
     }
+    fn vec_to_s(data: &[Self]) -> String
+    where
+        Self: Sized,
+    {
+        data.iter().map(|e| e.to_s()).join(" ")
+    }
 }
-
 pub trait Printable {
     fn output_str(&self) -> String;
 }
 impl<T: Elem> Printable for T {
+    #[inline]
     fn output_str(&self) -> String {
         self.to_s()
     }
 }
-impl<T: Elem + Display> Printable for Vec<T> {
+impl<T: Elem> Printable for &[T] {
+    #[inline]
     fn output_str(&self) -> String {
-        self.iter().join(" ")
+        T::vec_to_s(self)
     }
 }
-impl<T: Elem + Display> Printable for Vec<Vec<T>> {
+impl<T: Elem> Printable for Vec<T> {
+    #[inline]
     fn output_str(&self) -> String {
-        self.iter().map(|v| v.iter().join(" ")).join("\n")
+        T::vec_to_s(self)
+    }
+}
+impl<T: Elem> Printable for Vec<Vec<T>> {
+    #[inline]
+    fn output_str(&self) -> String {
+        self.iter().map(|v| T::vec_to_s(v)).join("\n")
     }
 }
 

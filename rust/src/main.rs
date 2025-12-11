@@ -4,7 +4,7 @@
 #![allow(unused_macros)]
 #![deny(arithmetic_overflow)]
 
-fn algorithm(answer: &mut Output) {
+fn algorithm(answer: &mut Answer) {
     // ＊＊＊ 数値型はusizeにしないと掛け算でオーバーフローする可能性ある！！ ＊＊＊
     answer.push("algo");
 }
@@ -12,7 +12,7 @@ fn main() {
     // 実行時間制限
     let timer = Timer::new(TIME_LIMIT);
     // 出力用意
-    let mut answer = Output::new();
+    let mut answer = Answer::new();
     // 解く
     let mut solve = solve(&timer, &mut XorShift::new(RND_SEED), &mut answer);
     // 出力
@@ -26,15 +26,15 @@ fn main() {
     solve.push_str(&format!("       time : {:>6}", timer.get_time_str()));
     log!("{solve}");
 }
-fn solve(timer: &Timer, rnd: &mut XorShift, answer: &mut Output) -> String {
-    if EXE_TYPE == 0b00000000 {
+fn solve(timer: &Timer, rnd: &mut XorShift, answer: &mut Answer) -> String {
+    if ENABLE_ALGORITHM {
         algorithm(answer);
         "Algorithm".to_string()
     } else {
         let input = &Input::new();
         let mut result = bare_minimum(input, timer, rnd);
         let mut best_solve = "bare_minimum";
-        if EXE_TYPE & 0b00000001 != 0 {
+        if ENABLE_GREEDY {
             // 貪欲？
             let gr = greedy(input, timer, rnd);
             if gr.score > result.score {
@@ -42,7 +42,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, answer: &mut Output) -> String {
                 best_solve = "Greedy";
             }
         }
-        if EXE_TYPE & 0b00000010 != 0 {
+        if ENABLE_SA {
             // 温度調整
             //tune_simulated_annealing(input);
             while !timer.is_timeout() {
@@ -55,7 +55,7 @@ fn solve(timer: &Timer, rnd: &mut XorShift, answer: &mut Output) -> String {
                 }
             }
         }
-        if EXE_TYPE & 0b00000100 != 0 {
+        if ENABLE_BEAM {
             // 幅調整
             // tune_beam_search(input);
             // ビームサーチっぽい
@@ -95,5 +95,7 @@ use rust::library::util::*;
 use rust::library::vecseq::*;
 use rust::*;
 
-use itertools::Itertools;
-use std::{collections::*, fmt::*, fs::*, mem::*};
+use {
+    itertools::Itertools,
+    std::{collections::*, fmt::*, fs::*, mem::*},
+};
