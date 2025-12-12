@@ -4,19 +4,20 @@
     },
     "task": {
         "program": [
+            ".github",
+            ".vscode",
+            "memo",
+            "rust",
+            "visualizer",
+            "create_submit.sh",
             "Main.cpp",
             "Main.cs",
             "Main.java",
             "Main.py",
-            "x.csproj",
-            "package.json",
-            "memo",
-            ".vscode",
-            "rust",
-            "create_submit.sh",
             "minify_braces.pl",
-            "visualizer",
-            "setup.py"
+            "package.json",
+            "setup.py",
+            "x.csproj"
         ],
         "submit": "Program.cs",
         "cmd": "python3 setup.py"

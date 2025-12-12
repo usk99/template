@@ -38,6 +38,7 @@ impl Coord {
         // 型の上限と協会が同じ場合は、Direction移動時に範囲チェックが正常に動かない可能性があるのでアウト
         // 型の上限とグリッドサイズが同じになりそうな場合の警告
         // (Wrapping戦略が破綻するリスクがあるため)
+        #[cfg(debug_assertions)]
         if row == CoordType::MAX as usize || col == CoordType::MAX as usize {
             eprintln!(
                 "Warning: Coord value ({}, {}) is at the limit of {:?}. \
@@ -135,11 +136,7 @@ impl Coord {
     #[inline]
     pub fn next(&self, dir: Direction, h: usize, w: usize) -> Option<Self> {
         let nx = *self + dir;
-        if nx.within(h, w) {
-            Some(nx)
-        } else {
-            None
-        }
+        if nx.within(h, w) { Some(nx) } else { None }
     }
 
     /// 4方向の隣接座標イテレータ
