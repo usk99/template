@@ -240,10 +240,8 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
     facs.sort_unstable();
     for f in facs {
         let f_us = f as usize;
-        if let Some(last) = res.last_mut()
-            && last.0 == f_us
-        {
-            last.1 += 1;
+        if res.last().is_some() && res.last_mut().unwrap().0 == f_us {
+            res.last_mut().unwrap().1 += 1;
             continue;
         }
         res.push((f_us, 1));
