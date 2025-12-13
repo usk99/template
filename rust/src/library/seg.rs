@@ -1,1395 +1,1266 @@
-//! セグメント木（Segment Tree）実装
-//!
-//! ## 2つの実装
-//! - `LazySegTree<M>`: 遅延評価あり。Sumモノイドでadd_rangeがO(log n)で高速だが、
-//!   Min/Maxでは正しく動作しない
-//! - `SegTree<M>`: 遅延評価なし。すべてのモノイドでadd_rangeが正しく動作するが、
-//!   add_range/update_rangeはO(n)
-//!
-//! ## 使い分け
-//! - **高速な区間加算が必要（Sum）**: `LazySegTree`を使用
-//! - **Min/Maxで区間加算が必要**: `SegTree`を使用
-//! - **区間加算が不要**: どちらでも可（`LazySegTree`を推奨）
+use {num::Integer, std::ops::*};
 
-use num_integer::*;
-use std::fmt::*;
-
-#[derive(Clone)]
-struct RangeOperationParams<S> {
-    left: usize,
-    right: usize,
-    x: S,
-    k: usize,
-    l: usize,
-    r: usize,
-    is_add: bool,
-}
-
+/// モノイド
+/// セグ木を構成する演算の単位的なもの
 pub trait Monoid {
     type S: Clone;
-
-    /// 単位元を返す
+    /// 単位元
     fn identity() -> Self::S;
-
-    /// 二項演算（結合則を満たす必要がある）
+    /// 演算
     fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S;
-
-    /// 遅延評価で値を区間長に応じて適用（update_range用）
-    fn apply_lazy_with_length(value: Self::S, length: usize) -> Self::S;
-
-    /// 加算値を区間長に応じて適用（add_range用）
-    fn apply_add_with_length(current: Self::S, add_value: Self::S, length: usize) -> Self::S;
-
-    /// 加算の単位元を返す
-    fn add_identity() -> Self::S;
-
-    /// `LazySegTree`でadd_rangeが正しく動作するかを示す
-    /// （Sum以外はfalseを返し、警告が表示される）
-    fn supports_add_range() -> bool {
-        false
-    }
 }
-
-/// 遅延評価セグメント木（Lazy Segment Tree）
-///
-/// 区間更新と区間取得をO(log n)で行えるデータ構造。
-/// **注意**: `add_range`はSumモノイドでのみ正しく動作します。
-///          Min/Maxで区間加算が必要な場合は`SegTree`を使用。
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct LazySegTree<M: Monoid> {
-    n: usize,                // 元配列のサイズ
-    size: usize,             // 内部配列のサイズ（2の累乗）
-    log: usize,              // log2(size)
-    data: Vec<M::S>,         // セグメント木のデータ
-    lazy: Vec<Option<M::S>>, // 遅延更新用（update_range）
-    lazy_add: Vec<M::S>,     // 遅延加算用（add_range）
-    len: Vec<usize>,         // 各ノードが担当する区間の長さ
+/// セグ木
+#[derive(Clone)]
+pub struct Seg<M: Monoid> {
+    /// 元サイズ
+    n: usize,
+    /// セグ木サイズ
+    size: usize,
+    /// 木の高さ
+    log: usize,
+    /// データ配列
+    d: Vec<M::S>,
 }
+impl<M: Monoid> Seg<M> {
+    /// 単位元初期化
+    pub fn new(n: usize) -> Seg<M> {
+        vec![M::identity(); n].into()
+    }
 
-impl<M: Monoid> LazySegTree<M> {
-    pub fn new(n: usize) -> Self {
-        let size = n.next_power_of_two();
-        let mut len = vec![0; size * 2];
-        len[size..size * 2].fill(1);
-        for i in (1..size).rev() {
-            len[i] = len[i * 2] + len[i * 2 + 1];
-        }
-        Self {
-            n,
-            size,
-            log: size.trailing_zeros() as usize,
-            data: vec![M::identity(); size * 2],
-            lazy: vec![None; size * 2],
-            lazy_add: vec![M::add_identity(); size * 2],
-            len,
+    /// 葉から更新
+    fn update(&mut self, k: usize) {
+        self.d[k] = M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
+    }
+
+    /// 葉の更新
+    pub fn set(&mut self, mut p: usize, x: M::S) {
+        assert!(p < self.n);
+        p += self.size;
+        self.d[p] = x;
+        for i in 1..=self.log {
+            self.update(p >> i);
         }
     }
 
-    /// ベクタからセグメント木を作成
-    pub fn from_vec(v: &[M::S]) -> Self {
-        let n = v.len();
-        let size = n.next_power_of_two();
-        let log = size.trailing_zeros() as usize;
-        let mut data = vec![M::identity(); size * 2];
-        data[size..size + n].clone_from_slice(v);
-        for i in (1..size).rev() {
-            data[i] = M::binary_operation(&data[i * 2], &data[i * 2 + 1]);
-        }
-        let mut len = vec![0; size * 2];
-        len[size..size * 2].fill(1);
-        for i in (1..size).rev() {
-            len[i] = len[i * 2] + len[i * 2 + 1];
-        }
-        Self {
-            n,
-            size,
-            log,
-            data,
-            lazy: vec![None; size * 2],
-            lazy_add: vec![M::add_identity(); size * 2],
-            len,
-        }
+    /// 葉の取得
+    pub fn get(&self, p: usize) -> M::S {
+        assert!(p < self.n);
+        self.d[p + self.size].clone()
     }
 
-    /// 元配列のサイズを取得
-    pub const fn len(&self) -> usize {
+    /// rangeで区間クエリ
+    pub fn prod<R: RangeBounds<usize>>(&self, range: R) -> M::S {
+        if range.start_bound() == Bound::Unbounded && range.end_bound() == Bound::Unbounded {
+            return self.d[1].clone();
+        }
+        let mut r = match range.end_bound() {
+            Bound::Included(r) => r + 1,
+            Bound::Excluded(r) => *r,
+            Bound::Unbounded => self.n,
+        };
+        let mut l = match range.start_bound() {
+            Bound::Included(l) => *l,
+            Bound::Excluded(l) => l + 1,
+            Bound::Unbounded => 0,
+        };
+        assert!(l <= r && r <= self.n);
+        let mut sml = M::identity();
+        let mut smr = M::identity();
+        l += self.size;
+        r += self.size;
+        while l < r {
+            if l & 1 != 0 {
+                sml = M::binary_operation(&sml, &self.d[l]);
+                l += 1;
+            }
+            if r & 1 != 0 {
+                r -= 1;
+                smr = M::binary_operation(&self.d[r], &smr);
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        M::binary_operation(&sml, &smr)
+    }
+
+    /// 区間クエリ（半開区間 `[l, r)` を取得）
+    ///
+    /// # 注意
+    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
+    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
+    pub fn get_range(&self, l: usize, r: usize) -> M::S {
+        self.prod(l..r)
+    }
+
+    /// l から右に向かって、条件 f を満たす最大の r を返す。
+    /// つまり、区間 [l, r) の総積が f で true になるギリギリの右端。
+    ///
+    /// # 制約
+    /// f(単位元) は true であること。
+    pub fn max_right<F: Fn(&M::S) -> bool>(&self, mut l: usize, f: F) -> usize {
+        assert!(l <= self.n);
+        assert!(f(&M::identity()));
+        if l == self.n {
+            return self.n;
+        }
+        l += self.size;
+        let mut sm = M::identity();
+        loop {
+            while l % 2 == 0 {
+                l >>= 1;
+            }
+            if !f(&M::binary_operation(&sm, &self.d[l])) {
+                while l < self.size {
+                    l *= 2;
+                    let res = M::binary_operation(&sm, &self.d[l]);
+                    if f(&res) {
+                        sm = res;
+                        l += 1;
+                    }
+                }
+                return l - self.size;
+            }
+            sm = M::binary_operation(&sm, &self.d[l]);
+            l += 1;
+            if l.is_power_of_two() {
+                break;
+            }
+        }
         self.n
     }
 
-    /// 空かどうかを判定
-    pub const fn is_empty(&self) -> bool {
-        self.n == 0
-    }
-
-    /// 遅延評価を伝搬させる（内部処理用）
+    /// r を右端として、左に向かって条件 f を満たす最小の l を返す。
+    /// つまり、区間 [l, r) の総積が f で true になるギリギリの左端。
     ///
-    /// ノードkの遅延情報を子ノードに伝搬し、自ノードのデータを更新する。
-    /// 更新（lazy）と加算（lazy_add）の両方を処理し、更新が優先される。
-    fn propagate(&mut self, k: usize) {
-        // 更新が優先（加算をクリア）
-        if let Some(x) = self.lazy[k].take() {
-            if k < self.size {
-                self.lazy[k * 2] = Some(x.clone());
-                self.lazy[k * 2 + 1] = Some(x.clone());
-                // 更新時は子の加算をクリア
-                self.lazy_add[k * 2] = M::add_identity();
-                self.lazy_add[k * 2 + 1] = M::add_identity();
+    /// # 制約
+    /// f(単位元) は true であること。
+    pub fn min_left<F: Fn(&M::S) -> bool>(&self, mut r: usize, f: F) -> usize {
+        assert!(r <= self.n);
+        assert!(f(&M::identity()));
+        if r == 0 {
+            return 0;
+        }
+        r += self.size;
+        let mut sm = M::identity();
+        loop {
+            r -= 1;
+            while r > 1 && r % 2 == 1 {
+                r >>= 1;
             }
-            self.data[k] = M::apply_lazy_with_length(x, self.len[k]);
-            // 更新時は自身の加算もクリア
-            self.lazy_add[k] = M::add_identity();
-            return;
-        }
-
-        // 加算の処理（常に適用、add_identityなら影響なし）
-        let add_val = self.lazy_add[k].clone();
-        if k < self.size {
-            self.lazy_add[k * 2] = M::binary_operation(&self.lazy_add[k * 2], &add_val);
-            self.lazy_add[k * 2 + 1] = M::binary_operation(&self.lazy_add[k * 2 + 1], &add_val);
-        }
-        self.data[k] = M::apply_add_with_length(self.data[k].clone(), add_val, self.len[k]);
-        self.lazy_add[k] = M::add_identity();
-    }
-
-    /// インデックスkの要素をxに更新
-    pub fn update(&mut self, k: usize, x: M::S) {
-        self.update_range(k, k + 1, x);
-    }
-
-    /// 区間[left, right)の全要素をxに更新
-    pub fn update_range(&mut self, left: usize, right: usize, x: M::S) {
-        self.range_operation_recursive(RangeOperationParams {
-            left,
-            right,
-            x,
-            k: 1,
-            l: 0,
-            r: self.size,
-            is_add: false,
-        });
-    }
-
-    fn range_operation_recursive(&mut self, params: RangeOperationParams<M::S>) {
-        self.propagate(params.k);
-        if params.right <= params.l || params.r <= params.left {
-            return;
-        }
-        if params.left <= params.l && params.r <= params.right {
-            self.lazy[params.k] = Some(params.x.clone());
-            self.propagate(params.k);
-            return;
-        }
-        let mid = (params.l + params.r) / 2;
-        self.range_operation_recursive(RangeOperationParams {
-            left: params.left,
-            right: params.right,
-            x: params.x.clone(),
-            k: params.k * 2,
-            l: params.l,
-            r: mid,
-            is_add: params.is_add,
-        });
-        self.range_operation_recursive(RangeOperationParams {
-            left: params.left,
-            right: params.right,
-            x: params.x.clone(),
-            k: params.k * 2 + 1,
-            l: mid,
-            r: params.r,
-            is_add: params.is_add,
-        });
-        self.update_operation(params.k);
-    }
-
-    fn update_operation(&mut self, k: usize) {
-        self.data[k] = M::binary_operation(&self.data[2 * k], &self.data[2 * k + 1]);
-    }
-
-    /// 区間加算
-    pub fn add_range(&mut self, left: usize, right: usize, x: M::S) {
-        if !M::supports_add_range() {
-            eprintln!(
-                "警告: このモノイドではadd_rangeは正しく動作しません。Sumモノイドのみ対応しています。"
-            );
-        }
-        self.add_range_recursive(left, right, x, 1, 0, self.size);
-    }
-
-    fn add_range_recursive(
-        &mut self,
-        left: usize,
-        right: usize,
-        x: M::S,
-        k: usize,
-        l: usize,
-        r: usize,
-    ) {
-        self.propagate(k);
-        if right <= l || r <= left {
-            return;
-        }
-        if left <= l && r <= right {
-            self.lazy_add[k] = M::binary_operation(&self.lazy_add[k], &x);
-            self.propagate(k);
-            return;
-        }
-        let mid = (l + r) / 2;
-        self.add_range_recursive(left, right, x.clone(), k * 2, l, mid);
-        self.add_range_recursive(left, right, x, k * 2 + 1, mid, r);
-        self.update_operation(k);
-    }
-
-    /// 単一加算
-    pub fn add(&mut self, k: usize, x: M::S) {
-        self.add_range(k, k + 1, x);
-    }
-
-    /// 区間取得
-    pub fn get_range(&mut self, left: usize, right: usize) -> M::S {
-        self.get_range_recursive(left, right, 1, 0, self.size)
-    }
-    fn get_range_recursive(
-        &mut self,
-        left: usize,
-        right: usize,
-        k: usize,
-        l: usize,
-        r: usize,
-    ) -> M::S {
-        self.propagate(k);
-        if right <= l || r <= left {
-            return M::identity();
-        }
-        if left <= l && r <= right {
-            return self.data[k].clone();
-        }
-        let mid = (l + r) / 2;
-        let vl = self.get_range_recursive(left, right, k * 2, l, mid);
-        let vr = self.get_range_recursive(left, right, k * 2 + 1, mid, r);
-        M::binary_operation(&vl, &vr)
-    }
-    /// 単一取得
-    pub fn get(&mut self, k: usize) -> M::S {
-        self.get_range(k, k + 1)
-    }
-    /// 全要素取得
-    pub fn to_vec(&mut self) -> Vec<M::S> {
-        (0..self.n).map(|i| self.get(i)).collect()
-    }
-    /// 全体結果取得
-    pub fn get_all(&mut self) -> M::S {
-        self.get_range(0, self.n)
-    }
-    /// リセット
-    pub fn clear(&mut self) {
-        self.data.fill(M::identity());
-        self.lazy.fill(None);
-    }
-
-    /// デバッグ用：セグメント木の内部状態を表示
-    ///
-    /// 木構造を視覚的に表示し、各ノードのデータ、遅延情報、区間長を出力します。
-    pub fn debug_print(&mut self)
-    where
-        M::S: Debug,
-    {
-        println!("=== LazySegTree Debug Info ===");
-        println!("n={}, size={}, log={}", self.n, self.size, self.log);
-        println!("\n[葉ノードの値]");
-        for i in 0..self.n {
-            print!("{:?} ", self.get(i));
-        }
-        println!("\n\n[木構造]");
-
-        // 最大インデックスの桁数を計算
-        let max_index_width = (self.size * 2 - 1).to_string().len();
-
-        let mut level = 0;
-        let mut start = 1;
-        while start < self.size * 2 {
-            let end = (start * 2).min(self.size * 2);
-            println!("レベル {level:max_index_width$}: ノード[{start}..{end})");
-            for i in start..end {
-                if i >= self.size * 2 {
-                    break;
+            if !f(&M::binary_operation(&self.d[r], &sm)) {
+                while r < self.size {
+                    r = 2 * r + 1;
+                    let res = M::binary_operation(&self.d[r], &sm);
+                    if f(&res) {
+                        sm = res;
+                        r -= 1;
+                    }
                 }
-                self.propagate(i);
-                print!("  [{i:max_index_width$}] data={:?}", self.data[i]);
-                if let Some(ref lazy_val) = self.lazy[i] {
-                    print!(", lazy={:?}", lazy_val);
-                }
-                print!(", len={}", self.len[i]);
-                println!();
+                return r + 1 - self.size;
             }
-            println!();
-            start = end;
-            level += 1;
+            sm = M::binary_operation(&self.d[r], &sm);
+            if r.is_power_of_two() {
+                break;
+            }
         }
-        println!("==============================\n");
-    }
-}
-// 和の実装
-#[derive(Clone, Copy)]
-pub struct Sum;
-impl Monoid for Sum {
-    type S = usize;
-    fn identity() -> Self::S {
-        0
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        a + b
-    }
-    fn apply_lazy_with_length(value: Self::S, length: usize) -> Self::S {
-        value * length
-    }
-    fn apply_add_with_length(current: Self::S, add_value: Self::S, length: usize) -> Self::S {
-        current + add_value * length
-    }
-    fn add_identity() -> Self::S {
-        0
-    }
-    fn supports_add_range() -> bool {
-        true
-    }
-}
-// 最小値の実装
-#[derive(Clone, Copy)]
-pub struct Min;
-impl Monoid for Min {
-    type S = usize;
-    fn identity() -> Self::S {
-        usize::MAX
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        *a.min(b)
-    }
-    fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
-        value
-    }
-    fn apply_add_with_length(current: Self::S, add_value: Self::S, _length: usize) -> Self::S {
-        current.saturating_add(add_value)
-    }
-    fn add_identity() -> Self::S {
         0
     }
 }
-// 最大値の実装
-#[derive(Clone, Copy)]
-pub struct Max;
-impl Monoid for Max {
-    type S = usize;
-    fn identity() -> Self::S {
-        usize::MIN
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        *a.max(b)
-    }
-    fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
-        value
-    }
-    fn apply_add_with_length(current: Self::S, add_value: Self::S, _length: usize) -> Self::S {
-        current.saturating_add(add_value)
-    }
-    fn add_identity() -> Self::S {
-        0
-    }
-}
-// XORの実装
-#[derive(Clone, Copy)]
-pub struct Xor;
-impl Monoid for Xor {
-    type S = usize;
-    fn identity() -> Self::S {
-        0
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        a ^ b
-    }
-    fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
-        value
-    }
-    fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        // XORは加算非対応
-        current
-    }
-    fn add_identity() -> Self::S {
-        0
-    }
-}
-// gcdの実装
-#[derive(Clone, Copy)]
-pub struct Gcd;
-impl Monoid for Gcd {
-    type S = usize;
-    fn identity() -> Self::S {
-        0
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        a.gcd(b)
-    }
-    fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
-        value
-    }
-    fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        // GCDは加算非対応
-        current
-    }
-    fn add_identity() -> Self::S {
-        0
-    }
-}
-// lcmの実装
-#[derive(Clone, Copy)]
-pub struct Lcm;
-impl Monoid for Lcm {
-    type S = usize;
-    fn identity() -> Self::S {
-        1
-    }
-    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {
-        a.lcm(b)
-    }
-    fn apply_lazy_with_length(value: Self::S, _length: usize) -> Self::S {
-        value
-    }
-    fn apply_add_with_length(current: Self::S, _add_value: Self::S, _length: usize) -> Self::S {
-        // LCMは加算非対応
-        current
-    }
-    fn add_identity() -> Self::S {
-        0
-    }
-}
-
-impl LazySegTree<Sum> {
-    pub fn new_sum(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_sum(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl LazySegTree<Min> {
-    pub fn new_min(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_min(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl LazySegTree<Max> {
-    pub fn new_max(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_max(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl LazySegTree<Xor> {
-    pub fn new_xor(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_xor(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl LazySegTree<Gcd> {
-    pub fn new_gcd(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_gcd(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl LazySegTree<Lcm> {
-    pub fn new_lcm(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_lcm(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-
-/// 通常版セグメント木（遅延評価なし）
-///
-/// 遅延評価を行わないシンプルなセグメント木実装。
-/// **すべてのモノイド（Sum, Min, Max等）で`add_range`が正しく動作します**。
-///
-/// 遅延評価がないため、区間更新・区間加算はO(n)ですが、
-/// Min/Maxで区間加算が必要な場合はこちらを使用してください。
-/// - `get_range`: O(log n)
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct SegTree<M: Monoid> {
-    n: usize,        // 元配列のサイズ
-    size: usize,     // 内部配列のサイズ（2の累乗）
-    data: Vec<M::S>, // セグメント木のデータ
-}
-
-impl<M: Monoid> SegTree<M> {
-    /// 新しいセグメント木を作成（全要素が単位元で初期化）
-    pub fn new(n: usize) -> Self {
-        let size = n.next_power_of_two();
-        Self {
-            n,
-            size,
-            data: vec![M::identity(); size * 2],
-        }
-    }
-
-    /// ベクタからセグメント木を作成
-    pub fn from_vec(v: &[usize]) -> Self
-    where
-        M::S: From<usize>,
-    {
+impl<M: Monoid> From<Vec<M::S>> for Seg<M> {
+    fn from(v: Vec<M::S>) -> Self {
         let n = v.len();
-        let size = n.next_power_of_two();
-        let mut data = vec![M::identity(); size * 2];
-        for i in 0..n {
-            data[size + i] = M::S::from(v[i]);
-        }
+        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let size = 1 << log;
+        let mut d = vec![M::identity(); 2 * size];
+        d[size..][..n].clone_from_slice(&v);
+        let mut ret = Seg { n, size, log, d };
         for i in (1..size).rev() {
-            data[i] = M::binary_operation(&data[i * 2], &data[i * 2 + 1]);
+            ret.update(i);
         }
-        Self { n, size, data }
+        ret
+    }
+}
+impl<M: Monoid> FromIterator<M::S> for Seg<M> {
+    fn from_iter<T: IntoIterator<Item = M::S>>(iter: T) -> Self {
+        let v = iter.into_iter().collect::<Vec<_>>();
+        v.into()
+    }
+}
+
+macro_rules! define_monoid {
+    ($(
+            $name:ident,       // 構造体名
+            $alias:ident,      // エイリアス名
+            $type:ty,          // 扱う型
+            $id:expr,          // 単位元
+            |$a:ident, $b:ident| $op:expr // 二項演算の処理
+        );* $(;)?) => {
+    $(
+        #[derive(Clone)]
+        pub struct $name;
+        impl Monoid for $name {
+            type S = $type;
+            #[inline] // セグ木では頻繁に呼ばれるのでインライン化推奨
+            fn identity() -> Self::S {
+                $id
+            }
+            #[inline]
+            fn binary_operation($a: &Self::S, $b: &Self::S) -> Self::S {
+                $op
+            }
+        }
+        pub type $alias = Seg<$name>;
+    )*};
+}
+
+define_monoid!(
+    // 基本演算
+    Max,    SegMax,    usize,          0, |a, b| *a.max(b);
+    Min,    SegMin,    usize, usize::MAX, |a, b| *a.min(b);
+    Sum,    SegSum,    usize,          0, |a, b| *a + *b;
+    SumLen, SegSumLen, (usize, usize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
+    XorLen, SegXorLen, (usize, usize), (0, 0), |a, b| (a.0 ^ b.0, a.1 + b.1); // 区間更新区間XOR用
+    // ビット演算
+    Xor,    SegXor,    usize,          0, |a, b| *a ^ *b;
+    BitOr,  SegBitOr,  usize,          0, |a, b| *a | *b;
+    BitAnd, SegBitAnd, usize, usize::MAX, |a, b| *a & *b;
+    // 数論
+    Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(b);
+    Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(b);
+);
+
+/// 遅延セグ木用のモノイド
+pub trait MapMonoid {
+    type M: Monoid;
+    type F: Clone;
+    /// 操作モノイド
+    fn identity_map() -> Self::F;
+    /// 操作fを操作gの後に適用する
+    fn composition(f: &Self::F, g: &Self::F) -> Self::F;
+    /// 操作fをデータxに適用する
+    fn mapping(f: &Self::F, x: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S;
+}
+/// 遅延セグ木
+#[derive(Clone)]
+pub struct LazySeg<F: MapMonoid> {
+    /// 元サイズ
+    n: usize,
+    /// セグ木サイズ
+    size: usize,
+    /// 木の高さ
+    log: usize,
+    /// データ配列
+    d: Vec<<F::M as Monoid>::S>,
+    /// 遅延配列
+    lz: Vec<F::F>,
+}
+impl<F: MapMonoid> LazySeg<F> {
+    /// 単位元初期化
+    pub fn new(n: usize) -> Self {
+        vec![F::M::identity(); n].into()
     }
 
-    /// インデックスindexの要素をvalueに設定
-    pub fn set(&mut self, mut index: usize, value: M::S) {
-        index += self.size;
-        self.data[index] = value;
-        while index > 1 {
-            index /= 2;
-            self.data[index] =
-                M::binary_operation(&self.data[index * 2], &self.data[index * 2 + 1]);
+    /// 葉の更新
+    pub fn set(&mut self, mut p: usize, x: <F::M as Monoid>::S) {
+        assert!(p < self.n);
+        p += self.size;
+        for i in (1..=self.log).rev() {
+            self.push(p >> i);
+        }
+        self.d[p] = x;
+        for i in 1..=self.log {
+            self.update(p >> i);
         }
     }
 
-    /// インデックスindexの要素を取得
-    pub fn get(&self, index: usize) -> M::S {
-        self.data[self.size + index].clone()
-    }
-
-    /// 区間[left, right)の全要素をvalueに更新
-    pub fn update_range(&mut self, left: usize, right: usize, value: M::S) {
-        for i in left..right.min(self.n) {
-            self.set(i, value.clone());
+    /// 葉の取得
+    pub fn get(&mut self, mut p: usize) -> <F::M as Monoid>::S {
+        assert!(p < self.n);
+        p += self.size;
+        for i in (1..=self.log).rev() {
+            self.push(p >> i);
         }
+        self.d[p].clone()
     }
 
-    /// 区間[left, right)の全要素にadd_valueを加算
-    pub fn add_range(&mut self, left: usize, right: usize, add_value: M::S) {
-        for i in left..right.min(self.n) {
-            let current = self.get(i);
-            let new_value = M::apply_add_with_length(current, add_value.clone(), 1);
-            self.set(i, new_value);
+    /// rangeで区間クエリ
+    pub fn prod<R: RangeBounds<usize>>(&mut self, range: R) -> <F::M as Monoid>::S {
+        if range.start_bound() == Bound::Unbounded && range.end_bound() == Bound::Unbounded {
+            return self.d[1].clone();
         }
-    }
-
-    /// 区間[left, right)の集約値を取得
-    pub fn get_range(&self, left: usize, right: usize) -> M::S {
-        let mut result_left = M::identity();
-        let mut result_right = M::identity();
-        let mut l = left + self.size;
-        let mut r = right + self.size;
-
+        let mut r = match range.end_bound() {
+            Bound::Included(r) => r + 1,
+            Bound::Excluded(r) => *r,
+            Bound::Unbounded => self.n,
+        };
+        let mut l = match range.start_bound() {
+            Bound::Included(l) => *l,
+            Bound::Excluded(l) => l + 1,
+            // TODO: There are another way of optimizing [0..r)
+            Bound::Unbounded => 0,
+        };
+        assert!(l <= r && r <= self.n);
+        if l == r {
+            return F::M::identity();
+        }
+        l += self.size;
+        r += self.size;
+        for i in (1..=self.log).rev() {
+            if ((l >> i) << i) != l {
+                self.push(l >> i);
+            }
+            if ((r >> i) << i) != r {
+                self.push(r >> i);
+            }
+        }
+        let mut sml = F::M::identity();
+        let mut smr = F::M::identity();
         while l < r {
-            if l % 2 == 1 {
-                result_left = M::binary_operation(&result_left, &self.data[l]);
+            if l & 1 != 0 {
+                sml = F::M::binary_operation(&sml, &self.d[l]);
                 l += 1;
             }
-            if r % 2 == 1 {
+            if r & 1 != 0 {
                 r -= 1;
-                result_right = M::binary_operation(&self.data[r], &result_right);
+                smr = F::M::binary_operation(&self.d[r], &smr);
             }
-            l /= 2;
-            r /= 2;
+            l >>= 1;
+            r >>= 1;
         }
-        M::binary_operation(&result_left, &result_right)
+        F::M::binary_operation(&sml, &smr)
     }
 
-    /// 全要素をベクタとして取得
-    pub fn to_vec(&self) -> Vec<M::S> {
-        self.data[self.size..self.size + self.n].to_vec()
-    }
-
-    /// デバッグ用：セグメント木の内部状態を表示
+    /// 区間クエリ（半開区間 `[l, r)` を取得）
     ///
-    /// 木構造を視覚的に表示し、各ノードのデータを出力します。
-    pub fn debug_print(&self)
-    where
-        M::S: Debug,
-    {
-        println!("=== SegTree Debug Info ===");
-        println!("n={}, size={}", self.n, self.size);
-        println!("\n[葉ノードの値]");
-        for i in 0..self.n {
-            print!("{:?} ", self.get(i));
+    /// # 注意
+    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
+    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
+    pub fn get_range(&mut self, l: usize, r: usize) -> <F::M as Monoid>::S {
+        self.prod(l..r)
+    }
+
+    /// 操作適用
+    pub fn apply(&mut self, mut p: usize, f: F::F) {
+        assert!(p < self.n);
+        p += self.size;
+        for i in (1..=self.log).rev() {
+            self.push(p >> i);
         }
-        println!("\n\n[木構造]");
+        self.d[p] = F::mapping(&f, &self.d[p]);
+        for i in 1..=self.log {
+            self.update(p >> i);
+        }
+    }
 
-        // 最大インデックスの桁数を計算
-        let max_index_width = (self.size * 2 - 1).to_string().len();
-
-        let mut level = 0;
-        let mut start = 1;
-        while start < self.size * 2 {
-            let end = (start * 2).min(self.size * 2);
-            println!("レベル {level:max_index_width$}: ノード[{start}..{end})");
-            for i in start..end {
-                if i >= self.size * 2 {
-                    break;
-                }
-                print!("  [{i:max_index_width$}] data={:?}", self.data[i]);
-                println!();
+    /// rangeで操作適用
+    pub fn apply_range<R: RangeBounds<usize>>(&mut self, range: R, f: F::F) {
+        let mut r = match range.end_bound() {
+            Bound::Included(r) => r + 1,
+            Bound::Excluded(r) => *r,
+            Bound::Unbounded => self.n,
+        };
+        let mut l = match range.start_bound() {
+            Bound::Included(l) => *l,
+            Bound::Excluded(l) => l + 1,
+            Bound::Unbounded => 0,
+        };
+        assert!(l <= r && r <= self.n);
+        if l == r {
+            return;
+        }
+        l += self.size;
+        r += self.size;
+        for i in (1..=self.log).rev() {
+            if ((l >> i) << i) != l {
+                self.push(l >> i);
             }
-            println!();
-            start = end;
-            level += 1;
+            if ((r >> i) << i) != r {
+                self.push((r - 1) >> i);
+            }
         }
-        println!("==========================\n");
+        let l2 = l;
+        let r2 = r;
+        while l < r {
+            if l & 1 != 0 {
+                self.all_apply(l, f.clone());
+                l += 1;
+            }
+            if r & 1 != 0 {
+                r -= 1;
+                self.all_apply(r, f.clone());
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        l = l2;
+        r = r2;
+        for i in 1..=self.log {
+            if ((l >> i) << i) != l {
+                self.update(l >> i);
+            }
+            if ((r >> i) << i) != r {
+                self.update((r - 1) >> i);
+            }
+        }
+    }
+
+    /// l から右に向かって、条件 f を満たす最大の r を返す。
+    /// つまり、区間 [l, r) の総積が f で true になるギリギリの右端。
+    ///
+    /// # 制約
+    /// f(単位元) は true であること。
+    pub fn max_right<G: Fn(<F::M as Monoid>::S) -> bool>(&mut self, mut l: usize, g: G) -> usize {
+        assert!(l <= self.n);
+        assert!(g(F::M::identity()));
+        if l == self.n {
+            return self.n;
+        }
+        l += self.size;
+        for i in (1..=self.log).rev() {
+            self.push(l >> i);
+        }
+        let mut sm = F::M::identity();
+        loop {
+            while l % 2 == 0 {
+                l >>= 1;
+            }
+            if !g(F::M::binary_operation(&sm, &self.d[l])) {
+                while l < self.size {
+                    self.push(l);
+                    l *= 2;
+                    let res = F::M::binary_operation(&sm, &self.d[l]);
+                    if g(res.clone()) {
+                        sm = res;
+                        l += 1;
+                    }
+                }
+                return l - self.size;
+            }
+            sm = F::M::binary_operation(&sm, &self.d[l]);
+            l += 1;
+            if l.is_power_of_two() {
+                break;
+            }
+        }
+        self.n
+    }
+
+    /// r を右端として、左に向かって条件 f を満たす最小の l を返す。
+    /// つまり、区間 [l, r) の総積が f で true になるギリギリの左端。
+    ///
+    /// # 制約
+    /// f(単位元) は true であること。
+    pub fn min_left<G: Fn(<F::M as Monoid>::S) -> bool>(&mut self, mut r: usize, g: G) -> usize {
+        assert!(r <= self.n);
+        assert!(g(F::M::identity()));
+        if r == 0 {
+            return 0;
+        }
+        r += self.size;
+        for i in (1..=self.log).rev() {
+            self.push((r - 1) >> i);
+        }
+        let mut sm = F::M::identity();
+        loop {
+            r -= 1;
+            while r > 1 && r % 2 != 0 {
+                r >>= 1;
+            }
+            if !g(F::M::binary_operation(&self.d[r], &sm)) {
+                while r < self.size {
+                    self.push(r);
+                    r = 2 * r + 1;
+                    let res = F::M::binary_operation(&self.d[r], &sm);
+                    if g(res.clone()) {
+                        sm = res;
+                        r -= 1;
+                    }
+                }
+                return r + 1 - self.size;
+            }
+            sm = F::M::binary_operation(&self.d[r], &sm);
+            if r.is_power_of_two() {
+                break;
+            }
+        }
+        0
+    }
+
+    fn push(&mut self, k: usize) {
+        self.all_apply(2 * k, self.lz[k].clone());
+        self.all_apply(2 * k + 1, self.lz[k].clone());
+        self.lz[k] = F::identity_map();
+    }
+    fn update(&mut self, k: usize) {
+        self.d[k] = F::M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
+    }
+    fn all_apply(&mut self, k: usize, f: F::F) {
+        self.d[k] = F::mapping(&f, &self.d[k]);
+        if k < self.size {
+            self.lz[k] = F::composition(&f, &self.lz[k]);
+        }
+    }
+}
+impl<F: MapMonoid> From<Vec<<F::M as Monoid>::S>> for LazySeg<F> {
+    fn from(v: Vec<<F::M as Monoid>::S>) -> Self {
+        let n = v.len();
+        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let size = 1 << log;
+        let mut d = vec![F::M::identity(); 2 * size];
+        let lz = vec![F::identity_map(); size];
+        d[size..(size + n)].clone_from_slice(&v);
+        let mut ret = LazySeg {
+            n,
+            size,
+            log,
+            d,
+            lz,
+        };
+        for i in (1..size).rev() {
+            ret.update(i);
+        }
+        ret
     }
 }
 
-// ===== コンストラクタヘルパー =====
-// 各モノイド用の便利なコンストラクタ
+macro_rules! define_map_monoid {
+    (
+        $(
+            $name:ident,        // 構造体名
+            $alias:ident,       // エイリアス名
+            $monoid:ty,         // 継承するMonoid
+            $op_type:ty,        // 操作の型
+            $id_map:expr,       // 操作の単位元
+            |$f1:ident, $g1:ident| $composition:expr, // composition(new, old)
+            |$f2:ident, $x2:ident| $mapping:expr      // mapping(op, data)
+        );* $(;)?
+    ) => {
+        $(
+            #[derive(Clone)]
+            pub struct $name;
+            impl MapMonoid for $name {
+                type M = $monoid;
+                type F = $op_type;
+                #[inline]
+                fn identity_map() -> Self::F { $id_map }
+                #[inline]
+                fn composition($f1: &Self::F, $g1: &Self::F) -> Self::F { $composition }
+                #[inline]
+                fn mapping($f2: &Self::F, $x2: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S { $mapping }
+            }
+            pub type $alias = LazySeg<$name>;
+        )*
+    };
+}
+define_map_monoid!(
+    // -------------------------------------------------------
+    // 区間加算 (Add) 系
+    // -------------------------------------------------------
+    AddMax, LazySegAddMax, Max, usize, 0, |f, g| f + g, |f, x| x + f;
+    AddMin, LazySegAddMin, Min, usize, 0, |f, g| f + g, |f, x| x + f;
+    AddSum, LazySegAddSum, SumLen, usize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
+);
+define_map_monoid!(
+    // -------------------------------------------------------
+    // 区間更新 (Update) 系
+    // -------------------------------------------------------
+    // 合成: 新しい値(f)がSomeなら上書き、Noneなら古い値(g)を維持
+    // 作用: 操作(f)がSomeならその値にする、Noneなら元の値(x)を維持
 
-impl SegTree<Sum> {
-    pub fn new_sum(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_sum(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
+    // 区間更新・区間最大値
+    UpdateMax, LazySegUpdateMax, Max, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    // 区間更新・区間最小値
+    UpdateMin, LazySegUpdateMin, Min, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    // 区間更新・区間BitOR (v | v = v なので長さ不要)
+    UpdateBitOr, LazySegUpdateBitOr, BitOr, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    // 区間更新・区間BitAND (v & v = v なので長さ不要)
+    UpdateBitAnd, LazySegUpdateBitAnd, BitAnd, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    // 区間更新・区間GCD (gcd(v, v) = v なので長さ不要)
+    UpdateGcd, LazySegUpdateGcd, Gcd, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    // -------------------------------------------------------
+    // 特殊形: 長さが計算に絡むもの (Sum, Xor)
+    // -------------------------------------------------------
+
+    // 区間更新・区間和
+    // 値を v に変えると、和は v * len になる
+    UpdateSum, LazySegUpdateSum, SumLen, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x };
+
+    // 区間更新・区間XOR
+    // 値を v に変えると、XOR和は「長さが偶数なら0、奇数ならv」になる
+    UpdateXor, LazySegUpdateXor, XorLen, Option<usize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { (if x.1 % 2 == 0 { 0 } else { *v }, x.1) } else { *x };
+);
+
+// 長さ付きモノイド用の便利メソッド
+macro_rules! impl_value_methods {
+    ($seg_type:ty) => {
+        impl $seg_type {
+            /// 値のみで初期化（長さは自動で1に設定）
+            pub fn from_values(values: Vec<usize>) -> Self {
+                Self::from(values.into_iter().map(|v| (v, 1)).collect::<Vec<_>>())
+            }
+
+            /// サイズだけ指定して0初期化
+            pub fn new_with_size(n: usize) -> Self {
+                Self::from(vec![(0, 1); n])
+            }
+
+            /// 値のみで set（長さは自動で1）
+            pub fn set_value(&mut self, p: usize, val: usize) {
+                self.set(p, (val, 1));
+            }
+
+            /// 値のみ取得
+            pub fn get_value(&mut self, p: usize) -> usize {
+                self.get(p).0
+            }
+
+            /// 値のみで区間取得
+            pub fn prod_value<R: RangeBounds<usize>>(&mut self, range: R) -> usize {
+                self.prod(range).0
+            }
+        }
+    };
 }
-impl SegTree<Min> {
-    pub fn new_min(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_min(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl SegTree<Max> {
-    pub fn new_max(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_max(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl SegTree<Xor> {
-    pub fn new_xor(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_xor(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl SegTree<Gcd> {
-    pub fn new_gcd(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_gcd(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
-impl SegTree<Lcm> {
-    pub fn new_lcm(n: usize) -> Self {
-        Self::new(n)
-    }
-    pub fn from_vec_lcm(v: &[usize]) -> Self {
-        Self::from_vec(v)
-    }
-}
+
+impl_value_methods!(LazySegAddSum);
+impl_value_methods!(LazySegUpdateSum);
+impl_value_methods!(LazySegUpdateXor);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use crate::library::seg::*;
+    // -------------------------------------------------------------------------
+    // 1. 各演算の個別テスト
+    // -------------------------------------------------------------------------
     #[test]
-    fn test_test() {
-        let mut seg = LazySegTree::<Min>::from_vec_min(&[10, 20, 30]);
-        seg.add_range(0, 2, 100);
-        println!("{:?}", seg.to_vec());
-        println!()
+    fn test_sum() {
+        // Add: 足し算 (単位元 0)
+        let n = 5;
+        let mut seg = SegSum::new(n);
+        // [1, 2, 3, 4, 5]
+        for i in 0..n {
+            seg.set(i, i + 1);
+        }
+        assert_eq!(seg.prod(0..5), 15); // 1+2+3+4+5
+        assert_eq!(seg.prod(1..3), 5); // 2+3
+        assert_eq!(seg.prod(0..0), 0); // 空区間は単位元
+    }
+    #[test]
+    fn test_min_max() {
+        // Min: 最小値 (単位元 usize::MAX)
+        // Max: 最大値 (単位元 0)
+        let n = 5;
+        let mut seg_min = SegMin::new(n);
+        let mut seg_max = SegMax::new(n);
+        // [10, 20, 5, 30, 15]
+        let data = [10, 20, 5, 30, 15];
+        for (i, &v) in data.iter().enumerate() {
+            seg_min.set(i, v);
+            seg_max.set(i, v);
+        }
+        // Min Check
+        assert_eq!(seg_min.prod(0..5), 5); // 全体の最小
+        assert_eq!(seg_min.prod(0..2), 10); // [10, 20] -> 10
+        assert_eq!(seg_min.prod(3..5), 15); // [30, 15] -> 15
+        assert_eq!(seg_min.prod(0..0), usize::MAX); // 単位元
+        // Max Check
+        assert_eq!(seg_max.prod(0..5), 30); // 全体の最大
+        assert_eq!(seg_max.prod(0..3), 20); // [10, 20, 5] -> 20
+        assert_eq!(seg_max.prod(0..0), 0); // 単位元
+    }
+    #[test]
+    fn test_bitwise() {
+        // Xor: 排他的論理和 (単位元 0)
+        // BitOr: 論理和 (単位元 0)
+        // BitAnd: 論理積 (単位元 usize::MAX)
+        let n = 4;
+        let mut seg_xor = SegXor::new(n);
+        let mut seg_or = SegBitOr::new(n);
+        let mut seg_and = SegBitAnd::new(n);
+        // Data: [1(001), 2(010), 4(100), 7(111)]
+        let data = [1, 2, 4, 7];
+        for (i, &v) in data.iter().enumerate() {
+            seg_xor.set(i, v);
+            seg_or.set(i, v);
+            seg_and.set(i, v);
+        }
+        // Xor Check
+        // 1^2^4^7 = 001 ^ 010 ^ 100 ^ 111 = 111 ^ 111 = 0
+        assert_eq!(seg_xor.prod(0..4), 0);
+        assert_eq!(seg_xor.prod(0..2), 3); // 1^2 = 3
+        // BitOr Check
+        // 1|2|4|7 = 7
+        assert_eq!(seg_or.prod(0..4), 7);
+        // BitAnd Check
+        // 1&2&4&7 = 0
+        assert_eq!(seg_and.prod(0..4), 0);
+        // 4&7 = 100 & 111 = 100(4)
+        assert_eq!(seg_and.prod(2..4), 4);
+        // 単位元チェック
+        assert_eq!(seg_and.prod(0..0), usize::MAX);
+    }
+    #[test]
+    fn test_gcd_lcm() {
+        // Gcd: 最大公約数 (単位元 0)
+        // Lcm: 最小公倍数 (単位元 1)
+        let n = 3;
+        let mut seg_gcd = SegGcd::new(n);
+        let mut seg_lcm = SegLcm::new(n);
+        // Data: [12, 18, 6]
+        let data = [12, 18, 6];
+        for (i, &v) in data.iter().enumerate() {
+            seg_gcd.set(i, v);
+            seg_lcm.set(i, v);
+        }
+        // GCD Check
+        assert_eq!(seg_gcd.prod(0..2), 6); // gcd(12, 18) = 6
+        assert_eq!(seg_gcd.prod(0..3), 6); // gcd(12, 18, 6) = 6
+        // LCM Check
+        assert_eq!(seg_lcm.prod(0..2), 36); // lcm(12, 18) = 36
+        assert_eq!(seg_lcm.prod(1..3), 18); // lcm(18, 6) = 18
+        // 単位元チェック
+        assert_eq!(seg_gcd.prod(0..0), 0);
+        assert_eq!(seg_lcm.prod(0..0), 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. 二分探索 (max_right / min_left) のテスト
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_binary_search() {
+        // [1, 1, 1, 1, 1] でAddを使用
+        let n = 5;
+        let mut seg = SegSum::new(n);
+        for i in 0..n {
+            seg.set(i, 1);
+        }
+
+        // max_right: 和が3未満である限界の右端
+        assert_eq!(seg.max_right(0, |&s| s < 3), 2); // index 0,1,2 (sum=3) なので3で止まる
+        assert_eq!(seg.max_right(2, |&s| s < 2), 3); // index 2,3 (sum=2) なので4で止まる (2+2=4)
+
+        // min_left: 和が2以下である限界の左端
+        assert_eq!(seg.min_left(5, |&s| s <= 2), 3); // index 3,4 (sum=2) OK. index 2,3,4(sum=3) NG.
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. ランダムストレステスト (愚直解との比較)
+    // -------------------------------------------------------------------------
+    struct Rng(u64);
+    impl Rng {
+        fn new(seed: u64) -> Self {
+            Self(seed)
+        }
+        fn next(&mut self) -> u64 {
+            let mut x = self.0;
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            self.0 = x;
+            x
+        }
+        fn gen_range(&mut self, range: std::ops::Range<usize>) -> usize {
+            let len = range.end - range.start;
+            range.start + (self.next() as usize % len)
+        }
     }
 
     #[test]
-    fn test_sum_operations() {
-        println!("=== 和（Sum）の操作テスト ===");
+    fn stress_test() {
+        let n = 50;
+        let q = 1000;
+        let mut rng = Rng::new(123456);
 
-        // 配列の長さは10
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        println!("初期配列: {:?}", seg.to_vec());
+        // addで構造の正しさを検証するのが一番確実
+        let mut seg = SegSum::new(n);
+        let mut vec = vec![0; n];
 
-        // 初期状態の確認
-        println!("初期状態の全体の和を確認");
-        let initial_sum = seg.get_range(0, 10);
-        println!("  結果: {}", initial_sum);
-        assert_eq!(initial_sum, 55, "初期状態の和は55のはず");
+        for _ in 0..q {
+            let ty = rng.gen_range(0..2);
+            if ty == 0 {
+                // Update
+                let i = rng.gen_range(0..n);
+                let x = rng.gen_range(0..100);
+                seg.set(i, x);
+                vec[i] = x;
+            } else {
+                // Query
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
 
-        // 単一更新のテスト
-        println!("インデックス5を100に更新");
-        seg.update(5, 100);
-        println!("  更新後の配列: {:?}", seg.to_vec());
-        let sum_after_single_update = seg.get_range(0, 10);
-        println!("  更新後の和: {}", sum_after_single_update);
-        assert_eq!(
-            sum_after_single_update, 149,
-            "1+2+3+4+5+100+7+8+9+10=149のはず"
-        );
+                let seg_res = seg.prod(l..r);
+                let vec_res: usize = vec[l..r].iter().sum();
 
-        // 区間更新のテスト
-        println!("区間[2, 7)を20に更新");
-        seg.update_range(2, 7, 20);
-        let array_after_range_update = seg.to_vec();
-        println!("  更新後の配列: {:?}", array_after_range_update);
-        assert_eq!(
-            array_after_range_update,
-            vec![1, 2, 20, 20, 20, 20, 20, 8, 9, 10],
-            "区間更新の結果が正しいこと"
-        );
-
-        let sum_after_range_update = seg.get_range(0, 10);
-        println!("  更新後の和: {}", sum_after_range_update);
-        assert_eq!(sum_after_range_update, 130, "1+2+20*5+8+9+10=130のはず");
-
-        // 部分区間の取得テスト
-        println!("区間[3, 8)の和を取得");
-        let partial_sum = seg.get_range(3, 8);
-        println!("  結果: {}", partial_sum);
-        assert_eq!(partial_sum, 88, "20*4+8=88のはず");
-
-        println!("=== テスト成功 ===\n");
+                assert_eq!(seg_res, vec_res, "Mismatch at ({}, {})", l, r);
+            }
+        }
     }
 
+    // -------------------------------------------------------------------------
+    // 遅延セグ木
+    // 1. 基本動作テスト (Add系: 区間加算)
+    // -------------------------------------------------------------------------
     #[test]
-    fn test_min_operations() {
-        println!("=== 最小値（Min）の操作テスト ===");
+    fn test_lazy_add_sum() {
+        let n = 10;
+        // SumLen系は初期化時に (値, 1) を入れないと長さが0になってしまうので注意
+        let init_data = vec![(0, 1); n];
+        let mut seg = LazySegAddSum::from(init_data);
 
-        let mut seg = LazySegTree::<Min>::from_vec_min(&[50, 30, 70, 20, 90, 10, 40, 60, 80, 25]);
+        // [0, 5) に 10 を加算
+        // 区間長5 * 10 = +50
+        seg.apply_range(0..5, 10);
+        assert_eq!(seg.prod(0..10).0, 50);
 
-        println!("初期状態の最小値を確認");
-        let initial_min = seg.get_range(0, 10);
-        println!("  結果: {}", initial_min);
-        assert_eq!(initial_min, 10, "初期状態の最小値は10のはず");
+        // [2, 6) に 5 を加算
+        // 重なり部分: [2, 5) は 10+5=15
+        // 新規部分: [5, 6) は 0+5=5
+        // 全体: [0, 2)=10, [2, 5)=15, [5, 6)=5, [6, 10)=0
+        seg.apply_range(2..6, 5);
 
-        println!("インデックス5を5に更新");
-        seg.update(5, 5);
-        let min_after_update = seg.get_range(0, 10);
-        println!("  更新後の最小値: {}", min_after_update);
-        assert_eq!(min_after_update, 5, "最小値は5になるはず");
+        // 検算:
+        // [0, 2) (長さ2) * 10 = 20
+        // [2, 5) (長さ3) * 15 = 45
+        // [5, 6) (長さ1) * 5  = 5
+        // 合計: 70
+        assert_eq!(seg.prod(0..10).0, 70);
 
-        println!("区間[0, 5)を100に更新");
-        seg.update_range(0, 5, 100);
-        let min_after_range_update = seg.get_range(0, 10);
-        println!("  更新後の最小値: {}", min_after_range_update);
-        assert_eq!(min_after_range_update, 5, "最小値は5のまま");
-
-        let partial_min = seg.get_range(0, 4);
-        println!("区間[0, 4)の最小値: {}", partial_min);
-        assert_eq!(partial_min, 100, "区間[0, 4)は全て100なので最小値は100");
-
-        println!("=== テスト成功 ===\n");
+        // 部分取得
+        assert_eq!(seg.prod(2..5).0, 45);
     }
-
     #[test]
-    fn test_lazy_min_add_range_warning() {
-        println!("\n=== 遅延版でMinのadd_range警告テスト ===");
+    fn test_lazy_add_max() {
+        let n = 5;
+        let mut seg = LazySegAddMax::new(n);
 
-        let mut seg = LazySegTree::<Min>::from_vec_min(&[5, 3, 7, 1, 6, 4, 8, 2, 9, 0]);
-        println!("初期配列: {:?}", seg.to_vec());
+        // [0, 0, 0, 0, 0]
+        seg.apply_range(0..3, 10); // [10, 10, 10, 0, 0]
+        seg.apply_range(2..5, 20); // [10, 10, 30, 20, 20]
 
-        println!("\n区間[2, 7)に10を加算（警告が表示されるはず）");
-        seg.add_range(2, 7, 10);
+        assert_eq!(seg.prod(0..5), 30); // 全体の最大値
+        assert_eq!(seg.prod(0..2), 10);
+        assert_eq!(seg.prod(3..5), 20);
 
-        println!("=== テスト完了（警告表示を確認してください） ===\n");
+        // 点更新との組み合わせ
+        seg.set(0, 50); // [50, 10, 30, 20, 20]
+        assert_eq!(seg.prod(0..5), 50);
     }
 
+    // -------------------------------------------------------------------------
+    // 2. 基本動作テスト (Update系: 区間更新)
+    // -------------------------------------------------------------------------
     #[test]
-    fn test_max_operations() {
-        println!("=== 最大値（Max）の操作テスト ===");
+    fn test_lazy_update_min() {
+        let n = 5;
+        // 初期値は Min の単位元 (usize::MAX)
+        let mut seg = LazySegUpdateMin::new(n);
 
-        let mut seg = LazySegTree::<Max>::from_vec_max(&[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+        // 全体を 100 に更新
+        seg.apply_range(0..5, Some(100));
+        // [100, 100, 100, 100, 100]
+        assert_eq!(seg.prod(0..5), 100);
 
-        println!("初期状態の最大値を確認");
-        let initial_max = seg.get_range(0, 10);
-        println!("  結果: {}", initial_max);
-        assert_eq!(initial_max, 100, "初期状態の最大値は100のはず");
+        // [1, 4) を 10 に更新
+        seg.apply_range(1..4, Some(10));
+        // [100, 10, 10, 10, 100]
+        assert_eq!(seg.prod(0..5), 10);
+        assert_eq!(seg.prod(0..1), 100);
 
-        println!("区間[7, 10)を5に更新");
-        seg.update_range(7, 10, 5);
-        let max_after_update = seg.get_range(0, 10);
-        println!("  更新後の最大値: {}", max_after_update);
-        assert_eq!(max_after_update, 70, "最大値は70になるはず");
-
-        let array_result = seg.to_vec();
-        println!("  更新後の配列: {:?}", array_result);
-        assert_eq!(
-            array_result,
-            vec![10, 20, 30, 40, 50, 60, 70, 5, 5, 5],
-            "配列の内容が正しいこと"
-        );
-
-        println!("=== テスト成功 ===\n");
+        // None (更新なし) を投げても値が変わらないこと
+        seg.apply_range(0..5, None);
+        assert_eq!(seg.prod(0..5), 10);
     }
-
     #[test]
-    fn test_complex_scenario() {
-        println!("=== 複雑なシナリオのテスト ===");
+    fn test_lazy_update_sum() {
+        let n = 5;
+        let init_data = vec![(0, 1); n];
+        let mut seg = LazySegUpdateSum::from(init_data);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[5, 5, 5, 5, 5, 5, 5, 5, 5, 5]);
+        // [0, 5) を 10 に更新 -> 合計 50
+        seg.apply_range(0..5, Some(10));
+        assert_eq!(seg.prod(0..5).0, 50);
 
-        println!("初期状態（全て5）の和");
-        let initial = seg.get_range(0, 10);
-        println!("  結果: {}", initial);
-        assert_eq!(initial, 50, "5×10=50のはず");
+        // [0, 3) を 5 に更新 -> [5, 5, 5, 10, 10]
+        seg.apply_range(0..3, Some(5));
 
-        println!("区間[0, 5)を10に更新");
-        seg.update_range(0, 5, 10);
-        let after_first_update = seg.get_range(0, 10);
-        println!("  更新後の和: {}", after_first_update);
-        assert_eq!(after_first_update, 75, "10×5+5×5=75のはず");
-
-        println!("区間[3, 8)を20に更新");
-        seg.update_range(3, 8, 20);
-        let after_second_update = seg.get_range(0, 10);
-        println!("  更新後の和: {}", after_second_update);
-        assert_eq!(after_second_update, 140, "10×3+20×5+5×2=140のはず");
-
-        let final_array = seg.to_vec();
-        println!("  最終的な配列: {:?}", final_array);
-        assert_eq!(
-            final_array,
-            vec![10, 10, 10, 20, 20, 20, 20, 20, 5, 5],
-            "配列の内容が正しいこと"
-        );
-
-        println!("=== テスト成功 ===\n");
+        // 検算: 5*3 + 10*2 = 15 + 20 = 35
+        assert_eq!(seg.prod(0..5).0, 35);
     }
-
     #[test]
-    fn test_overlapping_range_updates() {
-        println!("=== 重複する区間更新のテスト ===");
+    fn test_lazy_update_xor() {
+        // UpdateXor は「長さが偶数なら0、奇数なら値」になるはず
+        let n = 5;
+        let init_data = vec![(0, 1); n];
+        let mut seg = LazySegUpdateXor::from(init_data);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
-        println!("初期配列: {:?}", seg.to_vec());
+        // [0, 5) を 3 (011) に更新。長さ5(奇数) -> 結果 3
+        seg.apply_range(0..5, Some(3));
+        assert_eq!(seg.prod(0..5).0, 3);
 
-        println!("区間[0, 6)を10に更新");
-        seg.update_range(0, 6, 10);
-        let array_1 = seg.to_vec();
-        println!("  配列: {:?}", array_1);
-        let sum_1 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_1);
-        assert_eq!(sum_1, 64, "10×6+1×4=64のはず");
-
-        println!("区間[4, 10)を5に更新");
-        seg.update_range(4, 10, 5);
-        let array_2 = seg.to_vec();
-        println!("  配列: {:?}", array_2);
-        let sum_2 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_2);
-        assert_eq!(sum_2, 70, "10×4+5×6=70のはず");
-
-        println!("区間[2, 8)を3に更新");
-        seg.update_range(2, 8, 3);
-        let array_3 = seg.to_vec();
-        println!("  配列: {:?}", array_3);
-        let sum_3 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_3);
-        assert_eq!(sum_3, 48, "10×2+3×6+5×2=48のはず");
-
-        println!("複数の部分区間を取得");
-        let range_0_3 = seg.get_range(0, 3);
-        println!("  区間[0, 3)の和: {}", range_0_3);
-        assert_eq!(range_0_3, 23, "10+10+3=23のはず");
-
-        let range_5_9 = seg.get_range(5, 9);
-        println!("  区間[5, 9)の和: {}", range_5_9);
-        assert_eq!(range_5_9, 14, "3×3+5=14のはず");
-
-        println!("=== テスト成功 ===\n");
+        // [0, 4) をチェック。長さ4(偶数) -> 結果 0
+        assert_eq!(seg.prod(0..4).0, 0);
     }
 
+    // -------------------------------------------------------------------------
+    // 3. 遅延セグ木上の二分探索
+    // -------------------------------------------------------------------------
     #[test]
-    fn test_single_element_operations() {
-        println!("=== 単一要素の連続更新テスト ===");
+    fn test_lazy_binary_search() {
+        let n = 10;
+        let init_data = vec![(0, 1); n];
+        let mut seg = LazySegAddSum::from(init_data);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
-        println!("初期配列: {:?}", seg.to_vec());
+        // 全てに 1 を加算 -> [1, 1, ..., 1]
+        seg.apply_range(0..n, 1);
 
-        println!("インデックス3を連続で更新");
-        seg.update(3, 100);
-        let value_1 = seg.get(3);
-        println!("  1回目更新後の値: {}", value_1);
-        assert_eq!(value_1, 100, "100になるはず");
+        // max_right: 左端0から和が 5 未満になる右端は？
+        // 1+1+1+1+1 = 5 (NG) -> index 5の手前まで -> 4
+        // ※ すみません、条件の境界値によります。
+        // 「s < 5」なら sum([0,4))=4 (OK), sum([0,5))=5 (NG) -> 答え 4
+        assert_eq!(seg.max_right(0, |s| s.0 < 5), 4);
 
-        seg.update(3, 200);
-        let value_2 = seg.get(3);
-        println!("  2回目更新後の値: {}", value_2);
-        assert_eq!(value_2, 200, "200になるはず");
-
-        seg.update(3, 5);
-        let value_3 = seg.get(3);
-        println!("  3回目更新後の値: {}", value_3);
-        assert_eq!(value_3, 5, "5になるはず");
-
-        let total = seg.get_range(0, 10);
-        println!("  全体の和: {}", total);
-        assert_eq!(total, 515, "10+20+30+5+50+60+70+80+90+100=515のはず");
-
-        println!("=== テスト成功 ===\n");
+        // min_left: 右端10から和が 3 以下になる左端は？
+        // sum([7, 10)) = 3 (OK)
+        // sum([6, 10)) = 4 (NG) -> 答え 7
+        assert_eq!(seg.min_left(10, |s| s.0 <= 3), 7);
     }
 
+    // -------------------------------------------------------------------------
+    // 4. ランダムストレステスト (愚直解との比較)
+    // -------------------------------------------------------------------------
     #[test]
-    fn test_mixed_monoid_operations() {
-        println!("=== 異なるモノイドの複合テスト ===");
+    fn stress_test_add_sum() {
+        let n = 30; // サイズ
+        let q = 1000; // クエリ数
+        let mut rng = Rng::new(2025);
 
-        // Sum（和）
-        println!("[Sum] 初期配列: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]");
-        let mut seg_sum = LazySegTree::<Sum>::from_vec_sum(&[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]);
-        seg_sum.update_range(3, 7, 5);
-        let sum_result = seg_sum.get_range(0, 10);
-        println!("  区間[3, 7)を5に更新後の全体の和: {}", sum_result);
-        assert_eq!(sum_result, 86, "2+4+6+5×4+14+16+18+20=86のはず");
+        // 遅延セグ木 (値, 1) で初期化
+        let init_data = vec![(0, 1); n];
+        let mut seg = LazySegAddSum::from(init_data);
 
-        // Min（最小値）
-        println!("[Min] 初期配列: [50, 30, 70, 20, 90, 10, 40, 60, 80, 25]");
-        let mut seg_min =
-            LazySegTree::<Min>::from_vec_min(&[50, 30, 70, 20, 90, 10, 40, 60, 80, 25]);
-        seg_min.update_range(0, 5, 100);
-        let min_result_1 = seg_min.get_range(0, 10);
-        println!("  区間[0, 5)を100に更新後の最小値: {}", min_result_1);
-        assert_eq!(min_result_1, 10, "最小値は10のまま");
+        // 愚直配列 (値のみ)
+        let mut vec = vec![0; n];
 
-        seg_min.update_range(5, 10, 200);
-        let min_result_2 = seg_min.get_range(0, 10);
-        println!("  区間[5, 10)を200に更新後の最小値: {}", min_result_2);
-        assert_eq!(min_result_2, 100, "最小値は100になる");
+        for _ in 0..q {
+            let ty = rng.gen_range(0..3);
+            if ty == 0 {
+                // Range Add Apply
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+                let val = rng.gen_range(0..100);
 
-        // Max（最大値）
-        println!("[Max] 初期配列: [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]");
-        let mut seg_max =
-            LazySegTree::<Max>::from_vec_max(&[5, 15, 25, 35, 45, 55, 65, 75, 85, 95]);
-        seg_max.update_range(7, 10, 10);
-        let max_result = seg_max.get_range(0, 10);
-        println!("  区間[7, 10)を10に更新後の最大値: {}", max_result);
-        assert_eq!(max_result, 65, "最大値は65になる");
+                seg.apply_range(l..r, val);
+                for item in vec.iter_mut().take(r).skip(l) {
+                    *item += val;
+                }
+            } else if ty == 1 {
+                // Point Set
+                let i = rng.gen_range(0..n);
+                let val = rng.gen_range(0..100);
 
-        println!("=== テスト成功 ===\n");
+                seg.set(i, (val, 1)); // setのときは長さを維持する必要あり
+                vec[i] = val;
+            } else {
+                // Range Query
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+
+                let seg_res = seg.prod(l..r).0;
+                let vec_res: usize = vec[l..r].iter().sum();
+
+                assert_eq!(seg_res, vec_res, "AddSum Mismatch at query {}..{}", l, r);
+            }
+        }
     }
+    #[test]
+    fn stress_test_update_min() {
+        let n = 30;
+        let q = 1000;
+        let mut rng = Rng::new(9999);
 
+        // 初期値は適当な値で埋める
+        let mut vec = vec![0; n];
+        for item in vec.iter_mut() {
+            *item = rng.gen_range(0..1000);
+        }
+
+        let mut seg = LazySegUpdateMin::new(n);
+        for (i, item) in vec.iter().enumerate() {
+            seg.set(i, *item);
+        }
+
+        for _ in 0..q {
+            let ty = rng.gen_range(0..3);
+            if ty == 0 {
+                // Range Update Apply
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+                let val = rng.gen_range(0..1000);
+
+                seg.apply_range(l..r, Some(val));
+                for item in vec.iter_mut().take(r).skip(l) {
+                    *item = val;
+                }
+            } else if ty == 1 {
+                // Point Set
+                let i = rng.gen_range(0..n);
+                let val = rng.gen_range(0..1000);
+
+                seg.set(i, val);
+                vec[i] = val;
+            } else {
+                // Range Query
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+
+                let seg_res = seg.prod(l..r);
+                let vec_res = if l == r {
+                    usize::MAX // 単位元
+                } else {
+                    *vec[l..r].iter().min().unwrap()
+                };
+
+                assert_eq!(seg_res, vec_res, "UpdateMin Mismatch at query {}..{}", l, r);
+            }
+        }
+    }
     #[test]
     fn test_edge_cases() {
-        println!("=== エッジケースのテスト ===");
+        // サイズ1
+        let mut seg = SegSum::new(1);
+        seg.set(0, 42);
+        assert_eq!(seg.prod(0..1), 42);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        // 空区間
+        assert_eq!(seg.prod(0..0), 0);
+        assert_eq!(seg.prod(1..1), 0);
 
-        println!("単一要素の区間取得");
-        let single = seg.get_range(5, 6);
-        println!("  区間[5, 6)の和: {}", single);
-        assert_eq!(single, 6, "インデックス5の値は6");
-
-        println!("最初の要素のみ更新");
-        seg.update_range(0, 1, 100);
-        let first = seg.get(0);
-        println!("  インデックス0の値: {}", first);
-        assert_eq!(first, 100, "100になるはず");
-
-        println!("最後の要素のみ更新");
-        seg.update_range(9, 10, 200);
-        let last = seg.get(9);
-        println!("  インデックス9の値: {}", last);
-        assert_eq!(last, 200, "200になるはず");
-
-        println!("全体を同じ値に更新");
-        seg.update_range(0, 10, 7);
-        let all_same = seg.to_vec();
-        println!("  全体を7に更新: {:?}", all_same);
-        assert_eq!(all_same, vec![7; 10], "全て7になるはず");
-        let sum_all = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_all);
-        assert_eq!(sum_all, 70, "7×10=70のはず");
-
-        println!("=== テスト成功 ===\n");
+        // 境界値
+        let mut seg = SegMin::new(3);
+        seg.set(0, usize::MAX);
+        assert_eq!(seg.prod(0..1), usize::MAX);
     }
-
     #[test]
-    fn test_nested_range_queries() {
-        println!("=== ネストした区間クエリのテスト ===");
+    fn test_value_methods() {
+        // ========================================
+        // LazySegAddSum（区間加算・区間和）
+        // ========================================
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
-        println!("初期配列: {:?}", seg.to_vec());
+        // from_values でシンプルに初期化
+        let mut seg = LazySegAddSum::from_values(vec![1, 2, 3, 4, 5]);
+        assert_eq!(seg.prod_value(0..5), 15); // 1+2+3+4+5
 
-        println!("大きな区間[1, 9)を5に更新");
-        seg.update_range(1, 9, 5);
-        let array_after = seg.to_vec();
-        println!("  配列: {:?}", array_after);
+        // set_value で値のみ設定
+        seg.set_value(0, 10);
+        assert_eq!(seg.prod_value(0..5), 24); // 10+2+3+4+5
 
-        println!("様々な部分区間の和を取得");
-        let sum_1_3 = seg.get_range(1, 3);
-        println!("  区間[1, 3)の和: {}", sum_1_3);
-        assert_eq!(sum_1_3, 10, "5×2=10のはず");
+        // get_value で値のみ取得
+        assert_eq!(seg.get_value(0), 10);
+        assert_eq!(seg.get_value(1), 2);
 
-        let sum_3_6 = seg.get_range(3, 6);
-        println!("  区間[3, 6)の和: {}", sum_3_6);
-        assert_eq!(sum_3_6, 15, "5×3=15のはず");
+        // 区間加算
+        seg.apply_range(1..4, 5); // index 1,2,3 に +5
+        assert_eq!(seg.prod_value(0..5), 39); // 10+(2+5)+(3+5)+(4+5)+5
 
-        let sum_6_9 = seg.get_range(6, 9);
-        println!("  区間[6, 9)の和: {}", sum_6_9);
-        assert_eq!(sum_6_9, 15, "5×3=15のはず");
+        // new_with_size で0初期化
+        let mut seg2 = LazySegAddSum::new_with_size(3);
+        assert_eq!(seg2.prod_value(0..3), 0);
+        seg2.apply_range(0..3, 10);
+        assert_eq!(seg2.prod_value(0..3), 30);
 
-        let sum_2_8 = seg.get_range(2, 8);
-        println!("  区間[2, 8)の和: {}", sum_2_8);
-        assert_eq!(sum_2_8, 30, "5×6=30のはず");
+        // ========================================
+        // LazySegUpdateSum（区間更新・区間和）
+        // ========================================
 
-        println!("小さな区間[4, 6)を100に更新");
-        seg.update_range(4, 6, 100);
-        let array_final = seg.to_vec();
-        println!("  配列: {:?}", array_final);
+        let mut seg = LazySegUpdateSum::from_values(vec![1, 2, 3, 4, 5]);
+        assert_eq!(seg.prod_value(0..5), 15);
 
-        let sum_3_7 = seg.get_range(3, 7);
-        println!("  区間[3, 7)の和: {}", sum_3_7);
-        assert_eq!(sum_3_7, 210, "5+100+100+5=210のはず");
+        // 区間更新
+        seg.apply_range(1..4, Some(10)); // index 1,2,3 を 10 に
+        assert_eq!(seg.prod_value(0..5), 36); // 1+10+10+10+5
 
-        let sum_all = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_all);
-        assert_eq!(sum_all, 340, "10+5×3+100×2+5×3+100=340のはず");
+        seg.set_value(0, 100);
+        assert_eq!(seg.get_value(0), 100);
+        assert_eq!(seg.prod_value(0..5), 135); // 100+10+10+10+5
 
-        println!("=== テスト成功 ===\n");
+        // ========================================
+        // LazySegUpdateXor（区間更新・区間XOR）
+        // ========================================
+
+        let mut seg = LazySegUpdateXor::from_values(vec![1, 2, 4, 8, 16]);
+        // 1^2^4^8^16 = 31
+        assert_eq!(seg.prod_value(0..5), 31);
+
+        // 全て 7 に更新
+        seg.apply_range(0..5, Some(7));
+        // 7^7^7^7^7 = 7 (奇数個なので7)
+        assert_eq!(seg.prod_value(0..5), 7);
+
+        // 偶数個の範囲
+        assert_eq!(seg.prod_value(0..4), 0); // 7^7^7^7 = 0
+
+        seg.set_value(0, 3);
+        assert_eq!(seg.get_value(0), 3);
+        // 3^7^7^7^7 = 3^0 = 3
+        assert_eq!(seg.prod_value(0..5), 3);
     }
-
     #[test]
-    fn test_range_add_basic() {
-        println!("=== 区間加算の基本テスト ===");
+    fn test_value_methods_stress() {
+        // LazySegAddSum のストレステスト（便利メソッド版）
+        let n = 30;
+        let q = 1000;
+        let mut rng = Rng::new(54321);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        println!("初期配列: {:?}", seg.to_vec());
+        let mut seg = LazySegAddSum::new_with_size(n);
+        let mut vec = vec![0; n];
 
-        println!("区間[2, 7)に10を加算");
-        seg.add_range(2, 7, 10);
-        let array_after_add = seg.to_vec();
-        println!("  配列: {:?}", array_after_add);
-        assert_eq!(
-            array_after_add,
-            vec![1, 2, 13, 14, 15, 16, 17, 8, 9, 10],
-            "各要素に10が加算されるはず"
-        );
+        for _ in 0..q {
+            let ty = rng.gen_range(0..3);
+            if ty == 0 {
+                // Range Add
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+                let val = rng.gen_range(0..100);
 
-        let sum_after_add = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_after_add);
-        assert_eq!(sum_after_add, 105, "55+10×5=105のはず");
+                seg.apply_range(l..r, val);
+                for item in vec.iter_mut().take(r).skip(l) {
+                    *item += val;
+                }
+            } else if ty == 1 {
+                // Point Set (便利メソッド)
+                let i = rng.gen_range(0..n);
+                let val = rng.gen_range(0..100);
 
-        println!("区間[0, 5)に3を加算");
-        seg.add_range(0, 5, 3);
-        let array_after_add2 = seg.to_vec();
-        println!("  配列: {:?}", array_after_add2);
-        assert_eq!(
-            array_after_add2,
-            vec![4, 5, 16, 17, 18, 16, 17, 8, 9, 10],
-            "さらに加算されるはず"
-        );
+                seg.set_value(i, val);
+                vec[i] = val;
+            } else {
+                // Range Query (便利メソッド)
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
 
-        let sum_after_add2 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_after_add2);
-        assert_eq!(sum_after_add2, 120, "105+3×5=120のはず");
+                let seg_res = seg.prod_value(l..r);
+                let vec_res: usize = vec[l..r].iter().sum();
 
-        println!("=== テスト成功 ===\n");
+                assert_eq!(seg_res, vec_res, "ValueMethod Mismatch at {}..{}", l, r);
+            }
+        }
     }
-
     #[test]
-    fn test_range_add_and_update_mixed() {
-        println!("=== 区間加算と区間更新の混合テスト ===");
+    fn test_value_methods_comparison() {
+        // 従来の方法と便利メソッドで結果が一致することを確認
+        let n = 10;
+        let init_values = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[5, 5, 5, 5, 5, 5, 5, 5, 5, 5]);
-        println!("初期配列（全て5）: {:?}", seg.to_vec());
+        // 従来の方法
+        let init_data: Vec<_> = init_values.iter().map(|&v| (v, 1)).collect();
+        let mut seg_old = LazySegAddSum::from(init_data);
 
-        println!("区間[2, 8)に10を加算");
-        seg.add_range(2, 8, 10);
-        let array_1 = seg.to_vec();
-        println!("  配列: {:?}", array_1);
-        assert_eq!(array_1, vec![5, 5, 15, 15, 15, 15, 15, 15, 5, 5], "加算後");
+        // 便利メソッド
+        let mut seg_new = LazySegAddSum::from_values(init_values.clone());
 
-        println!("区間[4, 7)を100に更新");
-        seg.update_range(4, 7, 100);
-        let array_2 = seg.to_vec();
-        println!("  配列: {:?}", array_2);
-        assert_eq!(
-            array_2,
-            vec![5, 5, 15, 15, 100, 100, 100, 15, 5, 5],
-            "更新後（加算は消える）"
-        );
+        // 初期状態の一致確認
+        for i in 0..n {
+            assert_eq!(seg_old.get(i).0, seg_new.get_value(i));
+        }
+        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
 
-        let sum_2 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_2);
-        assert_eq!(sum_2, 365, "5×4+15×3+100×3=365のはず");
+        // 区間加算後の一致確認
+        seg_old.apply_range(2..7, 10);
+        seg_new.apply_range(2..7, 10);
 
-        println!("区間[3, 9)に5を加算");
-        seg.add_range(3, 9, 5);
-        let array_3 = seg.to_vec();
-        println!("  配列: {:?}", array_3);
-        assert_eq!(
-            array_3,
-            vec![5, 5, 15, 20, 105, 105, 105, 20, 10, 5],
-            "さらに加算"
-        );
+        for i in 0..n {
+            assert_eq!(
+                seg_old.get(i).0,
+                seg_new.get_value(i),
+                "Mismatch at index {}",
+                i
+            );
+        }
+        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
 
-        let sum_3 = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_3);
-        assert_eq!(sum_3, 395, "365+5×6=395のはず");
+        // 点更新後の一致確認
+        seg_old.set(5, (100, 1));
+        seg_new.set_value(5, 100);
 
-        println!("=== テスト成功 ===\n");
+        assert_eq!(seg_old.get(5).0, seg_new.get_value(5));
+        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
     }
-
     #[test]
-    fn test_single_add_operations() {
-        println!("=== 単一要素の加算テスト ===");
+    fn test_value_methods_edge_cases() {
+        // サイズ1のケース
+        let mut seg = LazySegAddSum::from_values(vec![42]);
+        assert_eq!(seg.get_value(0), 42);
+        assert_eq!(seg.prod_value(0..1), 42);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
-        println!("初期配列: {:?}", seg.to_vec());
+        seg.set_value(0, 100);
+        assert_eq!(seg.get_value(0), 100);
 
-        println!("インデックス5に15を加算");
-        seg.add(5, 15);
-        let value_1 = seg.get(5);
-        println!("  インデックス5の値: {}", value_1);
-        assert_eq!(value_1, 75, "60+15=75のはず");
+        seg.apply_range(0..1, 50);
+        assert_eq!(seg.prod_value(0..1), 150);
 
-        println!("インデックス5にさらに25を加算");
-        seg.add(5, 25);
-        let value_2 = seg.get(5);
-        println!("  インデックス5の値: {}", value_2);
-        assert_eq!(value_2, 100, "75+25=100のはず");
+        // 空初期化
+        let mut seg = LazySegAddSum::new_with_size(5);
+        assert_eq!(seg.prod_value(0..5), 0);
 
-        let total = seg.get_range(0, 10);
-        println!("  全体の和: {}", total);
-        assert_eq!(total, 590, "初期550+40=590のはず");
+        for i in 0..5 {
+            assert_eq!(seg.get_value(i), 0);
+        }
 
-        println!("=== テスト成功 ===\n");
+        // 部分区間のテスト
+        let mut seg = LazySegUpdateSum::from_values(vec![10, 20, 30, 40, 50]);
+
+        seg.apply_range(1..3, Some(100)); // [10, 100, 100, 40, 50]
+        assert_eq!(seg.prod_value(0..5), 300);
+        assert_eq!(seg.prod_value(1..3), 200);
+        assert_eq!(seg.prod_value(0..1), 10);
+        assert_eq!(seg.prod_value(4..5), 50);
     }
-
     #[test]
-    fn test_range_add_overlapping() {
-        println!("=== 重複する区間加算のテスト ===");
+    fn test_value_methods_xor_logic() {
+        // XOR の長さ依存ロジックをテスト
+        let mut seg = LazySegUpdateXor::new_with_size(6);
 
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        println!("初期配列（全て0）");
+        // 全て 5 に設定
+        seg.apply_range(0..6, Some(5));
 
-        println!("区間[0, 5)に1を加算");
-        seg.add_range(0, 5, 1);
-        let array_1 = seg.to_vec();
-        println!("  配列: {:?}", array_1);
+        // 偶数個: 0
+        assert_eq!(seg.prod_value(0..2), 0); // 5^5
+        assert_eq!(seg.prod_value(0..4), 0); // 5^5^5^5
+        assert_eq!(seg.prod_value(0..6), 0); // 5^5^5^5^5^5
 
-        println!("区間[3, 8)に2を加算");
-        seg.add_range(3, 8, 2);
-        let array_2 = seg.to_vec();
-        println!("  配列: {:?}", array_2);
-        assert_eq!(
-            array_2,
-            vec![1, 1, 1, 3, 3, 2, 2, 2, 0, 0],
-            "重複部分は3になる"
-        );
+        // 奇数個: 5
+        assert_eq!(seg.prod_value(0..1), 5); // 5
+        assert_eq!(seg.prod_value(0..3), 5); // 5^5^5
+        assert_eq!(seg.prod_value(0..5), 5); // 5^5^5^5^5
 
-        println!("区間[2, 6)に4を加算");
-        seg.add_range(2, 6, 4);
-        let array_3 = seg.to_vec();
-        println!("  配列: {:?}", array_3);
-        assert_eq!(
-            array_3,
-            vec![1, 1, 5, 7, 7, 6, 2, 2, 0, 0],
-            "さらに重複して加算"
-        );
+        // 複雑なパターン
+        let mut seg = LazySegUpdateXor::from_values(vec![1, 2, 3, 4]);
+        seg.apply_range(0..2, Some(7)); // [7, 7, 3, 4]
+        seg.apply_range(2..4, Some(15)); // [7, 7, 15, 15]
 
-        let sum = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum);
-        assert_eq!(sum, 31, "1+1+5+7+7+6+2+2=31のはず");
-
-        println!("=== テスト成功 ===\n");
-    }
-
-    #[test]
-    fn test_range_add_comprehensive() {
-        println!("=== 総合的な区間加算テスト（Sum専用） ===");
-
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        println!("初期配列: {:?}", seg.to_vec());
-
-        println!("複数の操作を組み合わせる");
-        seg.add_range(0, 5, 10); // [11, 12, 13, 14, 15, 6, 7, 8, 9, 10]
-        seg.update_range(7, 10, 100); // [11, 12, 13, 14, 15, 6, 7, 100, 100, 100]
-        seg.add_range(5, 10, 5); // [11, 12, 13, 14, 15, 11, 12, 105, 105, 105]
-
-        let final_array = seg.to_vec();
-        println!("  最終配列: {:?}", final_array);
-        assert_eq!(
-            final_array,
-            vec![11, 12, 13, 14, 15, 11, 12, 105, 100, 100],
-            "複雑な操作の結果"
-        );
-
-        let total = seg.get_range(0, 10);
-        println!("  全体の和: {}", total);
-        assert_eq!(total, 403, "合計は403のはず");
-
-        println!("=== テスト成功 ===\n");
-    }
-
-    // 通常版のテスト群
-    #[test]
-    fn test_segtree_min_add_range() {
-        println!("\n=== 通常版セグメント木: 最小値（Min）のadd_rangeテスト ===");
-
-        let v = vec![5, 3, 7, 1, 6, 4, 8, 2, 9, 0];
-        let mut seg = SegTree::<Min>::from_vec_min(&v);
-        println!("初期配列: {:?}", seg.to_vec());
-
-        let min_all = seg.get_range(0, 10);
-        println!("全体の最小値: {}", min_all);
-        assert_eq!(min_all, 0, "初期の最小値は0");
-
-        println!("\n区間[2, 7)に10を加算");
-        seg.add_range(2, 7, 10);
-        let array = seg.to_vec();
-        println!("  更新後の配列: {:?}", array);
-        assert_eq!(array, vec![5, 3, 17, 11, 16, 14, 18, 2, 9, 0]);
-
-        let min_range = seg.get_range(2, 7);
-        println!("  区間[2, 7)の最小値: {}", min_range);
-        assert_eq!(min_range, 11, "加算後の区間最小値は11");
-        let min_all = seg.get_range(0, 10);
-        println!("  全体の最小値: {}", min_all);
-        assert_eq!(min_all, 0, "全体の最小値は0");
-
-        println!("\n=== テスト成功 ===\n");
-    }
-
-    #[test]
-    fn test_segtree_max_add_range() {
-        println!("\n=== 通常版セグメント木: 最大値（Max）のadd_rangeテスト ===");
-
-        let v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let mut seg = SegTree::<Max>::from_vec_max(&v);
-        println!("初期配列: {:?}", seg.to_vec());
-
-        let max_all = seg.get_range(0, 10);
-        println!("全体の最大値: {}", max_all);
-        assert_eq!(max_all, 10, "初期の最大値は10");
-
-        println!("\n区間[3, 8)に5を加算");
-        seg.add_range(3, 8, 5);
-        let array = seg.to_vec();
-        println!("  更新後の配列: {:?}", array);
-        assert_eq!(array, vec![1, 2, 3, 9, 10, 11, 12, 13, 9, 10]);
-
-        let max_range = seg.get_range(3, 8);
-        println!("  区間[3, 8)の最大値: {}", max_range);
-        assert_eq!(max_range, 13, "加算後の区間最大値は13");
-
-        let max_all = seg.get_range(0, 10);
-        println!("  全体の最大値: {}", max_all);
-        assert_eq!(max_all, 13, "全体の最大値は13");
-
-        println!("\n=== テスト成功 ===\n");
-    }
-
-    #[test]
-    fn test_segtree_sum_add_range() {
-        println!("\n=== 通常版セグメント木: 和（Sum）のadd_rangeテスト ===");
-
-        let v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let mut seg = SegTree::<Sum>::from_vec_sum(&v);
-        println!("初期配列: {:?}", seg.to_vec());
-
-        let sum_all = seg.get_range(0, 10);
-        println!("全体の和: {}", sum_all);
-        assert_eq!(sum_all, 55, "初期の和は55");
-
-        println!("\n区間[2, 7)に10を加算");
-        seg.add_range(2, 7, 10);
-        let array = seg.to_vec();
-        println!("  更新後の配列: {:?}", array);
-        assert_eq!(array, vec![1, 2, 13, 14, 15, 16, 17, 8, 9, 10]);
-
-        let sum_range = seg.get_range(2, 7);
-        println!("  区間[2, 7)の和: {}", sum_range);
-        assert_eq!(sum_range, 75, "加算後の区間の和は75");
-
-        let sum_all = seg.get_range(0, 10);
-        println!("  全体の和: {}", sum_all);
-        assert_eq!(sum_all, 105, "全体の和は105");
-
-        println!("\n=== テスト成功 ===\n");
-    }
-
-    #[test]
-    fn test_segtree_complex_operations() {
-        println!("\n=== 通常版セグメント木: 複雑な操作テスト（Min） ===");
-
-        let v = vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-        let mut seg = SegTree::<Min>::from_vec_min(&v);
-        println!("初期配列: {:?}", seg.to_vec());
-
-        println!("\n区間[0, 5)に15を加算");
-        seg.add_range(0, 5, 15);
-        println!("  配列: {:?}", seg.to_vec());
-
-        println!("\n区間[5, 10)に5を加算");
-        seg.add_range(5, 10, 5);
-        println!("  配列: {:?}", seg.to_vec());
-
-        println!("\nインデックス2を100に更新");
-        seg.set(2, 100);
-        let array = seg.to_vec();
-        println!("  最終配列: {:?}", array);
-        assert_eq!(array, vec![25, 35, 100, 55, 65, 65, 75, 85, 95, 105]);
-
-        let min_left = seg.get_range(0, 5);
-        println!("  区間[0, 5)の最小値: {}", min_left);
-        assert_eq!(min_left, 25, "左半分の最小値は25");
-
-        let min_right = seg.get_range(5, 10);
-        println!("  区間[5, 10)の最小値: {}", min_right);
-        assert_eq!(min_right, 65, "右半分の最小値は65");
-
-        println!("\n=== テスト成功 ===\n");
-    }
-
-    #[test]
-    fn test_debug_print_lazy() {
-        println!("\n=== LazySegTreeのデバッグ表示テスト ===");
-
-        let mut seg = LazySegTree::<Sum>::from_vec_sum(&[1, 2, 3, 4, 5]);
-        println!("初期状態:");
-        seg.debug_print();
-
-        println!("区間[1, 4)を10に更新後:");
-        seg.update_range(1, 4, 10);
-        seg.debug_print();
-
-        println!("区間[0, 3)に5を加算後:");
-        seg.add_range(0, 3, 5);
-        seg.debug_print();
-
-        println!("=== テスト完了 ===\n");
-    }
-
-    #[test]
-    fn test_debug_print_normal() {
-        println!("\n=== SegTreeのデバッグ表示テスト ===");
-
-        let mut seg = SegTree::<Min>::from_vec_min(&[5, 3, 7, 1, 6]);
-        println!("初期状態:");
-        seg.debug_print();
-
-        println!("インデックス2を0に更新後:");
-        seg.set(2, 0);
-        seg.debug_print();
-
-        println!("区間[1, 4)に10を加算後:");
-        seg.add_range(1, 4, 10);
-        seg.debug_print();
-
-        println!("=== テスト完了 ===\n");
+        assert_eq!(seg.prod_value(0..2), 0); // 7^7
+        assert_eq!(seg.prod_value(2..4), 0); // 15^15
+        assert_eq!(seg.prod_value(0..4), 0); // 7^7^15^15
+        assert_eq!(seg.prod_value(0..3), 15); // 7^7^15 = 15
+        assert_eq!(seg.prod_value(1..4), 7); // 7^15^15 = 7
     }
 }
