@@ -24,10 +24,18 @@ pub struct Seg<M: Monoid> {
 impl<M: Monoid> Seg<M> {
     /// 単位元初期化
     pub fn new(n: usize) -> Seg<M> {
-        vec![M::identity(); n].into()
+        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let size = 1 << log;
+        Self {
+            n,
+            size,
+            log,
+            d: vec![M::identity(); 2 * size],
+        }
     }
 
     /// 葉から更新
+    #[inline]
     fn update(&mut self, k: usize) {
         self.d[k] = M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
     }
@@ -42,27 +50,16 @@ impl<M: Monoid> Seg<M> {
         }
     }
 
-    /// 葉の取得
-    pub fn get(&self, p: usize) -> M::S {
-        assert!(p < self.n);
-        self.d[p + self.size].clone()
-    }
-
+    /// 区間クエリ（半開区間 `[l, r)` を取得）
+    ///
+    /// # 注意
+    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
+    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
     /// rangeで区間クエリ
-    pub fn prod<R: RangeBounds<usize>>(&self, range: R) -> M::S {
-        if range.start_bound() == Bound::Unbounded && range.end_bound() == Bound::Unbounded {
+    pub fn get_range(&self, mut l: usize, mut r: usize) -> M::S {
+        if l == 0 && r == self.n {
             return self.d[1].clone();
         }
-        let mut r = match range.end_bound() {
-            Bound::Included(r) => r + 1,
-            Bound::Excluded(r) => *r,
-            Bound::Unbounded => self.n,
-        };
-        let mut l = match range.start_bound() {
-            Bound::Included(l) => *l,
-            Bound::Excluded(l) => l + 1,
-            Bound::Unbounded => 0,
-        };
         assert!(l <= r && r <= self.n);
         let mut sml = M::identity();
         let mut smr = M::identity();
@@ -81,15 +78,6 @@ impl<M: Monoid> Seg<M> {
             r >>= 1;
         }
         M::binary_operation(&sml, &smr)
-    }
-
-    /// 区間クエリ（半開区間 `[l, r)` を取得）
-    ///
-    /// # 注意
-    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
-    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
-    pub fn get_range(&self, l: usize, r: usize) -> M::S {
-        self.prod(l..r)
     }
 
     /// l から右に向かって、条件 f を満たす最大の r を返す。
@@ -186,6 +174,12 @@ impl<M: Monoid> FromIterator<M::S> for Seg<M> {
         v.into()
     }
 }
+impl<M: Monoid> Index<usize> for Seg<M> {
+    type Output = M::S;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.d[index + self.size]
+    }
+}
 
 macro_rules! define_monoid {
     ($(
@@ -256,8 +250,21 @@ pub struct LazySeg<F: MapMonoid> {
 }
 impl<F: MapMonoid> LazySeg<F> {
     /// 単位元初期化
+    ///
+    /// # 注意
+    /// SumLen (区間加算区間和) のように「長さ」が必要なモノイドの場合、
+    /// このメソッドで初期化すると長さが 0 になり、加算が反映されません。
+    /// 代わりに `new_with_size` や `from_values` を使用してください。
     pub fn new(n: usize) -> Self {
-        vec![F::M::identity(); n].into()
+        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let size = 1 << log;
+        Self {
+            n,
+            size,
+            log,
+            d: vec![F::M::identity(); 2 * size],
+            lz: vec![F::identity_map(); size],
+        }
     }
 
     /// 葉の更新
@@ -283,22 +290,16 @@ impl<F: MapMonoid> LazySeg<F> {
         self.d[p].clone()
     }
 
+    /// 区間クエリ（半開区間 `[l, r)` を取得）
+    ///
+    /// # 注意
+    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
+    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
     /// rangeで区間クエリ
-    pub fn prod<R: RangeBounds<usize>>(&mut self, range: R) -> <F::M as Monoid>::S {
-        if range.start_bound() == Bound::Unbounded && range.end_bound() == Bound::Unbounded {
+    pub fn get_range(&mut self, mut l: usize, mut r: usize) -> <F::M as Monoid>::S {
+        if l == 0 && r == self.n {
             return self.d[1].clone();
         }
-        let mut r = match range.end_bound() {
-            Bound::Included(r) => r + 1,
-            Bound::Excluded(r) => *r,
-            Bound::Unbounded => self.n,
-        };
-        let mut l = match range.start_bound() {
-            Bound::Included(l) => *l,
-            Bound::Excluded(l) => l + 1,
-            // TODO: There are another way of optimizing [0..r)
-            Bound::Unbounded => 0,
-        };
         assert!(l <= r && r <= self.n);
         if l == r {
             return F::M::identity();
@@ -330,40 +331,8 @@ impl<F: MapMonoid> LazySeg<F> {
         F::M::binary_operation(&sml, &smr)
     }
 
-    /// 区間クエリ（半開区間 `[l, r)` を取得）
-    ///
-    /// # 注意
-    /// **右端 r は含まれません**（`l..r` と同じ挙動）。
-    /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
-    pub fn get_range(&mut self, l: usize, r: usize) -> <F::M as Monoid>::S {
-        self.prod(l..r)
-    }
-
-    /// 操作適用
-    pub fn apply(&mut self, mut p: usize, f: F::F) {
-        assert!(p < self.n);
-        p += self.size;
-        for i in (1..=self.log).rev() {
-            self.push(p >> i);
-        }
-        self.d[p] = F::mapping(&f, &self.d[p]);
-        for i in 1..=self.log {
-            self.update(p >> i);
-        }
-    }
-
     /// rangeで操作適用
-    pub fn apply_range<R: RangeBounds<usize>>(&mut self, range: R, f: F::F) {
-        let mut r = match range.end_bound() {
-            Bound::Included(r) => r + 1,
-            Bound::Excluded(r) => *r,
-            Bound::Unbounded => self.n,
-        };
-        let mut l = match range.start_bound() {
-            Bound::Included(l) => *l,
-            Bound::Excluded(l) => l + 1,
-            Bound::Unbounded => 0,
-        };
+    pub fn apply_range(&mut self, mut l: usize, mut r: usize, f: F::F) {
         assert!(l <= r && r <= self.n);
         if l == r {
             return;
@@ -486,14 +455,17 @@ impl<F: MapMonoid> LazySeg<F> {
         0
     }
 
+    #[inline]
     fn push(&mut self, k: usize) {
         self.all_apply(2 * k, self.lz[k].clone());
         self.all_apply(2 * k + 1, self.lz[k].clone());
         self.lz[k] = F::identity_map();
     }
+    #[inline]
     fn update(&mut self, k: usize) {
         self.d[k] = F::M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
     }
+    #[inline]
     fn all_apply(&mut self, k: usize, f: F::F) {
         self.d[k] = F::mapping(&f, &self.d[k]);
         if k < self.size {
@@ -620,7 +592,7 @@ macro_rules! impl_value_methods {
 
             /// サイズだけ指定して0初期化
             pub fn new_with_size(n: usize) -> Self {
-                Self::from(vec![(0, 1); n])
+                Self::from_values(vec![0; n])
             }
 
             /// 値のみで set（長さは自動で1）
@@ -631,11 +603,6 @@ macro_rules! impl_value_methods {
             /// 値のみ取得
             pub fn get_value(&mut self, p: usize) -> usize {
                 self.get(p).0
-            }
-
-            /// 値のみで区間取得
-            pub fn prod_value<R: RangeBounds<usize>>(&mut self, range: R) -> usize {
-                self.prod(range).0
             }
         }
     };
@@ -660,9 +627,9 @@ mod tests {
         for i in 0..n {
             seg.set(i, i + 1);
         }
-        assert_eq!(seg.prod(0..5), 15); // 1+2+3+4+5
-        assert_eq!(seg.prod(1..3), 5); // 2+3
-        assert_eq!(seg.prod(0..0), 0); // 空区間は単位元
+        assert_eq!(seg.get_range(0, 5), 15); // 1+2+3+4+5
+        assert_eq!(seg.get_range(1, 3), 5); // 2+3
+        assert_eq!(seg.get_range(0, 0), 0); // 空区間は単位元
     }
     #[test]
     fn test_min_max() {
@@ -678,14 +645,14 @@ mod tests {
             seg_max.set(i, v);
         }
         // Min Check
-        assert_eq!(seg_min.prod(0..5), 5); // 全体の最小
-        assert_eq!(seg_min.prod(0..2), 10); // [10, 20] -> 10
-        assert_eq!(seg_min.prod(3..5), 15); // [30, 15] -> 15
-        assert_eq!(seg_min.prod(0..0), usize::MAX); // 単位元
+        assert_eq!(seg_min.get_range(0, 5), 5); // 全体の最小
+        assert_eq!(seg_min.get_range(0, 2), 10); // [10, 20] -> 10
+        assert_eq!(seg_min.get_range(3, 5), 15); // [30, 15] -> 15
+        assert_eq!(seg_min.get_range(0, 0), usize::MAX); // 単位元
         // Max Check
-        assert_eq!(seg_max.prod(0..5), 30); // 全体の最大
-        assert_eq!(seg_max.prod(0..3), 20); // [10, 20, 5] -> 20
-        assert_eq!(seg_max.prod(0..0), 0); // 単位元
+        assert_eq!(seg_max.get_range(0, 5), 30); // 全体の最大
+        assert_eq!(seg_max.get_range(0, 3), 20); // [10, 20, 5] -> 20
+        assert_eq!(seg_max.get_range(0, 0), 0); // 単位元
     }
     #[test]
     fn test_bitwise() {
@@ -705,18 +672,18 @@ mod tests {
         }
         // Xor Check
         // 1^2^4^7 = 001 ^ 010 ^ 100 ^ 111 = 111 ^ 111 = 0
-        assert_eq!(seg_xor.prod(0..4), 0);
-        assert_eq!(seg_xor.prod(0..2), 3); // 1^2 = 3
+        assert_eq!(seg_xor.get_range(0, 4), 0);
+        assert_eq!(seg_xor.get_range(0, 2), 3); // 1^2 = 3
         // BitOr Check
         // 1|2|4|7 = 7
-        assert_eq!(seg_or.prod(0..4), 7);
+        assert_eq!(seg_or.get_range(0, 4), 7);
         // BitAnd Check
         // 1&2&4&7 = 0
-        assert_eq!(seg_and.prod(0..4), 0);
+        assert_eq!(seg_and.get_range(0, 4), 0);
         // 4&7 = 100 & 111 = 100(4)
-        assert_eq!(seg_and.prod(2..4), 4);
+        assert_eq!(seg_and.get_range(2, 4), 4);
         // 単位元チェック
-        assert_eq!(seg_and.prod(0..0), usize::MAX);
+        assert_eq!(seg_and.get_range(0, 0), usize::MAX);
     }
     #[test]
     fn test_gcd_lcm() {
@@ -732,14 +699,14 @@ mod tests {
             seg_lcm.set(i, v);
         }
         // GCD Check
-        assert_eq!(seg_gcd.prod(0..2), 6); // gcd(12, 18) = 6
-        assert_eq!(seg_gcd.prod(0..3), 6); // gcd(12, 18, 6) = 6
+        assert_eq!(seg_gcd.get_range(0, 2), 6); // gcd(12, 18) = 6
+        assert_eq!(seg_gcd.get_range(0, 3), 6); // gcd(12, 18, 6) = 6
         // LCM Check
-        assert_eq!(seg_lcm.prod(0..2), 36); // lcm(12, 18) = 36
-        assert_eq!(seg_lcm.prod(1..3), 18); // lcm(18, 6) = 18
+        assert_eq!(seg_lcm.get_range(0, 2), 36); // lcm(12, 18) = 36
+        assert_eq!(seg_lcm.get_range(1, 3), 18); // lcm(18, 6) = 18
         // 単位元チェック
-        assert_eq!(seg_gcd.prod(0..0), 0);
-        assert_eq!(seg_lcm.prod(0..0), 1);
+        assert_eq!(seg_gcd.get_range(0, 0), 0);
+        assert_eq!(seg_lcm.get_range(0, 0), 1);
     }
 
     // -------------------------------------------------------------------------
@@ -807,10 +774,10 @@ mod tests {
                 let l = rng.gen_range(0..n);
                 let r = rng.gen_range(l..n + 1);
 
-                let seg_res = seg.prod(l..r);
+                let seg_res = seg.get_range(l, r);
                 let vec_res: usize = vec[l..r].iter().sum();
 
-                assert_eq!(seg_res, vec_res, "Mismatch at ({}, {})", l, r);
+                assert_eq!(seg_res, vec_res, "Mismatch at ({}..{})", l, r);
             }
         }
     }
@@ -828,24 +795,24 @@ mod tests {
 
         // [0, 5) に 10 を加算
         // 区間長5 * 10 = +50
-        seg.apply_range(0..5, 10);
-        assert_eq!(seg.prod(0..10).0, 50);
+        seg.apply_range(0, 5, 10);
+        assert_eq!(seg.get_range(0, 10).0, 50);
 
         // [2, 6) に 5 を加算
         // 重なり部分: [2, 5) は 10+5=15
         // 新規部分: [5, 6) は 0+5=5
         // 全体: [0, 2)=10, [2, 5)=15, [5, 6)=5, [6, 10)=0
-        seg.apply_range(2..6, 5);
+        seg.apply_range(2, 6, 5);
 
         // 検算:
         // [0, 2) (長さ2) * 10 = 20
         // [2, 5) (長さ3) * 15 = 45
         // [5, 6) (長さ1) * 5  = 5
         // 合計: 70
-        assert_eq!(seg.prod(0..10).0, 70);
+        assert_eq!(seg.get_range(0, 10).0, 70);
 
         // 部分取得
-        assert_eq!(seg.prod(2..5).0, 45);
+        assert_eq!(seg.get_range(2, 5).0, 45);
     }
     #[test]
     fn test_lazy_add_max() {
@@ -853,16 +820,16 @@ mod tests {
         let mut seg = LazySegAddMax::new(n);
 
         // [0, 0, 0, 0, 0]
-        seg.apply_range(0..3, 10); // [10, 10, 10, 0, 0]
-        seg.apply_range(2..5, 20); // [10, 10, 30, 20, 20]
+        seg.apply_range(0, 3, 10); // [10, 10, 10, 0, 0]
+        seg.apply_range(2, 5, 20); // [10, 10, 30, 20, 20]
 
-        assert_eq!(seg.prod(0..5), 30); // 全体の最大値
-        assert_eq!(seg.prod(0..2), 10);
-        assert_eq!(seg.prod(3..5), 20);
+        assert_eq!(seg.get_range(0, 5), 30); // 全体の最大値
+        assert_eq!(seg.get_range(0, 2), 10);
+        assert_eq!(seg.get_range(3, 5), 20);
 
         // 点更新との組み合わせ
         seg.set(0, 50); // [50, 10, 30, 20, 20]
-        assert_eq!(seg.prod(0..5), 50);
+        assert_eq!(seg.get_range(0, 5), 50);
     }
 
     // -------------------------------------------------------------------------
@@ -875,19 +842,19 @@ mod tests {
         let mut seg = LazySegUpdateMin::new(n);
 
         // 全体を 100 に更新
-        seg.apply_range(0..5, Some(100));
+        seg.apply_range(0, 5, Some(100));
         // [100, 100, 100, 100, 100]
-        assert_eq!(seg.prod(0..5), 100);
+        assert_eq!(seg.get_range(0, 5), 100);
 
         // [1, 4) を 10 に更新
-        seg.apply_range(1..4, Some(10));
+        seg.apply_range(1, 4, Some(10));
         // [100, 10, 10, 10, 100]
-        assert_eq!(seg.prod(0..5), 10);
-        assert_eq!(seg.prod(0..1), 100);
+        assert_eq!(seg.get_range(0, 5), 10);
+        assert_eq!(seg.get_range(0, 1), 100);
 
         // None (更新なし) を投げても値が変わらないこと
-        seg.apply_range(0..5, None);
-        assert_eq!(seg.prod(0..5), 10);
+        seg.apply_range(0, 5, None);
+        assert_eq!(seg.get_range(0, 5), 10);
     }
     #[test]
     fn test_lazy_update_sum() {
@@ -896,14 +863,14 @@ mod tests {
         let mut seg = LazySegUpdateSum::from(init_data);
 
         // [0, 5) を 10 に更新 -> 合計 50
-        seg.apply_range(0..5, Some(10));
-        assert_eq!(seg.prod(0..5).0, 50);
+        seg.apply_range(0, 5, Some(10));
+        assert_eq!(seg.get_range(0, 5).0, 50);
 
         // [0, 3) を 5 に更新 -> [5, 5, 5, 10, 10]
-        seg.apply_range(0..3, Some(5));
+        seg.apply_range(0, 3, Some(5));
 
         // 検算: 5*3 + 10*2 = 15 + 20 = 35
-        assert_eq!(seg.prod(0..5).0, 35);
+        assert_eq!(seg.get_range(0, 5).0, 35);
     }
     #[test]
     fn test_lazy_update_xor() {
@@ -913,11 +880,11 @@ mod tests {
         let mut seg = LazySegUpdateXor::from(init_data);
 
         // [0, 5) を 3 (011) に更新。長さ5(奇数) -> 結果 3
-        seg.apply_range(0..5, Some(3));
-        assert_eq!(seg.prod(0..5).0, 3);
+        seg.apply_range(0, 5, Some(3));
+        assert_eq!(seg.get_range(0, 5).0, 3);
 
         // [0, 4) をチェック。長さ4(偶数) -> 結果 0
-        assert_eq!(seg.prod(0..4).0, 0);
+        assert_eq!(seg.get_range(0, 4).0, 0);
     }
 
     // -------------------------------------------------------------------------
@@ -930,7 +897,7 @@ mod tests {
         let mut seg = LazySegAddSum::from(init_data);
 
         // 全てに 1 を加算 -> [1, 1, ..., 1]
-        seg.apply_range(0..n, 1);
+        seg.apply_range(0, n, 1);
 
         // max_right: 左端0から和が 5 未満になる右端は？
         // 1+1+1+1+1 = 5 (NG) -> index 5の手前まで -> 4
@@ -968,7 +935,7 @@ mod tests {
                 let r = rng.gen_range(l..n + 1);
                 let val = rng.gen_range(0..100);
 
-                seg.apply_range(l..r, val);
+                seg.apply_range(l, r, val);
                 for item in vec.iter_mut().take(r).skip(l) {
                     *item += val;
                 }
@@ -984,10 +951,10 @@ mod tests {
                 let l = rng.gen_range(0..n);
                 let r = rng.gen_range(l..n + 1);
 
-                let seg_res = seg.prod(l..r).0;
+                let seg_res = seg.get_range(l, r).0;
                 let vec_res: usize = vec[l..r].iter().sum();
 
-                assert_eq!(seg_res, vec_res, "AddSum Mismatch at query {}..{}", l, r);
+                assert_eq!(seg_res, vec_res, "AddSum Mismatch at query {},{}", l, r);
             }
         }
     }
@@ -1016,7 +983,7 @@ mod tests {
                 let r = rng.gen_range(l..n + 1);
                 let val = rng.gen_range(0..1000);
 
-                seg.apply_range(l..r, Some(val));
+                seg.apply_range(l, r, Some(val));
                 for item in vec.iter_mut().take(r).skip(l) {
                     *item = val;
                 }
@@ -1032,7 +999,7 @@ mod tests {
                 let l = rng.gen_range(0..n);
                 let r = rng.gen_range(l..n + 1);
 
-                let seg_res = seg.prod(l..r);
+                let seg_res = seg.get_range(l, r);
                 let vec_res = if l == r {
                     usize::MAX // 単位元
                 } else {
@@ -1048,16 +1015,16 @@ mod tests {
         // サイズ1
         let mut seg = SegSum::new(1);
         seg.set(0, 42);
-        assert_eq!(seg.prod(0..1), 42);
+        assert_eq!(seg.get_range(0, 1), 42);
 
         // 空区間
-        assert_eq!(seg.prod(0..0), 0);
-        assert_eq!(seg.prod(1..1), 0);
+        assert_eq!(seg.get_range(0, 0), 0);
+        assert_eq!(seg.get_range(1, 1), 0);
 
         // 境界値
         let mut seg = SegMin::new(3);
         seg.set(0, usize::MAX);
-        assert_eq!(seg.prod(0..1), usize::MAX);
+        assert_eq!(seg.get_range(0, 1), usize::MAX);
     }
     #[test]
     fn test_value_methods() {
@@ -1067,40 +1034,40 @@ mod tests {
 
         // from_values でシンプルに初期化
         let mut seg = LazySegAddSum::from_values(vec![1, 2, 3, 4, 5]);
-        assert_eq!(seg.prod_value(0..5), 15); // 1+2+3+4+5
+        assert_eq!(seg.get_range(0, 5).0, 15); // 1+2+3+4+5
 
         // set_value で値のみ設定
         seg.set_value(0, 10);
-        assert_eq!(seg.prod_value(0..5), 24); // 10+2+3+4+5
+        assert_eq!(seg.get_range(0, 5).0, 24); // 10+2+3+4+5
 
         // get_value で値のみ取得
         assert_eq!(seg.get_value(0), 10);
         assert_eq!(seg.get_value(1), 2);
 
         // 区間加算
-        seg.apply_range(1..4, 5); // index 1,2,3 に +5
-        assert_eq!(seg.prod_value(0..5), 39); // 10+(2+5)+(3+5)+(4+5)+5
+        seg.apply_range(1, 4, 5); // index 1,2,3 に +5
+        assert_eq!(seg.get_range(0, 5).0, 39); // 10+(2+5)+(3+5)+(4+5)+5
 
         // new_with_size で0初期化
         let mut seg2 = LazySegAddSum::new_with_size(3);
-        assert_eq!(seg2.prod_value(0..3), 0);
-        seg2.apply_range(0..3, 10);
-        assert_eq!(seg2.prod_value(0..3), 30);
+        assert_eq!(seg2.get_range(0, 3).0, 0);
+        seg2.apply_range(0, 3, 10);
+        assert_eq!(seg2.get_range(0, 3).0, 30);
 
         // ========================================
         // LazySegUpdateSum（区間更新・区間和）
         // ========================================
 
         let mut seg = LazySegUpdateSum::from_values(vec![1, 2, 3, 4, 5]);
-        assert_eq!(seg.prod_value(0..5), 15);
+        assert_eq!(seg.get_range(0, 5).0, 15);
 
         // 区間更新
-        seg.apply_range(1..4, Some(10)); // index 1,2,3 を 10 に
-        assert_eq!(seg.prod_value(0..5), 36); // 1+10+10+10+5
+        seg.apply_range(1, 4, Some(10)); // index 1,2,3 を 10 に
+        assert_eq!(seg.get_range(0, 5).0, 36); // 1+10+10+10+5
 
         seg.set_value(0, 100);
         assert_eq!(seg.get_value(0), 100);
-        assert_eq!(seg.prod_value(0..5), 135); // 100+10+10+10+5
+        assert_eq!(seg.get_range(0, 5).0, 135); // 100+10+10+10+5
 
         // ========================================
         // LazySegUpdateXor（区間更新・区間XOR）
@@ -1108,20 +1075,20 @@ mod tests {
 
         let mut seg = LazySegUpdateXor::from_values(vec![1, 2, 4, 8, 16]);
         // 1^2^4^8^16 = 31
-        assert_eq!(seg.prod_value(0..5), 31);
+        assert_eq!(seg.get_range(0, 5).0, 31);
 
         // 全て 7 に更新
-        seg.apply_range(0..5, Some(7));
+        seg.apply_range(0, 5, Some(7));
         // 7^7^7^7^7 = 7 (奇数個なので7)
-        assert_eq!(seg.prod_value(0..5), 7);
+        assert_eq!(seg.get_range(0, 5).0, 7);
 
         // 偶数個の範囲
-        assert_eq!(seg.prod_value(0..4), 0); // 7^7^7^7 = 0
+        assert_eq!(seg.get_range(0, 4).0, 0); // 7^7^7^7 = 0
 
         seg.set_value(0, 3);
         assert_eq!(seg.get_value(0), 3);
         // 3^7^7^7^7 = 3^0 = 3
-        assert_eq!(seg.prod_value(0..5), 3);
+        assert_eq!(seg.get_range(0, 5).0, 3);
     }
     #[test]
     fn test_value_methods_stress() {
@@ -1141,7 +1108,7 @@ mod tests {
                 let r = rng.gen_range(l..n + 1);
                 let val = rng.gen_range(0..100);
 
-                seg.apply_range(l..r, val);
+                seg.apply_range(l, r, val);
                 for item in vec.iter_mut().take(r).skip(l) {
                     *item += val;
                 }
@@ -1157,10 +1124,10 @@ mod tests {
                 let l = rng.gen_range(0..n);
                 let r = rng.gen_range(l..n + 1);
 
-                let seg_res = seg.prod_value(l..r);
-                let vec_res: usize = vec[l..r].iter().sum();
+                let seg_res = seg.get_range(l, r);
+                let vec_res = vec[l..r].iter().sum::<usize>();
 
-                assert_eq!(seg_res, vec_res, "ValueMethod Mismatch at {}..{}", l, r);
+                assert_eq!(seg_res.0, vec_res, "ValueMethod Mismatch at {}..{}", l, r);
             }
         }
     }
@@ -1181,11 +1148,11 @@ mod tests {
         for i in 0..n {
             assert_eq!(seg_old.get(i).0, seg_new.get_value(i));
         }
-        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
+        assert_eq!(seg_old.get_range(0, n).0, seg_new.get_range(0, n).0);
 
         // 区間加算後の一致確認
-        seg_old.apply_range(2..7, 10);
-        seg_new.apply_range(2..7, 10);
+        seg_old.apply_range(2, 7, 10);
+        seg_new.apply_range(2, 7, 10);
 
         for i in 0..n {
             assert_eq!(
@@ -1195,31 +1162,31 @@ mod tests {
                 i
             );
         }
-        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
+        assert_eq!(seg_old.get_range(0, n).0, seg_new.get_range(0, n).0);
 
         // 点更新後の一致確認
         seg_old.set(5, (100, 1));
         seg_new.set_value(5, 100);
 
         assert_eq!(seg_old.get(5).0, seg_new.get_value(5));
-        assert_eq!(seg_old.prod(0..n).0, seg_new.prod_value(0..n));
+        assert_eq!(seg_old.get_range(0, n).0, seg_new.get_range(0, n).0);
     }
     #[test]
     fn test_value_methods_edge_cases() {
         // サイズ1のケース
         let mut seg = LazySegAddSum::from_values(vec![42]);
         assert_eq!(seg.get_value(0), 42);
-        assert_eq!(seg.prod_value(0..1), 42);
+        assert_eq!(seg.get_range(0, 1).0, 42);
 
         seg.set_value(0, 100);
         assert_eq!(seg.get_value(0), 100);
 
-        seg.apply_range(0..1, 50);
-        assert_eq!(seg.prod_value(0..1), 150);
+        seg.apply_range(0, 1, 50);
+        assert_eq!(seg.get_range(0, 1).0, 150);
 
         // 空初期化
         let mut seg = LazySegAddSum::new_with_size(5);
-        assert_eq!(seg.prod_value(0..5), 0);
+        assert_eq!(seg.get_range(0, 5).0, 0);
 
         for i in 0..5 {
             assert_eq!(seg.get_value(i), 0);
@@ -1228,11 +1195,11 @@ mod tests {
         // 部分区間のテスト
         let mut seg = LazySegUpdateSum::from_values(vec![10, 20, 30, 40, 50]);
 
-        seg.apply_range(1..3, Some(100)); // [10, 100, 100, 40, 50]
-        assert_eq!(seg.prod_value(0..5), 300);
-        assert_eq!(seg.prod_value(1..3), 200);
-        assert_eq!(seg.prod_value(0..1), 10);
-        assert_eq!(seg.prod_value(4..5), 50);
+        seg.apply_range(1, 3, Some(100)); // [10, 100, 100, 40, 50]
+        assert_eq!(seg.get_range(0, 5).0, 300);
+        assert_eq!(seg.get_range(1, 3).0, 200);
+        assert_eq!(seg.get_range(0, 1).0, 10);
+        assert_eq!(seg.get_range(4, 5).0, 50);
     }
     #[test]
     fn test_value_methods_xor_logic() {
@@ -1240,27 +1207,27 @@ mod tests {
         let mut seg = LazySegUpdateXor::new_with_size(6);
 
         // 全て 5 に設定
-        seg.apply_range(0..6, Some(5));
+        seg.apply_range(0, 6, Some(5));
 
         // 偶数個: 0
-        assert_eq!(seg.prod_value(0..2), 0); // 5^5
-        assert_eq!(seg.prod_value(0..4), 0); // 5^5^5^5
-        assert_eq!(seg.prod_value(0..6), 0); // 5^5^5^5^5^5
+        assert_eq!(seg.get_range(0, 2).0, 0); // 5^5
+        assert_eq!(seg.get_range(0, 4).0, 0); // 5^5^5^5
+        assert_eq!(seg.get_range(0, 6).0, 0); // 5^5^5^5^5^5
 
         // 奇数個: 5
-        assert_eq!(seg.prod_value(0..1), 5); // 5
-        assert_eq!(seg.prod_value(0..3), 5); // 5^5^5
-        assert_eq!(seg.prod_value(0..5), 5); // 5^5^5^5^5
+        assert_eq!(seg.get_range(0, 1).0, 5); // 5
+        assert_eq!(seg.get_range(0, 3).0, 5); // 5^5^5
+        assert_eq!(seg.get_range(0, 5).0, 5); // 5^5^5^5^5
 
         // 複雑なパターン
         let mut seg = LazySegUpdateXor::from_values(vec![1, 2, 3, 4]);
-        seg.apply_range(0..2, Some(7)); // [7, 7, 3, 4]
-        seg.apply_range(2..4, Some(15)); // [7, 7, 15, 15]
+        seg.apply_range(0, 2, Some(7)); // [7, 7, 3, 4]
+        seg.apply_range(2, 4, Some(15)); // [7, 7, 15, 15]
 
-        assert_eq!(seg.prod_value(0..2), 0); // 7^7
-        assert_eq!(seg.prod_value(2..4), 0); // 15^15
-        assert_eq!(seg.prod_value(0..4), 0); // 7^7^15^15
-        assert_eq!(seg.prod_value(0..3), 15); // 7^7^15 = 15
-        assert_eq!(seg.prod_value(1..4), 7); // 7^15^15 = 7
+        assert_eq!(seg.get_range(0, 2).0, 0); // 7^7
+        assert_eq!(seg.get_range(2, 4).0, 0); // 15^15
+        assert_eq!(seg.get_range(0, 4).0, 0); // 7^7^15^15
+        assert_eq!(seg.get_range(0, 3).0, 15); // 7^7^15 = 15
+        assert_eq!(seg.get_range(1, 4).0, 7); // 7^15^15 = 7
     }
 }
