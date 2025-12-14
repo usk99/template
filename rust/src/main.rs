@@ -83,6 +83,9 @@ fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
 use rust::library::config::*;
 use rust::library::coord::*;
 use rust::library::direction::*;
+use rust::library::ext::*;
+use rust::library::fmt::*;
+use rust::library::grid::*;
 use rust::library::heuristic::*;
 use rust::library::io::*;
 use rust::library::prime::*;
@@ -92,7 +95,6 @@ use rust::library::timer::*;
 use rust::library::unionfind::*;
 use rust::library::usermacro::*;
 use rust::library::util::*;
-use rust::library::vecseq::*;
 use rust::*;
 
 use {

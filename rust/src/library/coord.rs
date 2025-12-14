@@ -14,8 +14,8 @@ pub type CoordType = u8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Coord {
-    pub row: CoordType,
-    pub col: CoordType,
+    row: CoordType,
+    col: CoordType,
 }
 
 impl Coord {

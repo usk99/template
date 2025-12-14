@@ -1,6 +1,9 @@
 pub mod config;
 pub mod coord;
 pub mod direction;
+pub mod ext;
+pub mod fmt;
+pub mod grid;
 pub mod heuristic;
 pub mod io;
 pub mod prime;
@@ -10,4 +13,3 @@ pub mod timer;
 pub mod unionfind;
 pub mod usermacro;
 pub mod util;
-pub mod vecseq;
