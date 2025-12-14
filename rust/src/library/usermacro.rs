@@ -48,7 +48,7 @@ macro_rules!chmax {
 #[macro_export]
 macro_rules!log {
     ($($arg:tt)*) => {
-        if is_local() {
+        if $crate::library::config::is_local() {
             eprintln!($($arg)*);
         }
     };
@@ -58,7 +58,7 @@ macro_rules!log {
 #[macro_export]
 macro_rules!log_trace {
     ($($arg:tt)*) => {
-        if is_local() {
+        if $crate::library::config::is_local() {
             eprint!("[{}:{:4}:{:3}] ", file!(), line!(), column!());
             eprintln!($($arg)*);
         }
