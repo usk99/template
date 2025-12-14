@@ -79,7 +79,7 @@ macro_rules! grid {
 #[macro_export]
 macro_rules!measure {
     ($label:expr, $block:block) => {
-        if is_local() {
+        if $crate::library::config::is_local() {
             let start = std::time::Instant::now();
             $block
             let elapsed = start.elapsed();

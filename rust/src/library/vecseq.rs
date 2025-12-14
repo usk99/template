@@ -1,6 +1,6 @@
 // 二次元を一次元で管理
 use {
-    super::{config::*, coord::*},
+    super::coord::*,
     crate::log,
     core::panic,
     std::{fmt::*, ops::*, slice::*},
