@@ -2,7 +2,7 @@
 use {
     super::coord::*,
     crate::log,
-    core::panic,
+    itertools::Itertools,
     std::{fmt::*, ops::*, slice::*},
 };
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -252,6 +252,15 @@ impl<T> IndexMut<(usize, usize)> for Grid<T> {
 impl<T: Display> Grid<T> {
     pub fn visualize(&self) -> String {
         self.visualize_with(|val| val.to_string())
+    }
+
+    /// 二次元vecを表示
+    pub fn to_string(&self, sep: &str) -> String {
+        self.vec
+            .chunks(self.col)
+            .map(|row| row.iter().join(sep))
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 impl<T> Grid<T> {
