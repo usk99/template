@@ -25,8 +25,6 @@ if os.path.exists(toml_path):
     with open(toml_path, "w") as f:
         toml.dump(data, f)
 
-    print(f"Updated package name to: {new_name}")
-
     # main.rs の use 文を書き換え
     main_rs_path = "rust/src/main.rs"
     if os.path.exists(main_rs_path):
@@ -38,8 +36,6 @@ if os.path.exists(toml_path):
 
         with open(main_rs_path, "w") as f:
             f.write(content)
-
-        print(f"Updated main.rs: {package_name} -> {new_name}")
 
 # このスクリプト自身を削除 (ゴミを残さないため)
 os.remove(__file__)

@@ -1,21 +1,18 @@
 {
     "contest": {
-        "static": [".gitignore"]
+        "static": [".gitignore", ".github"]
     },
     "task": {
         "program": [
-            ".github",
             ".vscode",
             "memo",
             "rust",
-            "visualizer",
             "create_submit.sh",
             "Main.cpp",
             "Main.cs",
             "Main.java",
             "Main.py",
             "minify_braces.pl",
-            "package.json",
             "setup.py",
             "x.csproj"
         ],
