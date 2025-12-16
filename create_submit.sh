@@ -97,7 +97,7 @@ contents=$(echo "$contents" \
 		# s/\s*([}\)\]])/$1/g;
 		# s/\s*\n/ /g;
 		s/ (?=[^\w\x27&|])(?<!&)|(?<=[^\w&|])(?!&) //g;
-		s/\$crate::library::config::/ crate::/g;
+		s/\$crate::library::[^:]+::/ crate::/g;
 
 		# 999. 退避した文字列を復元する
 		s/___Q(\d+)___/$q[$1]/ge;
