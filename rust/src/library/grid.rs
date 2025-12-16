@@ -5,6 +5,7 @@ use {
     itertools::Itertools,
     std::{fmt::*, ops::*, slice::*},
 };
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Grid<T> {
     vec: Vec<T>,
@@ -13,14 +14,7 @@ pub struct Grid<T> {
 }
 impl<T> Grid<T> {
     /// 新しいGridを作成
-    /// #Panics
-    /// 行または列が0の場合にパニック
     pub const fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
-        if row == 0 {
-            panic!("0行")
-        } else if col == 0 {
-            panic!("0列")
-        }
         Self { vec, row, col }
     }
 
@@ -58,14 +52,14 @@ impl<T> Grid<T> {
 
     #[inline(always)]
     /// 指定座標が有効か
-    pub const fn is_valid(&self, coord: Coord) -> bool {
+    pub const fn contains(&self, coord: Coord) -> bool {
         coord.within(self.row, self.col)
     }
 
     #[inline]
     /// 要素を入れ替え
-    pub fn swap(&mut self, i: usize, j: usize) {
-        self.vec.swap(i, j);
+    pub fn swap(&mut self, a: Coord, b: Coord) {
+        self.vec.swap(a.to_index(self.col), b.to_index(self.col));
     }
 
     #[inline(always)]
@@ -105,6 +99,20 @@ impl<T> Grid<T> {
             row: self.row,
             col: self.col,
         }
+    }
+
+    /// 行ごと
+    #[inline]
+    pub fn rows(&self) -> Chunks<'_, T> {
+        let size = if self.col > 0 { self.col } else { 0 };
+        self.vec.chunks(size)
+    }
+
+    /// 行ごと
+    #[inline]
+    pub fn rows_mut(&mut self) -> ChunksMut<'_, T> {
+        let size = if self.col > 0 { self.col } else { 0 };
+        self.vec.chunks_mut(size)
     }
 }
 
@@ -169,6 +177,17 @@ impl<T: Clone> Grid<T> {
         }
     }
 
+    /// 180度回転
+    pub fn rotate_180(&self) -> Self {
+        let mut vec = self.vec.clone();
+        vec.reverse();
+        Self {
+            vec,
+            row: self.row,
+            col: self.col,
+        }
+    }
+
     /// 転置（行と列の入れ替え）
     pub fn transpose(&self) -> Self {
         let (h, w) = (self.row, self.col);
@@ -185,8 +204,38 @@ impl<T: Clone> Grid<T> {
         }
     }
 
+    /// 上下反転（行の順序を逆にする）
+    pub fn flip_v(&self) -> Self {
+        let mut new_vec = Vec::with_capacity(self.vec.len());
+        for r in (0..self.row).rev() {
+            for c in 0..self.col {
+                new_vec.push(self[(r, c)].clone());
+            }
+        }
+        Self {
+            vec: new_vec,
+            row: self.row,
+            col: self.col,
+        }
+    }
+
+    /// 左右反転（列の順序を逆にする）
+    pub fn flip_h(&self) -> Self {
+        let mut new_vec = Vec::with_capacity(self.vec.len());
+        for r in 0..self.row {
+            for c in (0..self.col).rev() {
+                new_vec.push(self[(r, c)].clone());
+            }
+        }
+        Self {
+            vec: new_vec,
+            row: self.row,
+            col: self.col,
+        }
+    }
+
     /// 指定値で埋めた新しいGridを作成
-    pub fn new_filled(row: usize, col: usize, val: T) -> Self {
+    pub fn new_filled(val: T, row: usize, col: usize) -> Self {
         Self {
             vec: vec![val; row * col],
             row,
@@ -207,6 +256,22 @@ impl<T: PartialEq> Grid<T> {
     /// 指定した値の個数を数える
     pub fn count(&self, target: &T) -> usize {
         self.vec.iter().filter(|&x| x == target).count()
+    }
+}
+
+impl<T> Index<usize> for Grid<T> {
+    type Output = [T];
+    #[inline(always)]
+    fn index(&self, index: usize) -> &Self::Output {
+        let start = index * self.col;
+        &self.vec[start..start + self.col]
+    }
+}
+impl<T> IndexMut<usize> for Grid<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        let start = index * self.col;
+        &mut self.vec[start..start + self.col]
     }
 }
 
@@ -381,7 +446,7 @@ mod tests {
 
         // (0,0)=0 と (1,2)=5 を入れ替え
         // idx: 0 と 5
-        grid.swap(0, 5);
+        grid.swap(Coord::new(0, 0), Coord::new(1, 2));
 
         assert_eq!(grid[(0, 0)], 5);
         assert_eq!(grid[(1, 2)], 0);

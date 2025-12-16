@@ -65,15 +65,6 @@ macro_rules!log_trace {
     };
 }
 
-/// 2次元配列 (Vec<Vec<T>>) を作成するマクロ
-/// 使用例: let grid = grid!\[0; h; w\];
-#[macro_export]
-macro_rules! grid {
-    ($val:expr; $r:expr; $c:expr) => {
-        vec![vec![$val; $c]; $r]
-    };
-}
-
 /// ブロックの実行時間を計測する (Local Only)
 /// 使用例: measure!("Sorting", { list.sort(); });
 #[macro_export]
@@ -87,5 +78,13 @@ macro_rules!measure {
         } else {
             $block
         }
+    };
+}
+
+/// gridを作成するマクロ
+#[macro_export]
+macro_rules! grid {
+    ($val:expr, $r:expr, $c:expr) => {
+        $crate::library::grid::Grid::new_filled($val, $c, $r)
     };
 }
