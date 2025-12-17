@@ -1,97 +1,85 @@
-// unionfind
 #[derive(Clone, Debug)]
 pub struct UnionFind {
-    par: Vec<usize>, // 各ノードの親
-    siz: Vec<usize>, // 各ノードが属するグループのサイズ
+    parent_or_size: Vec<i32>,
     group_count: usize,
 }
+
 impl UnionFind {
-    /// 初期化
+    /// 初期化 : O(N)
     pub fn new(n: usize) -> Self {
         Self {
-            par: (0..n).collect(), // 初期状態では各ノードが自分自身を親に
-            siz: vec![1; n],       // 各グループのサイズは1
+            parent_or_size: vec![-1; n],
             group_count: n,
         }
     }
 
-    /// リセット(再利用するときはnewするより良い)
+    /// リセット(メモリ確保コストを回避) : O(N)
     pub fn reset(&mut self) {
-        self.group_count = self.par.len();
-        self.par.iter_mut().enumerate().for_each(|(i, p)| *p = i);
-        self.siz.fill(1);
+        self.group_count = self.parent_or_size.len();
+        self.parent_or_size.fill(-1);
     }
 
-    /// 根を求める (パス圧縮を行う)
+    /// 根を求める(経路圧縮あり・再帰) : O(α(N))
     #[inline]
-    pub fn root(&mut self, mut x: usize) -> usize {
-        while self.par[x] != x {
-            self.par[x] = self.par[self.par[x]];
-            x = self.par[x];
+    pub fn root(&mut self, index: usize) -> usize {
+        // デバッグビルド時のみ境界チェック（高速化のため）
+        debug_assert!(index < self.parent_or_size.len());
+        let parent = self.parent_or_size[index];
+        if parent < 0 {
+            // 負の値なら自分が根
+            return index;
         }
-        x
+        // 正の値なら親がいるので再帰
+        // parent は非負であることが確定しているので安全にキャスト
+        let root = self.root(parent as usize);
+        self.parent_or_size[index] = root as i32;
+        root
     }
 
-    /// x と y が同じグループに属するかどうか
+    /// 同じグループか判定
     #[inline]
-    pub fn is_same(&mut self, x: usize, y: usize) -> bool {
-        self.root(x) == self.root(y)
+    pub fn is_same(&mut self, a: usize, b: usize) -> bool {
+        self.root(a) == self.root(b)
     }
 
-    /// x を含むグループと y を含むグループを併合する (サイズの併合)
+    /// グループの結合(Union by Size) : O(α(N))
+    /// 返り値: 結合が行われたら true, 既に同じなら false
     #[inline]
-    pub fn unite(&mut self, x: usize, y: usize) -> bool {
-        let x_root = self.root(x);
-        let y_root = self.root(y);
-        // すでに同じグループの場合は何もしない
-        if x_root == y_root {
+    pub fn unite(&mut self, a: usize, b: usize) -> bool {
+        let mut x = self.root(a);
+        let mut y = self.root(b);
+        if x == y {
             return false;
         }
-        // union by size (小さい木を大きい木にくっつける)
-        let (child, parent) = if self.siz[x_root] < self.siz[y_root] {
-            (x_root, y_root)
-        } else {
-            (y_root, x_root)
-        };
-        // smaller を larger の子にする
-        self.par[child] = parent;
-        // larger のサイズを更新
-        self.siz[parent] += self.siz[child];
-        // グループ数を減らす
+        // Union by Size (サイズが大きい方が親になる)
+        // parent_or_size は負の値(サイズ * -1)なので、値が小さいほうがサイズが大きい
+        if self.parent_or_size[x] > self.parent_or_size[y] {
+            std::mem::swap(&mut x, &mut y);
+        }
+        self.parent_or_size[x] += self.parent_or_size[y];
+        self.parent_or_size[y] = x as i32;
         self.group_count -= 1;
         true
     }
 
-    /// x を含むグループのサイズ
+    /// グループのサイズを取得
     #[inline]
-    pub fn size(&mut self, x: usize) -> usize {
-        let root = self.root(x);
-        self.siz[root]
+    pub fn size(&mut self, index: usize) -> usize {
+        let root = self.root(index);
+        -self.parent_or_size[root] as usize
     }
 
-    /// 全グループ取得
+    /// 全グループの内容を取得 : O(N)
     pub fn get_groups(&mut self) -> Vec<Vec<usize>> {
-        let n = self.par.len();
-
-        // 根のインデック->結果リストの何番目か、を管理
-        // グループ数は必要な分だけ確保
-        let mut root_to_index = vec![usize::MAX; n];
-        let mut groups = Vec::with_capacity(self.group_count);
-
+        let n = self.parent_or_size.len();
+        let mut result = vec![Vec::new(); n];
         for i in 0..n {
-            let r = self.root(i);
-            // 初根ならグループ作成
-            if root_to_index[r] == usize::MAX {
-                root_to_index[r] = groups.len();
-                groups.push(Vec::with_capacity(self.siz[r]));
-            }
-            // グループに追加
-            groups[root_to_index[r]].push(i);
+            result[self.root(i)].push(i);
         }
-        groups
+        result.into_iter().filter(|v| !v.is_empty()).collect()
     }
 
-    /// グループの数
+    /// 連結成分の個数を取得 : O(1)
     #[inline]
     pub const fn group_count(&self) -> usize {
         self.group_count
