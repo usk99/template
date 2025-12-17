@@ -25,16 +25,11 @@ impl UnionFind {
     /// 根を求める (パス圧縮を行う)
     #[inline]
     pub fn root(&mut self, mut x: usize) -> usize {
-        let mut root = x;
-        while self.par[root] != root {
-            root = self.par[root];
+        while self.par[x] != x {
+            self.par[x] = self.par[self.par[x]];
+            x = self.par[x];
         }
-        while x != root {
-            let parent = self.par[x];
-            self.par[x] = root;
-            x = parent;
-        }
-        root
+        x
     }
 
     /// x と y が同じグループに属するかどうか

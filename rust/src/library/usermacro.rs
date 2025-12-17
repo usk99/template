@@ -65,8 +65,8 @@ macro_rules!log_trace {
     };
 }
 
-/// ブロックの実行時間を計測する (Local Only)
-/// 使用例: measure!("Sorting", { list.sort(); });
+/// - ブロックの実行時間を計測する (Local Only)
+/// - 使用例: measure!("Sorting", { list.sort(); });
 #[macro_export]
 macro_rules!measure {
     ($label:expr, $block:block) => {
