@@ -88,6 +88,8 @@ use template::library::fmt::*;
 use template::library::grid::*;
 use template::library::heuristic::*;
 use template::library::io::*;
+use template::library::linkcuttree::*;
+use template::library::monoid::*;
 use template::library::prime::*;
 use template::library::random::*;
 use template::library::seg::*;
