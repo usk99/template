@@ -6,7 +6,7 @@ lto = true # コンパイル時間が著しく長くなってしまう場合は�
 codegen-units = 1
 
 [package]
-name = "rust"
+name = "template"
 version = "0.1.0"
 edition = "2024"
 

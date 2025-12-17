@@ -80,22 +80,22 @@ fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
     State::new(input)
 }
 
-use rust::library::config::*;
-use rust::library::coord::*;
-use rust::library::direction::*;
-use rust::library::ext::*;
-use rust::library::fmt::*;
-use rust::library::grid::*;
-use rust::library::heuristic::*;
-use rust::library::io::*;
-use rust::library::prime::*;
-use rust::library::random::*;
-use rust::library::seg::*;
-use rust::library::timer::*;
-use rust::library::unionfind::*;
-use rust::library::usermacro::*;
-use rust::library::util::*;
-use rust::*;
+use template::library::config::*;
+use template::library::coord::*;
+use template::library::direction::*;
+use template::library::ext::*;
+use template::library::fmt::*;
+use template::library::grid::*;
+use template::library::heuristic::*;
+use template::library::io::*;
+use template::library::prime::*;
+use template::library::random::*;
+use template::library::seg::*;
+use template::library::timer::*;
+use template::library::unionfind::*;
+use template::library::usermacro::*;
+use template::library::util::*;
+use template::*;
 
 use {
     itertools::Itertools,
