@@ -213,3 +213,47 @@ impl CharExt for char {
         self as usize - '0' as usize
     }
 }
+
+pub trait NumExt {
+    /// 累乗ショートカット
+    fn p(self, exp: Self) -> Self;
+    /// 桁ベクタ
+    fn digits(self) -> Vec<usize>;
+    /// 各桁の和
+    fn digit_sum(self) -> usize;
+}
+macro_rules! impl_NumExt {
+    ($($t:ty),*) => {
+        $(
+            impl NumExt for $t {
+                fn p(self, exp: $t) -> $t {
+                    self.pow(exp as u32)
+                }
+
+                fn digits(self) -> Vec<usize> {
+                    if self == 0 { return vec![0]; }
+                    let mut n = self;
+                    let mut res = Vec::new();
+                    while n > 0 {
+                        res.push((n % 10) as usize);
+                        n /= 10;
+                    }
+                    res.reverse();
+                    res
+                }
+
+                fn digit_sum(self) -> usize {
+                    let mut n = self;
+                    let mut sum = 0;
+                    while n > 0 {
+                        sum += (n % 10) as usize;
+                        n /= 10;
+                    }
+                    sum
+                }
+            }
+        )*
+    };
+}
+// 必要な型に一括実装
+impl_NumExt!(usize, u64, i64, u32, i32, u128, i128);

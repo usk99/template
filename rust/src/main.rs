@@ -6,6 +6,7 @@
 
 fn algorithm(answer: &mut Answer) {
     // ＊＊＊ 数値型はusizeにしないと掛け算でオーバーフローする可能性ある！！ ＊＊＊
+    // use std::io::{self, Write};let _ = io::stdout().flush();
     answer.push("algo");
 }
 fn main() {
