@@ -141,9 +141,9 @@ impl<M: Monoid> LinkCutTree<M> {
         } else {
             M::identity()
         };
-        res = M::binary_operation(&res, &self.nodes[idx].val);
+        res = M::binary_operation(res, self.nodes[idx].val);
         if right != !0 {
-            res = M::binary_operation(&res, &self.nodes[right].acc);
+            res = M::binary_operation(res, self.nodes[right].acc);
         }
         self.nodes[idx].acc = res;
     }

@@ -28,7 +28,7 @@ impl<M: Monoid> Seg<M> {
     /// 葉から更新
     #[inline]
     fn update(&mut self, k: usize) {
-        self.d[k] = M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
+        self.d[k] = M::binary_operation(self.d[2 * k], self.d[2 * k + 1]);
     }
 
     /// 葉の更新
@@ -58,17 +58,17 @@ impl<M: Monoid> Seg<M> {
         r += self.size;
         while l < r {
             if l & 1 != 0 {
-                sml = M::binary_operation(&sml, &self.d[l]);
+                sml = M::binary_operation(sml, self.d[l]);
                 l += 1;
             }
             if r & 1 != 0 {
                 r -= 1;
-                smr = M::binary_operation(&self.d[r], &smr);
+                smr = M::binary_operation(self.d[r], smr);
             }
             l >>= 1;
             r >>= 1;
         }
-        M::binary_operation(&sml, &smr)
+        M::binary_operation(sml, smr)
     }
 
     /// l から右に向かって、条件 f を満たす最大の r を返す。
@@ -88,10 +88,10 @@ impl<M: Monoid> Seg<M> {
             while l % 2 == 0 {
                 l >>= 1;
             }
-            if !f(&M::binary_operation(&sm, &self.d[l])) {
+            if !f(&M::binary_operation(sm, self.d[l])) {
                 while l < self.size {
                     l *= 2;
-                    let res = M::binary_operation(&sm, &self.d[l]);
+                    let res = M::binary_operation(sm, self.d[l]);
                     if f(&res) {
                         sm = res;
                         l += 1;
@@ -99,7 +99,7 @@ impl<M: Monoid> Seg<M> {
                 }
                 return l - self.size;
             }
-            sm = M::binary_operation(&sm, &self.d[l]);
+            sm = M::binary_operation(sm, self.d[l]);
             l += 1;
             if l.is_power_of_two() {
                 break;
@@ -126,10 +126,10 @@ impl<M: Monoid> Seg<M> {
             while r > 1 && r % 2 == 1 {
                 r >>= 1;
             }
-            if !f(&M::binary_operation(&self.d[r], &sm)) {
+            if !f(&M::binary_operation(self.d[r], sm)) {
                 while r < self.size {
                     r = 2 * r + 1;
-                    let res = M::binary_operation(&self.d[r], &sm);
+                    let res = M::binary_operation(self.d[r], sm);
                     if f(&res) {
                         sm = res;
                         r -= 1;
@@ -137,7 +137,7 @@ impl<M: Monoid> Seg<M> {
                 }
                 return r + 1 - self.size;
             }
-            sm = M::binary_operation(&self.d[r], &sm);
+            sm = M::binary_operation(self.d[r], sm);
             if r.is_power_of_two() {
                 break;
             }
@@ -256,17 +256,17 @@ impl<F: MapMonoid> LazySeg<F> {
         let mut smr = F::M::identity();
         while l < r {
             if l & 1 != 0 {
-                sml = F::M::binary_operation(&sml, &self.d[l]);
+                sml = F::M::binary_operation(sml, self.d[l]);
                 l += 1;
             }
             if r & 1 != 0 {
                 r -= 1;
-                smr = F::M::binary_operation(&self.d[r], &smr);
+                smr = F::M::binary_operation(self.d[r], smr);
             }
             l >>= 1;
             r >>= 1;
         }
-        F::M::binary_operation(&sml, &smr)
+        F::M::binary_operation(sml, smr)
     }
 
     /// rangeで操作適用
@@ -331,11 +331,11 @@ impl<F: MapMonoid> LazySeg<F> {
             while l % 2 == 0 {
                 l >>= 1;
             }
-            if !g(F::M::binary_operation(&sm, &self.d[l])) {
+            if !g(F::M::binary_operation(sm, self.d[l])) {
                 while l < self.size {
                     self.push(l);
                     l *= 2;
-                    let res = F::M::binary_operation(&sm, &self.d[l]);
+                    let res = F::M::binary_operation(sm, self.d[l]);
                     if g(res) {
                         sm = res;
                         l += 1;
@@ -343,7 +343,7 @@ impl<F: MapMonoid> LazySeg<F> {
                 }
                 return l - self.size;
             }
-            sm = F::M::binary_operation(&sm, &self.d[l]);
+            sm = F::M::binary_operation(sm, self.d[l]);
             l += 1;
             if l.is_power_of_two() {
                 break;
@@ -373,11 +373,11 @@ impl<F: MapMonoid> LazySeg<F> {
             while r > 1 && r % 2 != 0 {
                 r >>= 1;
             }
-            if !g(F::M::binary_operation(&self.d[r], &sm)) {
+            if !g(F::M::binary_operation(self.d[r], sm)) {
                 while r < self.size {
                     self.push(r);
                     r = 2 * r + 1;
-                    let res = F::M::binary_operation(&self.d[r], &sm);
+                    let res = F::M::binary_operation(self.d[r], sm);
                     if g(res) {
                         sm = res;
                         r -= 1;
@@ -385,7 +385,7 @@ impl<F: MapMonoid> LazySeg<F> {
                 }
                 return r + 1 - self.size;
             }
-            sm = F::M::binary_operation(&self.d[r], &sm);
+            sm = F::M::binary_operation(self.d[r], sm);
             if r.is_power_of_two() {
                 break;
             }
@@ -401,7 +401,12 @@ impl<F: MapMonoid> LazySeg<F> {
     }
     #[inline]
     fn update(&mut self, k: usize) {
-        self.d[k] = F::M::binary_operation(&self.d[2 * k], &self.d[2 * k + 1]);
+        unsafe {
+            *self.d.get_unchecked_mut(k) = F::M::binary_operation(
+                *self.d.get_unchecked(2 * k),
+                *self.d.get_unchecked(2 * k + 1),
+            )
+        }
     }
     #[inline]
     fn all_apply(&mut self, k: usize, f: F::F) {
