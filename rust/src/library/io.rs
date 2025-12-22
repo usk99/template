@@ -164,3 +164,8 @@ pub fn Output(obj: impl Printable) {
 pub fn EOutput(obj: impl Printable) {
     eprintln!("{}", obj.output_str());
 }
+
+pub fn flush() {
+    use std::io::{self, Write};
+    let _ = io::stdout().flush();
+}
