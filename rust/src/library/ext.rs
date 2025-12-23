@@ -125,7 +125,9 @@ impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
             .collect()
     }
     fn compress(&self) -> (Vec<T>, Vec<usize>) {
-        let vals = self.iter().cloned().sorted().dedup().collect::<Vec<_>>();
+        let mut vals = self.to_vec();
+        vals.sort_unstable();
+        vals.dedup();
         let encoded = self
             .iter()
             .map(|x| vals.binary_search(x).unwrap())
