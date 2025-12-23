@@ -21,18 +21,18 @@ impl UnionFind {
 
     /// 根を求める(経路圧縮あり・再帰) : O(α(N))
     #[inline]
-    pub fn root(&mut self, index: usize) -> usize {
-        // デバッグビルド時のみ境界チェック（高速化のため）
+    pub fn root(&mut self, mut index: usize) -> usize {
         debug_assert!(index < self.parent_or_size.len());
-        let parent = self.parent_or_size[index];
-        if parent < 0 {
-            // 負の値なら自分が根
-            return index;
+        let mut root = index;
+        while self.parent_or_size[root] >= 0 {
+            root = self.parent_or_size[root] as usize;
         }
-        // 正の値なら親がいるので再帰
-        // parent は非負であることが確定しているので安全にキャスト
-        let root = self.root(parent as usize);
-        self.parent_or_size[index] = root as i32;
+        // 経路圧縮
+        while self.parent_or_size[index] >= 0 {
+            let next = self.parent_or_size[index] as usize;
+            self.parent_or_size[index] = root as i32;
+            index = next;
+        }
         root
     }
 

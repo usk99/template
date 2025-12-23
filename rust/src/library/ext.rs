@@ -75,10 +75,7 @@ impl<T: Clone> SliceExt<T> for [T] {
     where
         T: Hash + Eq,
     {
-        self.iter().cloned().fold(HashMap::new(), |mut map, v| {
-            *map.entry(v).or_insert(0) += 1;
-            map
-        })
+        self.iter().cloned().counts()
     }
 
     fn is_palindrome(&self) -> bool
@@ -198,10 +195,7 @@ pub trait StringExt {
 }
 impl StringExt for str {
     fn counter(&self) -> HashMap<char, usize> {
-        self.chars().fold(HashMap::new(), |mut map, c| {
-            *map.entry(c).or_insert(0) += 1;
-            map
-        })
+        self.chars().counts()
     }
 }
 
