@@ -5,26 +5,21 @@ base_file=./rust/src/main.rs
 submit_file=./rust/src/submit.rs
 library_dir=./rust/src/library
 # true: 提出用ファイルを作成してからコピー, false: 直接クリップボードにコピーのみ
-SAVE_FILE=false
+SAVE_FILE=${1:-false}
 
 # ディレクトリ名からクレート名を取得 (例: abc400/a -> abc400_a)
 # '-'は'_'に置換
 crate_name=$(basename "$(dirname "$PWD")")_$(basename "$PWD")
 crate_name=${crate_name//-/_}
 
-# 古いファイルは削除
-rm -f $submit_file
-
 echo -ne "提出用ファイルを生成します"
 
 # ==========================================
 # main.rs の処理
 # ==========================================
-# 文字列整形用
 contents=""
 # mod xxx; 以外を抜き出して提出ファイルに追加
 contents=$(cat $base_file | grep -v "^use ${crate_name}::library::*" | sed "/^use ${crate_name}::\*;/d")
-
 # mod xxx; からxxxを抽出
 items=(`cat $base_file | grep "^use ${crate_name}::library::*" | sed -E "s/use ${crate_name}::library::(.*)::\*;(.*)/\1/"`)
 
@@ -32,10 +27,7 @@ items=(`cat $base_file | grep "^use ${crate_name}::library::*" | sed -E "s/use $
 # ==========================================
 # ライブラリファイルの結合 (インライン化)
 # ==========================================
-for item in "${items[@]}" ; do
-	# 進捗
-    # echo "$item"
-	
+for item in "${items[@]}" ; do	
 	# いったん整形
 	rustfmt $library_dir/$item.rs
 	
@@ -43,7 +35,6 @@ for item in "${items[@]}" ; do
 	contents+=$'\nmod '"$item"$' {\n'
 	contents+="$(cat $library_dir/$item.rs)"
 	contents+=$'\n}'
-	# contents+=$'use crate::'"$item"$'::*;\n'
 done
 
 # テスト部分以外を抽出
@@ -109,27 +100,21 @@ contents=$(echo "$contents" \
 # ==========================================
 # クレートの一括呼び出し
 # ==========================================
-contents+=$'\n'
-contents+="use crate::{"
-for item in "${items[@]}" ; do
-	contents+="$item::*,"
-done
-contents="${contents%,}"
-contents+="};"
+contents+=$'\nuse crate::{'$(IFS=,; echo "${items[*]/%/::*}")'};'
 
 # ==========================================
 # ファイル出力とコピーと確認
 # ==========================================
-
-if [ "$SAVE_FILE" = true ]; then
-	echo -e "\r\033[k提出用ファイルを作成&コピーしました"
-	printf "%s" "$contents" >> $submit_file
-	cat $submit_file | xsel -bi
-	du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
-else
+if [ "$SAVE_FILE" = false ]; then
+	rm -f $submit_file
 	printf "%s" "$contents" | iconv -f UTF-8 -t CP932 | clip.exe
 	echo -e "\r\033[k提出用ファイルをコピーしました"
 	size=$(printf "%s" "$contents" | wc -c)
 	echo $size | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+else
+	echo -e "\r\033[k提出用ファイルを作成&コピーしました"
+	printf "%s" "$contents" >> $submit_file
+	cat $submit_file | xsel -bi
+	du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
 fi
 echo "念のため動作確認をしましょう"

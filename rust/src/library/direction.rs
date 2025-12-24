@@ -1,3 +1,4 @@
+use super::io::*;
 // 方向
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, Debug)]
 pub enum Direction {
@@ -10,7 +11,7 @@ pub enum Direction {
     /// 左(Left)
     L = 3,
 }
-
+crate::impl_elem!(Direction);
 impl Direction {
     /// 全方向定数
     pub const ALL: [Self; 4] = [Direction::U, Direction::R, Direction::D, Direction::L];

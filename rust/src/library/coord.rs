@@ -1,6 +1,6 @@
 // 座標
 use {
-    super::direction::Direction,
+    super::{direction::*, io::*},
     std::{cmp::*, fmt::*, ops::*},
 };
 
@@ -17,7 +17,7 @@ pub struct Coord {
     row: CoordType,
     col: CoordType,
 }
-
+crate::impl_elem!(Coord);
 impl Coord {
     /// 原点
     pub const ORIGIN: Self = Self { row: 0, col: 0 };

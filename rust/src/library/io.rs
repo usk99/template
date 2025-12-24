@@ -2,7 +2,6 @@
 #![allow(dead_code)]
 
 use {
-    super::{coord::Coord, direction::Direction},
     itertools::Itertools,
     std::{cell::RefCell, fmt::Display, io::*},
 };
@@ -102,6 +101,8 @@ pub trait Elem: Display {
         data.iter().join(" ")
     }
 }
+
+#[macro_export]
 macro_rules! impl_elem {
     ($($t:ty),*) => {
         $(
@@ -114,8 +115,7 @@ macro_rules! impl_elem {
 }
 
 impl_elem!(
-    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, char, &str, String,
-    Coord, Direction
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, char, &str, String
 );
 
 impl Elem for bool {
