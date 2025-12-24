@@ -15,11 +15,14 @@ if os.path.exists(toml_path):
     contest = os.path.basename(os.path.dirname(cwd))  # "adt_easy_20251210_1"
     new_name = f"{contest}_{task}"
 
-    # package.name を正規表現で置換
-    # name = "old_name" -> name = "new_name"
+    # Rustの識別子として有効な名前に変換 (ハイフンをアンダースコアに)
+    # Cargo.tomlのnameはハイフンOKだが、コード内のuseではアンダースコアにする必要がある
+    new_package_id = new_name.replace("-", "_")
     name_match = re.search(r'^name\s*=\s*"(.*?)"', content, re.MULTILINE)
     if name_match:
         package_name = name_match.group(1)
+        # コード内で使われている古い名前（ハイフン変換済み）を特定
+        old_package_id = package_name.replace("-", "_")
         content = re.sub(r'^name\s*=\s*".*?"',
                          f'name = "{new_name}"', content, count=1, flags=re.MULTILINE)
 
@@ -34,7 +37,7 @@ if os.path.exists(toml_path):
                 rs_content = f.read()
 
             # 古いパッケージ名を新しいパッケージ名に置換
-            rs_content = rs_content.replace(f"use {package_name}::", f"use {new_name}::")
+            rs_content = rs_content.replace(f"use {old_package_id}::", f"use {new_package_id}::")
 
             with open(main_rs_path, "w") as f:
                 f.write(rs_content)
