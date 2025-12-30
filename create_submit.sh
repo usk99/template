@@ -113,6 +113,7 @@ if [ "$SAVE_FILE" = false ]; then
 	echo $size | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
 else
 	echo -e "\r\033[k提出用ファイルを作成&コピーしました"
+	> $submit_file
 	printf "%s" "$contents" >> $submit_file
 	cat $submit_file | xsel -bi
 	du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
