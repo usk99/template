@@ -89,6 +89,7 @@ contents=$(echo "$contents" \
 		# s/\s*\n/ /g;
 		s/ (?=[^\w\x27&|])(?<!&)|(?<=[^\w&|])(?!&) //g;
 		s/\$crate::library::[^:]+::/ crate::/g;
+		s/use crate::library::/use crate::/g;
 
 		# 999. 退避した文字列を復元する
 		s/___Q(\d+)___/$q[$1]/ge;
@@ -103,19 +104,21 @@ contents=$(echo "$contents" \
 contents+=$'\nuse crate::{'$(IFS=,; echo "${items[*]/%/::*}")'};'
 
 # ==========================================
-# ファイル出力とコピーと確認
+# ファイル書き出し&コピー
+# ==========================================
+printf "%s" "$contents" > $submit_file
+perl -i -pe 's/\]fn algorithm/\]\nfn algorithm/g' $submit_file
+cat $submit_file | xsel -bi
+printf "\r\033[K"
+du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+
+# ==========================================
+# 確認
 # ==========================================
 if [ "$SAVE_FILE" = false ]; then
 	rm -f $submit_file
-	printf "%s" "$contents" | iconv -f UTF-8 -t CP932 | clip.exe
-	echo -e "\r\033[k提出用ファイルをコピーしました"
-	size=$(printf "%s" "$contents" | wc -c)
-	echo $size | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+	echo "提出用ファイルをコピーしました"
 else
-	echo -e "\r\033[k提出用ファイルを作成&コピーしました"
-	> $submit_file
-	printf "%s" "$contents" >> $submit_file
-	cat $submit_file | xsel -bi
-	du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+	echo "提出用ファイルを作成&コピーしました"
 fi
 echo "念のため動作確認をしましょう"

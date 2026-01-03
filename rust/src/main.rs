@@ -82,8 +82,9 @@ fn solve(_timer: &Timer, _rnd: &mut XorShift, answer: &mut Answer) -> String {
 
 use template::library::config::*;
 // use template::library::coord::*;
+// use template::library::coord_ext::*;
 // use template::library::direction::*;
-use template::library::ext::*;
+use template::library::exts::*;
 use template::library::fmt::*;
 // use template::library::grid::*;
 // use template::library::heuristic::*;
