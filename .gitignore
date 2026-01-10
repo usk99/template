@@ -9,4 +9,5 @@
 **/package.json
 **/*.csproj
 **/*.sln
+**/pahcer-studio
 contest.acc.json
