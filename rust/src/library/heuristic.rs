@@ -25,16 +25,16 @@ impl State {
         Self { score: 0 }
     }
     // 次の状態を生成（ビームサーチ用）
-    fn next_states(&self) -> Vec<Self> {
+    pub fn next_states(&self) -> Vec<Self> {
         // 問題に応じた状態遷移を実装
         vec![]
     }
     // 状態遷移(焼きなまし)
-    fn random_transition(&mut self, _rnd: &mut XorShift) {
+    pub fn random_transition(&mut self, _rnd: &mut XorShift) {
         self.score = 0;
     }
     // 状態の評価
-    fn evaluate(&mut self) {
+    pub fn evaluate(&mut self) {
         self.score = 0;
     }
 }
