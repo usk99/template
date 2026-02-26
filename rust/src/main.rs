@@ -9,96 +9,39 @@ fn algorithm(answer: &mut Answer) {
     answer.push("algo");
 }
 fn main() {
-    // 実行時間制限
+    // 実行時間計測
     let timer = Timer::new(TIME_LIMIT);
     // 出力用意
     let mut answer = Answer::new();
-    // 解く
-    let mut solve = solve(&timer, &mut XorShift::new(RND_SEED), &mut answer);
-    // 出力
-    let ans = answer.outstr();
-    if is_local() {
-        use std::io::*;
-        let _ = BufWriter::new(File::create("../output.txt").unwrap()).write(ans.as_bytes());
-    }
-    Output(ans);
-
-    solve.push_str(&format!("       time : {:>6}", timer.get_time_str()));
-    log!("{solve}");
-}
-fn solve(_timer: &Timer, _rnd: &mut XorShift, answer: &mut Answer) -> String {
-    // if ENABLE_ALGORITHM {
-    algorithm(answer);
-    "Algorithm".to_string()
-    // } else {
-    //     let input = &Input::new();
-    //     let mut result = bare_minimum(input, timer, rnd);
-    //     let mut best_solve = "bare_minimum";
-    //     if ENABLE_GREEDY {
-    //         // 貪欲？
-    //         let gr = greedy(input, timer, rnd);
-    //         if gr.score > result.score {
-    //             result = gr;
-    //             best_solve = "Greedy";
-    //         }
-    //     }
-    //     if ENABLE_SA {
-    //         // 温度調整
-    //         //tune_simulated_annealing(input);
-    //         while !timer.is_timeout() {
-    //             // 焼きなましっぽい
-    //             let mut sa = SimulatedAnnealing::new(SAParams::default());
-    //             let sa = sa.run(result.clone(), input, timer, rnd);
-    //             if sa.score > result.score {
-    //                 best_solve = "SimulatedAnnealing";
-    //                 result = sa;
-    //             }
-    //         }
-    //     }
-    //     if ENABLE_BEAM {
-    //         // 幅調整
-    //         // tune_beam_search(input);
-    //         // ビームサーチっぽい
-    //         let mut bs = BeamSearch::new(BeamParams::default());
-    //         let bs = bs.run(State::new(input), input, timer, rnd);
-    //         if bs.score > result.score {
-    //             best_solve = "BeamSearch";
-    //             result = bs;
-    //         }
-    //     }
-    //     answer.push(result.score);
-    //     let mut s = String::new();
-    //     writeln!(s, "Best  Solve : {best_solve:>6}").unwrap();
-    //     writeln!(s, "Final Score : {:>6}", result.score.comma()).unwrap();
-    //     s
-    // }
-    // }
-    // fn bare_minimum(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
-    //     State::new(input)
-    // }
-    // fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
-    //     State::new(input)
+    algorithm(&mut answer);
+    Output(answer.outstr());
+    log!("time : {:>6}", timer.get_time_str());
 }
 
-use template::library::config::*;
-// use template::library::coord::*;
-// use template::library::coord_ext::*;
-// use template::library::direction::*;
-use template::library::exts::*;
-use template::library::fmt::*;
-// use template::library::grid::*;
-// use template::library::heuristic::*;
-use template::library::io::*;
+// === グリッド系 (coord_ext は coord + direction が必要) ===
+// use template::library::direction::*;  // Direction enum (U/R/D/L)
+// use template::library::coord::*;      // Coord (座標)
+// use template::library::coord_ext::*;  // Coord + Direction の演算
+// use template::library::grid::*;       // Grid (2次元配列) Coord必要
+
+// === セグ木系 (seg は monoid必要) ===
+// use template::library::monoid::*;     // Monoid定義, SegSum等のエイリアス
+// use template::library::seg::*;        // Seg, LazySeg
+
+// === Link-Cut Tree (monoid必要) ===
 // use template::library::linkcuttree::*;
-// use template::library::monoid::*;
-// use template::library::prime::*;
-// use template::library::seg::*;
-// use template::library::unionfind::*;
-use template::library::usermacro::*;
-use template::library::util::*;
-use template::*;
 
-use {
-    itertools::Itertools,
-    std::{collections::*, fmt::*, fs::*, mem::*},
-};
+// === 単体 ===
+// use template::library::prime::*;      // is_prime, factorize
+// use template::library::unionfind::*;  // UnionFind
+
+// === 常用 ===
+use itertools::Itertools;
+use std::{collections::*, fmt::*, fs::*, mem::*};
+use template::library::config::*; // Timer, XorShift, is_local
+use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
+use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
+use template::library::io::*; // InputNum, Output, Answer 等の入出力
+use template::library::usermacro::*; // min!, max!, chmin!, chmax!, log!
+use template::library::util::*; // MinHeap, bisect
+use template::*; // impl_elem!

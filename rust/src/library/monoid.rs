@@ -36,6 +36,7 @@ macro_rules! define_monoid {
     )*};
 }
 
+// 型を変えたい場合は usize を i64 等に書き換える（単位元も合わせて変更すること）
 define_monoid!(
     // 基本演算
     Max,    SegMax,    usize,          0, |a, b| a.max(b);

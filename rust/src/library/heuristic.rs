@@ -142,7 +142,7 @@ pub struct SAParams {
     /// 自動調整
     pub auto_adjust: bool,
     /// 再加熱
-    pub reheat_interbal: usize,
+    pub reheat_interval: usize,
     /// 最小受理率
     pub min_accept: f64,
 }
@@ -154,7 +154,7 @@ impl Default for SAParams {
             cooling_rate: 0.995,
             trial_per_temp: 100,
             auto_adjust: true,
-            reheat_interbal: 1000,
+            reheat_interval: 1000,
             min_accept: 0.2,
         }
     }
@@ -215,7 +215,7 @@ impl SimulatedAnnealing {
     }
     // 再加熱
     fn reheat(&mut self) {
-        if self.since_improve > self.params.reheat_interbal {
+        if self.since_improve > self.params.reheat_interval {
             self.current_temp = self.params.start_temp;
             self.since_improve = 0;
         }

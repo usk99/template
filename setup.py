@@ -30,17 +30,17 @@ if os.path.exists(toml_path):
         with open(toml_path, "w") as f:
             f.write(content)
 
-        # main.rs の use 文を書き換え
-        main_rs_path = "rust/src/main.rs"
-        if os.path.exists(main_rs_path):
-            with open(main_rs_path, "r") as f:
-                rs_content = f.read()
+        # main.rs と main_heuristic.rs の use 文を書き換え
+        for rs_file in ["rust/src/main.rs", "rust/src/main_heuristic.rs"]:
+            if os.path.exists(rs_file):
+                with open(rs_file, "r") as f:
+                    rs_content = f.read()
 
-            # 古いパッケージ名を新しいパッケージ名に置換
-            rs_content = rs_content.replace(f"use {old_package_id}::", f"use {new_package_id}::")
+                # 古いパッケージ名を新しいパッケージ名に置換
+                rs_content = rs_content.replace(f"use {old_package_id}::", f"use {new_package_id}::")
 
-            with open(main_rs_path, "w") as f:
-                f.write(rs_content)
+                with open(rs_file, "w") as f:
+                    f.write(rs_content)
 
 # このスクリプト自身を削除
 os.remove(__file__)

@@ -251,5 +251,41 @@ macro_rules! impl_NumExt {
         )*
     };
 }
-// 必要な型に一括実装
-impl_NumExt!(usize, u64, i64, u32, i32, u128, i128);
+// 符号なし型に一括実装
+impl_NumExt!(u8, u16, u32, u64, u128, usize);
+
+// 符号付き型用（unsigned_abs で絶対値を取る）
+macro_rules! impl_NumExt_signed {
+    ($($t:ty),*) => {
+        $(
+            impl NumExt for $t {
+                fn p(self, exp: $t) -> $t {
+                    self.pow(exp as u32)
+                }
+
+                fn digits(self) -> Vec<usize> {
+                    if self == 0 { return vec![0]; }
+                    let mut n = self.unsigned_abs();
+                    let mut res = Vec::new();
+                    while n > 0 {
+                        res.push((n % 10) as usize);
+                        n /= 10;
+                    }
+                    res.reverse();
+                    res
+                }
+
+                fn digit_sum(self) -> usize {
+                    let mut n = self.unsigned_abs();
+                    let mut sum = 0;
+                    while n > 0 {
+                        sum += (n % 10) as usize;
+                        n /= 10;
+                    }
+                    sum
+                }
+            }
+        )*
+    };
+}
+impl_NumExt_signed!(i8, i16, i32, i64, i128, isize);

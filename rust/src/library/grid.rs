@@ -14,7 +14,8 @@ pub struct Grid<T> {
 }
 impl<T> Grid<T> {
     /// 新しいGridを作成
-    pub const fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
+    pub fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
+        assert!(row > 0 && col > 0 && vec.len() == row * col, "Grid({row}x{col}, len={})", vec.len());
         Self { vec, row, col }
     }
 
@@ -591,13 +592,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "0行")]
+    #[should_panic(expected = "Grid(0x5, len=0)")]
     fn test_new_panic_row() {
         Grid::<i32>::new(vec![], 0, 5);
     }
 
     #[test]
-    #[should_panic(expected = "0列")]
+    #[should_panic(expected = "Grid(5x0, len=0)")]
     fn test_new_panic_col() {
         Grid::<i32>::new(vec![], 5, 0);
     }
