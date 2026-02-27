@@ -5,7 +5,7 @@ import re
 toml_path = "rust/Cargo.toml"
 
 if os.path.exists(toml_path):
-    with open(toml_path, "r") as f:
+    with open(toml_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     # 現在のパスからプロジェクト名を作成
@@ -27,19 +27,20 @@ if os.path.exists(toml_path):
                          f'name = "{new_name}"', content, count=1, flags=re.MULTILINE)
 
         # Cargo.toml を保存
-        with open(toml_path, "w") as f:
+        with open(toml_path, "w", encoding="utf-8") as f:
             f.write(content)
 
         # main.rs と main_heuristic.rs の use 文を書き換え
         for rs_file in ["rust/src/main.rs", "rust/src/main_heuristic.rs"]:
             if os.path.exists(rs_file):
-                with open(rs_file, "r") as f:
+                with open(rs_file, "r", encoding="utf-8") as f:
                     rs_content = f.read()
 
                 # 古いパッケージ名を新しいパッケージ名に置換
-                rs_content = rs_content.replace(f"use {old_package_id}::", f"use {new_package_id}::")
+                rs_content = rs_content.replace(
+                    f"use {old_package_id}::", f"use {new_package_id}::")
 
-                with open(rs_file, "w") as f:
+                with open(rs_file, "w", encoding="utf-8") as f:
                     f.write(rs_content)
 
 # このスクリプト自身を削除
