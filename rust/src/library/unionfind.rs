@@ -38,16 +38,16 @@ impl UnionFind {
 
     /// 同じグループか判定
     #[inline]
-    pub fn is_same(&mut self, a: usize, b: usize) -> bool {
-        self.root(a) == self.root(b)
+    pub fn is_same(&mut self, u: usize, v: usize) -> bool {
+        self.root(u) == self.root(v)
     }
 
     /// グループの結合(Union by Size) : O(α(N))
     /// 返り値: 結合が行われたら true, 既に同じなら false
     #[inline]
-    pub fn unite(&mut self, a: usize, b: usize) -> bool {
-        let mut x = self.root(a);
-        let mut y = self.root(b);
+    pub fn unite(&mut self, u: usize, v: usize) -> bool {
+        let mut x = self.root(u);
+        let mut y = self.root(v);
         if x == y {
             return false;
         }

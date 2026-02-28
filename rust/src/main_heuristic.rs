@@ -76,12 +76,10 @@ fn greedy(input: &Input, _timer: &Timer, _rnd: &mut XorShift) -> State {
 // use template::library::coord_ext::*;  // Coord + Direction の演算
 // use template::library::grid::*;       // Grid (2次元配列) Coord必要
 
-// === セグ木系 (seg は monoid必要) ===
+// === セグ木系 ===
+// use template::library::linkcuttree::*;
 // use template::library::monoid::*;     // Monoid定義, SegSum等のエイリアス
 // use template::library::seg::*;        // Seg, LazySeg
-
-// === Link-Cut Tree (monoid必要) ===
-// use template::library::linkcuttree::*;
 
 // === 単体 ===
 // use template::library::prime::*;      // is_prime, factorize
