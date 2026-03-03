@@ -112,10 +112,16 @@ impl Coord {
     /// ユークリッド距離(直線距離)を計算
     #[inline]
     pub fn dist_euclidean(&self, other: &Self) -> f64 {
+        (self.dist_euclidean2(other) as f64).sqrt()
+    }
+
+    /// ユークリッド距離(直線距離)の2乗を計算
+    #[inline]
+    pub fn dist_euclidean2(&self, other: &Self) -> usize {
         let d = self.diff(other);
-        let r = d.row as f64;
-        let c = d.col as f64;
-        (r * r + c * c).sqrt()
+        let r = d.row();
+        let c = d.col();
+        r * r + c * c
     }
 
     /// マンハッタン距離(上下左右の移動量の合計)を計算
