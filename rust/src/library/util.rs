@@ -1,6 +1,6 @@
 // 便利
 #![allow(non_upper_case_globals)]
-use std::{cmp::*, collections::*, iter::*, ops::*};
+use std::{cmp::*, collections::*, iter::*};
 
 pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 pub const ABC_L: &str = "abcdefghijklmnopqrstuvwxyz";
@@ -47,16 +47,4 @@ impl<T: Ord> Default for MinHeap<T> {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub fn bisect<F: FnMut(i64) -> bool>(mut ok: i64, mut ng: i64, mut check: F) -> i64 {
-    while (ok - ng).abs() > 1 {
-        let mid = (ok + ng) / 2;
-        if check(mid) {
-            ok = mid;
-        } else {
-            ng = mid;
-        }
-    }
-    ok
 }
