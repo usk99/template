@@ -25,7 +25,6 @@ fn main() {
 // use template::library::grid::*;       // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===
-// use template::library::linkcuttree::*;
 // use template::library::monoid::*;     // Monoid定義, SegSum等のエイリアス
 // use template::library::seg::*;        // Seg, LazySeg
 

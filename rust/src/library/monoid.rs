@@ -1,4 +1,4 @@
-use super::{linkcuttree::*, seg::*};
+use super::seg::*;
 use num::*;
 
 /// モノイド
@@ -52,18 +52,6 @@ define_monoid!(
     Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(&b);
     Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(&b);
 );
-
-macro_rules! define_lct {
-    ($(
-        $name:ident,
-        $alias:ident
-    );* $(;)?) => {
-        $(
-            pub type $alias = LinkCutTree<$name>;
-        )*
-    };
-}
-define_lct!(Sum, LCTSum);
 
 /// 遅延セグ木用のモノイド
 pub trait MapMonoid {
