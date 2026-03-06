@@ -203,10 +203,22 @@ impl StringExt for str {
 
 pub trait CharExt {
     fn to_num(self) -> usize;
+    fn to_alpha(self) -> usize;
+    fn from_alpha(i: usize, upper: bool) -> char;
 }
 impl CharExt for char {
     fn to_num(self) -> usize {
         self as usize - '0' as usize
+    }
+    fn to_alpha(self) -> usize {
+        match self {
+            'a'..='z' => self as usize - 'a' as usize,
+            'A'..='Z' => self as usize - 'A' as usize,
+            _ => panic!("not alphabetic: {}", self),
+        }
+    }
+    fn from_alpha(i: usize, upper: bool) -> char {
+        (if upper { b'A' } else { b'a' } + i as u8) as char
     }
 }
 

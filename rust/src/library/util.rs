@@ -2,8 +2,17 @@
 #![allow(non_upper_case_globals)]
 use std::{cmp::*, collections::*, iter::*};
 
-pub const ABC_U: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-pub const ABC_L: &str = "abcdefghijklmnopqrstuvwxyz";
+const fn make_abc(base: u8) -> [char; 26] {
+    let mut arr = ['\0'; 26];
+    let mut i = 0;
+    while i < 26 {
+        arr[i] = (base + i as u8) as char;
+        i += 1;
+    }
+    arr
+}
+pub const ABC_U: [char; 26] = make_abc(b'A');
+pub const ABC_L: [char; 26] = make_abc(b'a');
 
 /// 優先度付きキュー(最大)
 pub type MaxHeap<T> = BinaryHeap<T>;
