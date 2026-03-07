@@ -15,7 +15,21 @@ fn main() {
     let mut answer = Answer::new();
     algorithm(&mut answer);
     Output(answer.outstr());
-    log!("time : {:>6}", timer.get_time_str());
+    log!("time   : {:>6}", timer.get_time_str());
+    if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+        for line in status.lines() {
+            if line.starts_with("VmRSS:") {
+                let s = line.trim_start_matches("VmRSS:").trim();
+                if let Some(kb) = s.strip_suffix(" kB") {
+                    if let Ok(n) = kb.trim().parse::<u64>() {
+                        log!("memory : {}kB", n.comma());
+                    }
+                } else {
+                    log!("memory : {}", s);
+                }
+            }
+        }
+    }
 }
 
 // === グリッド系 (coord_ext は coord + direction が必要) ===
