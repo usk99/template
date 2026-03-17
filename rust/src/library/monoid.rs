@@ -41,6 +41,10 @@ define_monoid!(
     // 基本演算
     Max,    SegMax,    usize,          0, |a, b| a.max(b);
     Min,    SegMin,    usize, usize::MAX, |a, b| a.min(b);
+    MaxIdx, SegMaxIdx, (usize, usize), (0, usize::MAX),
+    |a, b| if a.0 > b.0 || (a.0 == b.0 && a.1 <= b.1) { a } else { b };
+    MinIdx, SegMinIdx, (usize, usize), (usize::MAX, usize::MAX),
+    |a, b| if a.0 < b.0 || (a.0 == b.0 && a.1 <= b.1) { a } else { b };
     Sum,    SegSum,    usize,          0, |a, b| a + b;
     SumLen, SegSumLen, (usize, usize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
     XorLen, SegXorLen, (usize, usize), (0, 0), |a, b| (a.0 ^ b.0, a.1 + b.1); // 区間更新区間XOR用
@@ -181,3 +185,28 @@ macro_rules! impl_value_methods {
 impl_value_methods!(LazySegAddSum);
 impl_value_methods!(LazySegUpdateSum);
 impl_value_methods!(LazySegUpdateXor);
+
+macro_rules! impl_idx_methods {
+    ($seg_type:ty) => {
+        impl $seg_type {
+            pub fn from_values(values: Vec<usize>) -> Self {
+                Self::from(
+                    values
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, v)| (v, i))
+                        .collect::<Vec<_>>(),
+                )
+            }
+            pub fn set_value(&mut self, p: usize, val: usize) {
+                self.set(p, (val, p));
+            }
+            pub fn get_value(&self, p: usize) -> usize {
+                self[p].0
+            }
+        }
+    };
+}
+
+impl_idx_methods!(SegMaxIdx);
+impl_idx_methods!(SegMinIdx);
