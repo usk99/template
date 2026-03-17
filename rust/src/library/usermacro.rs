@@ -4,7 +4,6 @@
 #[macro_export]
 macro_rules! min {
     ($a:expr $(,)*) => {{ $a }};
-    ($a:expr,$b:expr $(,)*) => {{ std::cmp::min($a, $b) }};
     ($a:expr,$($rest:expr),+ $(,)*) => {{ std::cmp::min($a, min!($($rest),+)) }};
 }
 
@@ -12,7 +11,6 @@ macro_rules! min {
 #[macro_export]
 macro_rules! max {
     ($a:expr $(,)*) => {{ $a }};
-    ($a:expr,$b:expr $(,)*) => {{ std::cmp::max($a, $b) }};
     ($a:expr,$($rest:expr),+ $(,)*) => {{ std::cmp::max($a, max!($($rest),+)) }};
 }
 
@@ -73,8 +71,7 @@ macro_rules! measure {
         if $crate::library::config::is_local() {
             let start = std::time::Instant::now();
             $block
-            let elapsed = start.elapsed();
-            eprintln!("[MEASURE] {}: {}ms", $label, elapsed.as_millis());
+            eprintln!("[MEASURE] {}: {}ms", $label, start.elapsed().as_millis());
         } else {
             $block
         }

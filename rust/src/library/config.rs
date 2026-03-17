@@ -82,14 +82,14 @@ impl XorShift {
 
     /// 0.0<=x<1.0で乱数
     pub const fn next_f64(&mut self) -> f64 {
-        const INVERSE_53: f64 = 1.0 / 9007199254740992.0;
-        (self.next() >> 11) as f64 * INVERSE_53
+        const INV_2_53: f64 = 1.0 / (1u64 << 53) as f64;
+        (self.next() >> 11) as f64 * INV_2_53
     }
 
     /// 指定確率でtrueを返す
     #[inline]
     pub const fn next_bool(&mut self, prob: f64) -> bool {
-        self.next() < (prob * 18446744073709551616.0) as u64
+        self.next() < (prob * 18446744073709551616.0) as u64 // 2^64
     }
 
     /// ランダム選択

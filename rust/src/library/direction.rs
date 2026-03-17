@@ -34,7 +34,7 @@ impl Direction {
 
     /// 差分から逆変換
     #[inline]
-    pub fn from_delta(delta: (isize, isize)) -> Option<Self> {
+    pub const fn from_delta(delta: (isize, isize)) -> Option<Self> {
         match delta {
             (-1, 0) => Some(Self::U),
             (0, 1) => Some(Self::R),

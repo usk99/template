@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-#![allow(dead_code)]
 
 use {
     itertools::Itertools,
@@ -107,8 +106,6 @@ macro_rules! impl_elem {
     ($($t:ty),*) => {
         $(
             impl Elem for $t {
-                #[inline]
-                fn to_s(&self) -> String { self.to_string() }
             }
         )*
     }
@@ -166,6 +163,5 @@ pub fn EOutput(obj: impl Printable) {
 }
 
 pub fn flush() {
-    use std::io::{self, Write};
-    let _ = io::stdout().flush();
+    let _ = stdout().flush();
 }

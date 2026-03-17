@@ -1,6 +1,6 @@
 // 便利
 #![allow(non_upper_case_globals)]
-use std::{cmp::*, collections::*, iter::*};
+use std::{cmp::*, collections::*};
 
 const fn make_abc(base: u8) -> [char; 26] {
     let mut arr = ['\0'; 26];
@@ -55,5 +55,12 @@ impl<T: Ord> FromIterator<T> for MinHeap<T> {
 impl<T: Ord> Default for MinHeap<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+impl<T: Ord> Extend<T> for MinHeap<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for v in iter {
+            self.push(v);
+        }
     }
 }
