@@ -19,7 +19,7 @@ impl UnionFind {
         self.parent_or_size.fill(-1);
     }
 
-    /// 根を求める(経路圧縮あり・再帰) : O(α(N))
+    /// 根を求める(経路圧縮あり) : O(α(N))
     #[inline]
     pub fn root(&mut self, mut index: usize) -> usize {
         debug_assert!(index < self.parent_or_size.len());
@@ -76,7 +76,8 @@ impl UnionFind {
         for i in 0..n {
             result[self.root(i)].push(i);
         }
-        result.into_iter().filter(|v| !v.is_empty()).collect()
+        result.retain(|v| !v.is_empty());
+        result
     }
 
     /// 連結成分の個数を取得 : O(1)

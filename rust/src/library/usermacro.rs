@@ -82,6 +82,6 @@ macro_rules! measure {
 #[macro_export]
 macro_rules! grid {
     ($val:expr, $r:expr, $c:expr) => {
-        $crate::library::grid::Grid::new_filled($val, $c, $r)
+        $crate::library::grid::Grid::new_filled($val, $r, $c)
     };
 }

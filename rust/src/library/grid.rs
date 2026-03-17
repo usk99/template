@@ -15,7 +15,11 @@ pub struct Grid<T> {
 impl<T> Grid<T> {
     /// 新しいGridを作成
     pub fn new(vec: Vec<T>, row: usize, col: usize) -> Self {
-        assert!(row > 0 && col > 0 && vec.len() == row * col, "Grid({row}x{col}, len={})", vec.len());
+        assert!(
+            row > 0 && col > 0 && vec.len() == row * col,
+            "Grid({row}x{col}, len={})",
+            vec.len()
+        );
         Self { vec, row, col }
     }
 
@@ -105,15 +109,13 @@ impl<T> Grid<T> {
     /// 行ごと
     #[inline]
     pub fn rows(&self) -> Chunks<'_, T> {
-        let size = if self.col > 0 { self.col } else { 0 };
-        self.vec.chunks(size)
+        self.vec.chunks(self.col)
     }
 
     /// 行ごと
     #[inline]
     pub fn rows_mut(&mut self) -> ChunksMut<'_, T> {
-        let size = if self.col > 0 { self.col } else { 0 };
-        self.vec.chunks_mut(size)
+        self.vec.chunks_mut(self.col)
     }
 }
 
@@ -121,7 +123,9 @@ impl<T: Clone> From<Vec<Vec<T>>> for Grid<T> {
     /// 二次元VecからGridを作成
     fn from(value: Vec<Vec<T>>) -> Self {
         let row = value.len();
-        let col = if row == 0 { 0 } else { value[0].len() };
+        assert!(row > 0, "Grid requires at least 1 row");
+        let col = value[0].len();
+        assert!(col > 0, "Grid requires at least 1 col");
         let vec = value.into_iter().flatten().collect();
         Self { vec, row, col }
     }
@@ -130,11 +134,7 @@ impl<T: Clone> From<Vec<Vec<T>>> for Grid<T> {
 impl<T: Clone> From<Grid<T>> for Vec<Vec<T>> {
     /// Gridから二次元Vecを作成
     fn from(val: Grid<T>) -> Self {
-        if val.col == 0 {
-            vec![Vec::new(); val.row]
-        } else {
-            val.vec.chunks(val.col).map(|ch| ch.to_vec()).collect()
-        }
+        val.vec.chunks(val.col).map(|ch| ch.to_vec()).collect()
     }
 }
 
@@ -275,29 +275,31 @@ impl<T> IndexMut<usize> for Grid<T> {
         &mut self.vec[start..start + self.col]
     }
 }
-
 impl<T> Index<Coord> for Grid<T> {
     type Output = T;
     #[inline(always)]
     fn index(&self, coord: Coord) -> &Self::Output {
-        self.get(coord).unwrap_or_else(|| {
-            panic!(
-                "Grid index out of bounds: {:?} is not within {}x{}",
-                coord, self.row, self.col
-            )
-        })
+        debug_assert!(
+            coord.within(self.row, self.col),
+            "Grid out of bounds: {:?} not within {}x{}",
+            coord,
+            self.row,
+            self.col
+        );
+        &self.vec[coord.to_index(self.col)]
     }
 }
 impl<T> IndexMut<Coord> for Grid<T> {
     #[inline(always)]
     fn index_mut(&mut self, coord: Coord) -> &mut Self::Output {
-        let (r, c) = (self.row, self.col);
-        self.get_mut(coord).unwrap_or_else(|| {
-            panic!(
-                "Grid index out of bounds: {:?} is not within {}x{}",
-                coord, r, c
-            )
-        })
+        debug_assert!(
+            coord.within(self.row, self.col),
+            "Grid out of bounds: {:?} not within {}x{}",
+            coord,
+            self.row,
+            self.col
+        );
+        &mut self.vec[coord.to_index(self.col)]
     }
 }
 impl<T> Index<(usize, usize)> for Grid<T> {
