@@ -58,7 +58,7 @@ impl XorShift {
     }
 
     /// 乱数生成
-    #[inline]
+    #[inline(always)]
     const fn next(&mut self) -> u64 {
         let mut x = self.state;
         x ^= x << 13;
@@ -69,13 +69,13 @@ impl XorShift {
     }
 
     /// ランダム選択[0, max)
-    #[inline]
+    #[inline(always)]
     pub const fn gen_range(&mut self, max: usize) -> usize {
         ((self.next() as u128 * max as u128) >> 64) as usize
     }
 
     /// 範囲内[min, max)
-    #[inline]
+    #[inline(always)]
     pub const fn next_range(&mut self, min: usize, max: usize) -> usize {
         min + self.gen_range(max - min)
     }
@@ -87,7 +87,7 @@ impl XorShift {
     }
 
     /// 指定確率でtrueを返す
-    #[inline]
+    #[inline(always)]
     pub const fn next_bool(&mut self, prob: f64) -> bool {
         self.next() < (prob * 18446744073709551616.0) as u64 // 2^64
     }

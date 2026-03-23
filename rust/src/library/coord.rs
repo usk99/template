@@ -10,7 +10,7 @@ use {
 /// - u32:<4,294,967,295
 /// - 境界値ちょうどの座標はwrapping_add等で範囲外に出る可能性があるため注意
 /// - その場合一つ上の型にすると安全
-pub type CoordType = u8;
+pub type CoordType = u32;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Coord {
