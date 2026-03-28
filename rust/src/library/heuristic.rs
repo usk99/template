@@ -3,7 +3,7 @@
 #![allow(unused_imports)]
 
 use {
-    super::{config::*, coord::*, direction::*, fmt::*, grid::*, io::*, util::*},
+    super::{config::*, coord::*, fmt::*, grid::*, io::*, util::*},
     std::{collections::*, mem::*},
 };
 

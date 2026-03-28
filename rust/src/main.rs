@@ -32,10 +32,8 @@ fn main() {
     }
 }
 
-// === グリッド系 (coord_ext は coord + direction が必要) ===
-// use template::library::direction::*;  // Direction enum (U/R/D/L)
+// === グリッド系 ===
 // use template::library::coord::*;      // Coord (座標)
-// use template::library::coord_ext::*;  // Coord + Direction の演算
 // use template::library::grid::*;       // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===

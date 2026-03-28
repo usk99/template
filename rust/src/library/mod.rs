@@ -1,7 +1,5 @@
 pub mod config;
 pub mod coord;
-pub mod coord_ext;
-pub mod direction;
 pub mod ext;
 pub mod fmt;
 pub mod graph;
