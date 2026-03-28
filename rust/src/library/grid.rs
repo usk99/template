@@ -382,6 +382,14 @@ impl Grid<bool> {
     }
 }
 
+/// gridを作成するマクロ
+#[macro_export]
+macro_rules! grid {
+    ($val:expr, $r:expr, $c:expr) => {
+        $crate::library::grid::Grid::new_filled($val, $r, $c)
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

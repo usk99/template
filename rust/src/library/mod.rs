@@ -4,6 +4,7 @@ pub mod coord_ext;
 pub mod direction;
 pub mod ext;
 pub mod fmt;
+pub mod graph;
 pub mod grid;
 pub mod heuristic;
 pub mod io;

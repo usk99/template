@@ -177,3 +177,39 @@ impl Timer {
         start_temp * (end_temp / start_temp).powf(self.progress())
     }
 }
+
+/// シンプルなログ出力
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {
+        if $crate::library::config::is_local() {
+            eprintln!($($arg)*);
+        }
+    };
+}
+
+/// 実行場所付きの出力（トレース）
+#[macro_export]
+macro_rules! log_trace {
+    ($($arg:tt)*) => {
+        if $crate::library::config::is_local() {
+            eprint!("[{}:{:4}:{:3}] ", file!(), line!(), column!());
+            eprintln!($($arg)*);
+        }
+    };
+}
+
+/// - ブロックの実行時間を計測する (Local Only)
+/// - 使用例: measure!("Sorting", { list.sort(); });
+#[macro_export]
+macro_rules! measure {
+    ($label:expr, $block:block) => {
+        if $crate::library::config::is_local() {
+            let start = std::time::Instant::now();
+            $block
+            eprintln!("[MEASURE] {}: {}ms", $label, start.elapsed().as_millis());
+        } else {
+            $block
+        }
+    };
+}

@@ -64,3 +64,15 @@ impl<T: Ord> Extend<T> for MinHeap<T> {
         }
     }
 }
+
+// Hash関数早い版
+pub type Set<V> = rustc_hash::FxHashSet<V>;
+#[macro_export]
+macro_rules! set {
+    ($($x:expr), *) => {{let mut s = Set::default();$( s.insert($x); )*s}};
+}
+pub type Map<K, V> = rustc_hash::FxHashMap<K, V>;
+#[macro_export]
+macro_rules! map {
+    ($(($k:expr , $v:expr)), * $(,)?) => ({let mut m = Map::default();$( m.insert($k, $v); )*m});
+}
