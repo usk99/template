@@ -126,7 +126,7 @@ impl Coord {
                 std::any::type_name::<CoordType>()
             );
         }
-        // 型の上限と協会が同じ場合は、Direction移動時に範囲チェックが正常に動かない可能性があるのでアウト
+        // 型の上限と境界が同じ場合は、Direction移動時に範囲チェックが正常に動かない可能性があるのでアウト
         // 型の上限とグリッドサイズが同じになりそうな場合の警告
         // (Wrapping戦略が破綻するリスクがあるため)
         #[cfg(debug_assertions)]
@@ -218,9 +218,9 @@ impl Coord {
 
     /// チェビシェフ距離(8方向移動時の最短手数)を計算
     #[inline]
-    pub fn dist_chebyshev(&self, other: &Self) -> usize {
+    pub const fn dist_chebyshev(&self, other: &Self) -> usize {
         let d = self.diff(other);
-        max(d.row(), d.col())
+        if d.row() > d.col() { d.row() } else { d.col() }
     }
 
     /// 4方向の隣接座標イテレータ

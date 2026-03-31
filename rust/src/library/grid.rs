@@ -57,7 +57,7 @@ impl<T> Grid<T> {
 
     #[inline(always)]
     /// 指定座標が有効か
-    pub const fn contains(&self, coord: Coord) -> bool {
+    pub const fn within(&self, coord: Coord) -> bool {
         coord.within(self.row, self.col)
     }
 
