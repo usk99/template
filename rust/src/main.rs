@@ -33,16 +33,17 @@ fn main() {
 }
 
 // === グリッド系 ===
-// use template::library::coord::*;      // Coord (座標)
-// use template::library::grid::*;       // Grid (2次元配列) Coord必要
+// use template::library::coord::*;     // Coord (座標)
+// use template::library::grid::*;      // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===
-// use template::library::monoid::*;     // Monoid定義, SegSum等のエイリアス
-// use template::library::seg::*;        // Seg, LazySeg
+// use template::library::monoid::*;    // Monoid定義, SegSum等のエイリアス
+// use template::library::seg::*;       // Seg, LazySeg
 
 // === 単体 ===
-// use template::library::prime::*;      // is_prime, factorize
-// use template::library::unionfind::*;  // UnionFind
+// use template::library::graph::*;     // graph
+// use template::library::prime::*;     // is_prime, factorize
+// use template::library::unionfind::*; // UnionFind
 
 // === 常用 ===
 use itertools::Itertools;
