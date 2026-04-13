@@ -30,7 +30,7 @@ impl State {
         vec![]
     }
     // 状態遷移(焼きなまし)
-    pub fn random_transition(&mut self, _rnd: &mut XorShift) {
+    pub fn random_transition(&mut self, _rng: &mut FastRng) {
         self.score = 0;
     }
     // 状態の評価
@@ -58,14 +58,14 @@ pub fn tune_simulated_annealing(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2.0);
-                    let mut rnd = XorShift::new(RND_SEED);
+                    let mut rng = FastRng::new(RND_SEED);
                     let mut sa = SimulatedAnnealing::new(SAParams {
                         start_temp: params.sa_params["start_temp"],
                         end_temp: params.sa_params["end_temp"],
                         cooling_rate: params.sa_params["cooling_rate"],
                         ..Default::default()
                     });
-                    sa.run(State::new(input), input, timer, &mut rnd).score as f64
+                    sa.run(State::new(input), input, timer, &mut rng).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -102,12 +102,12 @@ pub fn tune_beam_search(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2.0);
-                    let mut rnd = XorShift::new(RND_SEED);
+                    let mut rng = FastRng::new(RND_SEED);
                     let mut bs = BeamSearch::new(BeamParams {
                         beam_width: params.bs_params["beam_width"],
                         max_depth: params.bs_params["max_depth"],
                     });
-                    bs.run(State::new(input), input, timer, &mut rnd).score as f64
+                    bs.run(State::new(input), input, timer, &mut rng).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -221,11 +221,11 @@ impl SimulatedAnnealing {
         }
     }
     // 状態遷移の受理判定
-    fn accept_transition(&self, diff: f64, rnd: &mut XorShift) -> bool {
+    fn accept_transition(&self, diff: f64, rng: &mut FastRng) -> bool {
         if diff >= 0.0 {
             true
         } else {
-            rnd.next_f64() < (diff / self.current_temp).exp()
+            rng.f64() < (diff / self.current_temp).exp()
         }
     }
     // 実行
@@ -234,7 +234,7 @@ impl SimulatedAnnealing {
         mut current_state: State,
         _input: &Input,
         timer: &Timer,
-        rnd: &mut XorShift,
+        rng: &mut FastRng,
     ) -> State {
         let mut best_state = current_state.clone();
         let mut accept_count = 0;
@@ -246,10 +246,10 @@ impl SimulatedAnnealing {
                     break;
                 }
                 let mut next_state = current_state.clone();
-                next_state.random_transition(rnd);
+                next_state.random_transition(rng);
                 next_state.evaluate();
                 let diff = next_state.score as f64 - current_state.score as f64;
-                if self.accept_transition(diff, rnd) {
+                if self.accept_transition(diff, rng) {
                     current_state = next_state;
                     accept_count += 1;
 
@@ -357,7 +357,7 @@ impl BeamSearch {
         initial: State,
         input: &Input,
         timer: &Timer,
-        _rnd: &mut XorShift,
+        _rng: &mut FastRng,
     ) -> State {
         self.candidates.clear();
         for _ in 0..self.params.max_depth {
