@@ -4,7 +4,7 @@
 
 use {
     super::{config::*, coord::*, fmt::*, grid::*, io::*, util::*},
-    std::{collections::*, mem::*},
+    std::{collections::*, mem::*, sync::*},
 };
 
 #[derive(Clone, Default)]
@@ -14,14 +14,18 @@ impl Input {
         Self {}
     }
 }
+pub static INPUT: OnceLock<Input> = OnceLock::new();
+pub fn input() -> &'static Input {
+    INPUT.get().expect("Input has not been initialized")
+}
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct State {
     // 問題固有の状態を定義
     pub score: usize,
 }
 impl State {
-    pub fn new(_input: &Input) -> Self {
+    pub fn new() -> Self {
         Self { score: 0 }
     }
     // 次の状態を生成（ビームサーチ用）
@@ -39,8 +43,119 @@ impl State {
     }
 }
 
+// 1つの状態（ノード）。キャッシュライン（64バイト）に収めることを強く意識します。
+#[derive(Clone, Copy, Debug)]
+pub struct Node {
+    // --- ① 木構造の管理データ（計16バイト） ---
+    pub parent: u32,        // 親
+    pub first_child: u32,   // 長男（この子から辿ってDFSで深く潜る）
+    pub left_sibling: u32,  // 左の兄（一瞬で自分を削除するために必要）
+    pub right_sibling: u32, // 右の弟（DFSで別の分岐へ進むために必要）
+
+    // --- ② 探索固有のデータ（例：計8バイト、パディング込で16バイト） ---
+    // ここに持たせるのは「差分」と「評価値」だけであり、盤面全体は絶対に持たせません。
+    pub hash: u32,    // 盤面のハッシュ値（SimpleHashSetでの重複排除などに使う）
+    pub score: i16,   // このルートの評価値
+    pub action: u8,   // 親からここに来るために取った行動（1手分の差分）
+    pub active: bool, // ツリー上に存在しているか（削除済みでないか）のフラグ
+}
+const NULL: u32 = u32::MAX;
+// 探索ツリー全体を管理する構造体
+pub struct Tree {
+    pub nodes: Vec<Node>,    // 巨大な1次元配列（メインメモリ）
+    pub free_list: Vec<u32>, // 削除されたノードの番号を溜めておくゴミ箱
+}
+impl Tree {
+    /// ツリーの初期化。想定される最大ノード数を一括で確保し、以降の動的確保を封じます。
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            nodes: Vec::with_capacity(capacity),
+            free_list: Vec::new(),
+        }
+    }
+
+    /// 内部メソッド：新しいノードの場所（ID）を確保する
+    pub fn allocate_node(&mut self, node: Node) -> u32 {
+        if let Some(id) = self.free_list.pop() {
+            // ゴミ箱（削除済みの枠）があれば、そこを上書きして再利用する（ゼロ・アロケーション）
+            self.nodes[id as usize] = node;
+            id
+        } else {
+            // なければ配列の末尾に追加する
+            let id = self.nodes.len() as u32;
+            self.nodes.push(node);
+            id
+        }
+    }
+
+    /// 親に新しい子どもを追加し、そのIDを返す (計算量 $O(1)$)
+    /// DFSで探索を進め、次の一手が見つかるたびに呼ばれます。
+    pub fn add_child(&mut self, parent_id: u32, action: u8, score: i16, hash: u32) -> u32 {
+        let new_node = Node {
+            parent: parent_id,
+            first_child: NULL,
+            left_sibling: NULL,
+            right_sibling: NULL,
+            hash,
+            score,
+            action,
+            active: true,
+        };
+
+        let new_child_id = self.allocate_node(new_node);
+
+        if parent_id != NULL {
+            let parent_node = &mut self.nodes[parent_id as usize];
+            let current_first = parent_node.first_child;
+
+            if current_first == NULL {
+                // 初めての子どもの場合、そのまま長男にする
+                parent_node.first_child = new_child_id;
+            } else {
+                // すでに子どもがいる場合、ループで末尾を探すのではなく、
+                // 現在の長男の「左」に割り込ませて、自分が「新・長男」になる。
+                self.nodes[new_child_id as usize].right_sibling = current_first;
+                self.nodes[current_first as usize].left_sibling = new_child_id;
+                self.nodes[parent_id as usize].first_child = new_child_id;
+            }
+        }
+
+        new_child_id
+    }
+
+    /// 指定したノードをツリーから切り離し、再利用リストに送る (計算量 $O(1)$)
+    /// BFSの評価フェーズで「スコア上位に入れなかった候補」を一斉に粛清する際に呼ばれます。
+    pub fn remove_node(&mut self, target_id: u32) {
+        let target = self.nodes[target_id as usize];
+        if !target.active {
+            return; // 既に削除済みの場合は何もしない
+        }
+
+        let left = target.left_sibling;
+        let right = target.right_sibling;
+        let parent = target.parent;
+
+        // 1. 左の兄に「右の弟（自分を飛ばした先）と手を繋げ」と伝える
+        if left != NULL {
+            self.nodes[left as usize].right_sibling = right;
+        } else if parent != NULL {
+            // 左に誰もいない（自分が長男だった）場合、親に「次男を新たな長男にしろ」と伝える
+            self.nodes[parent as usize].first_child = right;
+        }
+
+        // 2. 右の弟に「左の兄と手を繋げ」と伝える
+        if right != NULL {
+            self.nodes[right as usize].left_sibling = left;
+        }
+
+        // 3. 自分自身を「死んだ状態」にして、ゴミ箱（free_list）に返却する
+        self.nodes[target_id as usize].active = false;
+        self.free_list.push(target_id);
+    }
+}
+
 #[allow(clippy::while_float)]
-pub fn tune_simulated_annealing(input: &Input) {
+pub fn tune_simulated_annealing() {
     let mut params = HyperParameters::new();
     let mut best_score = 0.0;
     let mut best_params = HashMap::new();
@@ -58,14 +173,14 @@ pub fn tune_simulated_annealing(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2.0);
-                    let mut rng = FastRng::new(RND_SEED);
+                    let mut rng = FastRng::new(RNG_SEED);
                     let mut sa = SimulatedAnnealing::new(SAParams {
                         start_temp: params.sa_params["start_temp"],
                         end_temp: params.sa_params["end_temp"],
                         cooling_rate: params.sa_params["cooling_rate"],
                         ..Default::default()
                     });
-                    sa.run(State::new(input), input, timer, &mut rng).score as f64
+                    sa.run(State::new(), timer, &mut rng).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -85,7 +200,7 @@ pub fn tune_simulated_annealing(input: &Input) {
     eprintln!("Best Score  = {best_score:>8.0}");
     eprintln!("------------------------");
 }
-pub fn tune_beam_search(input: &Input) {
+pub fn tune_beam_search() {
     let mut params = HyperParameters::new();
     let mut best_score = 0.0;
     let mut best_params = HashMap::new();
@@ -102,12 +217,12 @@ pub fn tune_beam_search(input: &Input) {
             let trial_scores = (0..3)
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2.0);
-                    let mut rng = FastRng::new(RND_SEED);
+                    let mut rng = FastRng::new(RNG_SEED);
                     let mut bs = BeamSearch::new(BeamParams {
                         beam_width: params.bs_params["beam_width"],
                         max_depth: params.bs_params["max_depth"],
                     });
-                    bs.run(State::new(input), input, timer, &mut rng).score as f64
+                    bs.run(State::new(), timer, &mut rng).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -229,13 +344,7 @@ impl SimulatedAnnealing {
         }
     }
     // 実行
-    pub fn run(
-        &mut self,
-        mut current_state: State,
-        _input: &Input,
-        timer: &Timer,
-        rng: &mut FastRng,
-    ) -> State {
+    pub fn run(&mut self, mut current_state: State, timer: &Timer, rng: &mut FastRng) -> State {
         let mut best_state = current_state.clone();
         let mut accept_count = 0;
         let mut trial_count = 0;
@@ -352,13 +461,7 @@ impl BeamSearch {
             }
         }
     }
-    pub fn run(
-        &mut self,
-        initial: State,
-        input: &Input,
-        timer: &Timer,
-        _rng: &mut FastRng,
-    ) -> State {
+    pub fn run(&mut self, initial: State, timer: &Timer, _rng: &mut FastRng) -> State {
         self.candidates.clear();
         for _ in 0..self.params.max_depth {
             let mut current = take(&mut self.candidates);
@@ -390,10 +493,7 @@ impl BeamSearch {
         }
         // 最良状態を返す
         self.candidates.sort_by_key(|s| usize::MAX - s.score);
-        self.candidates
-            .first()
-            .cloned()
-            .unwrap_or_else(|| State::new(input))
+        self.candidates.first().cloned().unwrap_or_else(State::new)
     }
 }
 

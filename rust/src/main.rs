@@ -48,7 +48,7 @@ fn main() {
 // === 常用 ===
 use itertools::Itertools;
 use std::{collections::*, fmt::*, fs::*, mem::*};
-use template::library::config::*; // Timer, XorShift, is_local
+use template::library::config::*; // Timer, FastRng, is_local
 use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
 use template::library::io::*; // InputNum, Output, Answer 等の入出力

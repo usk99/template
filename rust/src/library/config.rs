@@ -6,8 +6,8 @@ use {
 
 /// 実行時間
 pub const TIME_LIMIT: f64 = 0000.0;
-/// XORシフトのシード
-pub const RND_SEED: u64 = 123456789;
+/// 乱数生成用のシード
+pub const RNG_SEED: u64 = 123456789;
 /// アルゴリズム
 pub const ENABLE_ALGORITHM: bool = true;
 /// 貪欲
