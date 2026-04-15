@@ -10,7 +10,7 @@ fn main() {
         .unwrap_or_else(|_| panic!("Input is already set"));
     let timer = Timer::new(TIME_LIMIT);
     let mut answer = Answer::new();
-    let mut rnd = FastRng::new(RND_SEED);
+    let mut rnd = FastRng::new(RNG_SEED);
 
     // 解く
     let mut solve = solve(&timer, &mut rnd, &mut answer);
@@ -41,7 +41,7 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
         // tune_simulated_annealing(input);
         while !timer.is_timeout() {
             let mut sa = SimulatedAnnealing::new(SAParams::default());
-            let sa = sa.run(result.clone(), input(), timer, rnd);
+            let sa = sa.run(result.clone(), timer, rnd);
             if sa.score > result.score {
                 best_solve = "SimulatedAnnealing";
                 result = sa;
@@ -51,7 +51,7 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
     if ENABLE_BEAM {
         // tune_beam_search(input);
         let mut bs = BeamSearch::new(BeamParams::default());
-        let bs = bs.run(State::new(input()), input(), timer, rnd);
+        let bs = bs.run(State::new(), timer, rnd);
         if bs.score > result.score {
             best_solve = "BeamSearch";
             result = bs;
@@ -66,10 +66,10 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
     s
 }
 fn bare_minimum(_timer: &Timer, _rnd: &mut FastRng) -> State {
-    State::new(input())
+    State::new()
 }
 fn greedy(_timer: &Timer, _rnd: &mut FastRng) -> State {
-    State::new(input())
+    State::new()
 }
 
 // === グリッド系 ===
