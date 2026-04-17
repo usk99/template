@@ -182,16 +182,6 @@ impl Timer {
     }
 }
 
-/// シンプルなログ出力
-#[macro_export]
-macro_rules! log {
-    ($($arg:tt)*) => {
-        if $crate::library::config::is_local() {
-            eprintln!($($arg)*);
-        }
-    };
-}
-
 /// 実行場所付きの出力（トレース）
 #[macro_export]
 macro_rules! log_trace {

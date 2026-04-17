@@ -10,28 +10,21 @@ fn main() {
         .unwrap_or_else(|_| panic!("Input is already set"));
     let timer = Timer::new(TIME_LIMIT);
     let mut answer = Answer::new();
-    let mut rnd = FastRng::new(RNG_SEED);
+    let mut rng = FastRng::new(RNG_SEED);
 
     // 解く
-    let mut solve = solve(&timer, &mut rnd, &mut answer);
+    let mut solve = solve(&timer, &mut rng, &mut answer);
 
-    // 出力
-    let ans = answer.outstr();
-    if is_local() {
-        use std::io::*;
-        let _ = BufWriter::new(File::create("../output.txt").unwrap()).write(ans.as_bytes());
-    }
-    Output(ans);
-
-    solve.push_str(&format!("       time : {:>6}", timer.get_time_str()));
-    log!("{solve}");
+    use std::fmt::Write;
+    writeln!(solve, "       time : {:>6}", timer.get_time_str()).unwrap();
+    eprintln!("{solve}");
 }
-fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
-    let mut result = bare_minimum(timer, rnd);
+fn solve(timer: &Timer, rng: &mut FastRng, answer: &mut Answer) -> String {
+    let mut result = bare_minimum(timer, rng);
     let mut best_solve = "bare_minimum";
 
     if ENABLE_GREEDY {
-        let gr = greedy(timer, rnd);
+        let gr = greedy(timer, rng);
         if gr.score > result.score {
             result = gr;
             best_solve = "Greedy";
@@ -41,7 +34,7 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
         // tune_simulated_annealing(input);
         while !timer.is_timeout() {
             let mut sa = SimulatedAnnealing::new(SAParams::default());
-            let sa = sa.run(result.clone(), timer, rnd);
+            let sa = sa.run(result.clone(), timer, rng);
             if sa.score > result.score {
                 best_solve = "SimulatedAnnealing";
                 result = sa;
@@ -51,7 +44,7 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
     if ENABLE_BEAM {
         // tune_beam_search(input);
         let mut bs = BeamSearch::new(BeamParams::default());
-        let bs = bs.run(State::new(), timer, rnd);
+        let bs = bs.run(State::new(), timer, rng);
         if bs.score > result.score {
             best_solve = "BeamSearch";
             result = bs;
@@ -65,10 +58,10 @@ fn solve(timer: &Timer, rnd: &mut FastRng, answer: &mut Answer) -> String {
     writeln!(s, "Final Score : {:>6}", result.score.comma()).unwrap();
     s
 }
-fn bare_minimum(_timer: &Timer, _rnd: &mut FastRng) -> State {
+fn bare_minimum(_timer: &Timer, _rng: &mut FastRng) -> State {
     State::new()
 }
-fn greedy(_timer: &Timer, _rnd: &mut FastRng) -> State {
+fn greedy(_timer: &Timer, _rng: &mut FastRng) -> State {
     State::new()
 }
 
@@ -86,13 +79,11 @@ fn greedy(_timer: &Timer, _rnd: &mut FastRng) -> State {
 // use template::library::unionfind::*; // UnionFind
 
 // === 常用 ===
-use itertools::Itertools;
-use std::{collections::*, fmt::*, fs::*, mem::*};
 use template::library::config::*; // Timer, FastRng, is_local
 use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
 use template::library::heuristic::*;
 use template::library::io::*; // InputNum, Output, Answer 等の入出力
-use template::library::usermacro::*; // min!, max!, chmin!, chmax!, log!
+use template::library::usermacro::*; // min!, max!, chmin!, chmax!
 use template::library::util::*; // MinHeap, bisect
 use template::*; // impl_elem!

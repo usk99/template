@@ -1,7 +1,6 @@
 // 二次元を一次元で管理
 use {
     super::coord::*,
-    crate::log,
     itertools::Itertools,
     std::{fmt::*, ops::*, slice::*},
 };
@@ -334,7 +333,7 @@ impl<T: Display> Grid<T> {
 impl<T> Grid<T> {
     pub fn visualize_with<F: FnMut(&T) -> String>(&self, mut formatter: F) -> String {
         if self.vec.is_empty() {
-            log!("[Empty Grid {}x{}]", self.row, self.col);
+            eprintln!("[Empty Grid {}x{}]", self.row, self.col);
             return "[]\n".to_string();
         }
         let formatted_cells: Vec<String> = self.vec.iter().map(&mut formatter).collect();
@@ -370,7 +369,7 @@ impl<T> Grid<T> {
             }
             result.push('\n');
         }
-        log!("{result}");
+        eprintln!("{result}");
         result
     }
 }

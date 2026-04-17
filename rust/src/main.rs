@@ -15,17 +15,17 @@ fn main() {
     let mut answer = Answer::new();
     algorithm(&mut answer);
     Output(answer.outstr());
-    log!("time   : {:>6}", timer.get_time_str());
+    eprintln!("time   : {:>6}", timer.get_time_str());
     if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
         for line in status.lines() {
             if line.starts_with("VmRSS:") {
                 let s = line.trim_start_matches("VmRSS:").trim();
                 if let Some(kb) = s.strip_suffix(" kB") {
                     if let Ok(n) = kb.trim().parse::<u64>() {
-                        log!("memory : {}kB", n.comma());
+                        eprintln!("memory : {}kB", n.comma());
                     }
                 } else {
-                    log!("memory : {}", s);
+                    eprintln!("memory : {}", s);
                 }
             }
         }
@@ -46,12 +46,10 @@ fn main() {
 // use template::library::unionfind::*; // UnionFind
 
 // === 常用 ===
-use itertools::Itertools;
-use std::{collections::*, fmt::*, fs::*, mem::*};
 use template::library::config::*; // Timer, FastRng, is_local
 use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
 use template::library::io::*; // InputNum, Output, Answer 等の入出力
-use template::library::usermacro::*; // min!, max!, chmin!, chmax!, log!
+use template::library::usermacro::*; // min!, max!, chmin!, chmax!
 use template::library::util::*; // MinHeap, bisect
 use template::*; // impl_elem!
