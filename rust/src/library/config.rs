@@ -5,17 +5,17 @@ use {
 };
 
 /// 実行時間
-pub const TIME_LIMIT: f64 = 0000.0;
+pub static TIME_LIMIT: f64 = 0000.0;
 /// 乱数生成用のシード
-pub const RNG_SEED: u64 = 123456789;
+pub static RNG_SEED: u64 = 123456789;
 /// アルゴリズム
-pub const ENABLE_ALGORITHM: bool = true;
+pub static ENABLE_ALGORITHM: bool = true;
 /// 貪欲
-pub const ENABLE_GREEDY: bool = false;
+pub static ENABLE_GREEDY: bool = false;
 /// 焼きなまし
-pub const ENABLE_SA: bool = false;
+pub static ENABLE_SA: bool = false;
 /// ビームサーチ
-pub const ENABLE_BEAM: bool = false;
+pub static ENABLE_BEAM: bool = false;
 
 /// 設定用
 pub struct Config {
@@ -127,7 +127,7 @@ impl Timer {
     }
 
     /// 時間取得
-    #[inline]
+    #[inline(always)]
     pub fn get_time(&self) -> f64 {
         self.start_time.elapsed().as_secs_f64() * 1000.0
     }
@@ -152,7 +152,7 @@ impl Timer {
     }
 
     /// 時間確認
-    #[inline]
+    #[inline(always)]
     pub fn is_timeout(&self) -> bool {
         self.get_time() >= self.time_limit
     }
@@ -164,7 +164,7 @@ impl Timer {
     }
 
     /// 制限時間セット
-    #[inline]
+    #[inline(always)]
     pub const fn set_limit(&mut self, timelimit: f64) {
         self.time_limit = timelimit;
     }
