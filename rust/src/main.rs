@@ -46,6 +46,8 @@ fn main() {
 // use template::library::unionfind::*; // UnionFind
 
 // === 常用 ===
+use itertools::Itertools;
+use std::collections::*;
 use template::library::config::*; // Timer, FastRng, is_local
 use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
