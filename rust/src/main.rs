@@ -5,7 +5,6 @@
 #![deny(arithmetic_overflow)]
 
 fn algorithm(answer: &mut Answer) {
-    // ＊＊＊ 数値型はusizeにしないと掛け算でオーバーフローする可能性ある！！ ＊＊＊
     answer.push("algo");
 }
 fn main() {
@@ -15,6 +14,7 @@ fn main() {
     let mut answer = Answer::new();
     algorithm(&mut answer);
     Output(answer.outstr());
+    flush();
     eprintln!("time   : {:>6}", timer.get_time_str());
     if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
         for line in status.lines() {

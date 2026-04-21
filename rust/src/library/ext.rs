@@ -16,7 +16,7 @@ pub trait SliceExt<T> {
     /// 平均値取得
     fn average(&self)       ->               f64 where T: ToPrimitive;
     /// 累積和取得
-    fn cumsum(&self)        ->            Vec<T> where T: Default + Add<Output = T>;
+    fn prefix_sum(&self)    ->            Vec<T> where T: Default + Copy + AddAssign<T>;
     /// ランレングス圧縮
     fn rle(&self)           ->   Vec<(T, usize)> where T: PartialEq;
     /// 要素出現回数カウント
@@ -47,17 +47,18 @@ impl<T: Clone> SliceExt<T> for [T] {
             self.iter().map(|x| x.to_f64().unwrap_or(0.0)).sum::<f64>() / (self.len() as f64)
         }
     }
-    fn cumsum(&self) -> Vec<T>
+    fn prefix_sum(&self) -> Vec<T>
     where
-        T: Default + Add<Output = T>,
+        T: Default + Copy + AddAssign<T>,
     {
+        let mut result = Vec::with_capacity(self.len() + 1);
         let mut acc = T::default();
-        std::iter::once(acc.clone())
-            .chain(self.iter().map(|x| {
-                acc = acc.clone() + x.clone();
-                acc.clone()
-            }))
-            .collect()
+        result.push(acc);
+        for &x in self {
+            acc += x;
+            result.push(acc);
+        }
+        result
     }
 
     fn rle(&self) -> Vec<(T, usize)>

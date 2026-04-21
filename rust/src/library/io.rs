@@ -7,28 +7,48 @@ use {
 
 // 入力 (内部実装をインタラクティブ対応版に置換)
 thread_local! {
-    // スレッドごとに標準入力のイテレータを保持する（プログラム終了まで維持される）
-    static READER: RefCell<Bytes<BufReader<Stdin>>> = RefCell::new(BufReader::new(stdin()).bytes());
+    // スレッドごとに標準入出力のバッファを保持する（プログラム終了まで維持される）
+    static READER: RefCell<BufReader<Stdin>> = RefCell::new(BufReader::with_capacity(1 << 16, stdin()));
+    static WRITER: RefCell<BufWriter<Stdout>> = RefCell::new(BufWriter::with_capacity(1 << 16, stdout()));
 }
 
 fn get_word() -> String {
     READER.with(|reader| {
         let mut reader = reader.borrow_mut();
-        let mut token = String::new();
-        let mut started = false;
-
-        while let Some(Ok(b)) = reader.next() {
-            // 1バイト読み出す
-            if b <= b' ' {
-                if started {
+        let mut token = Vec::new();
+        // 先頭の空白をスキップ
+        loop {
+            let (skip, buf_len) = {
+                let buf = reader.fill_buf().unwrap();
+                if buf.is_empty() {
                     break;
                 }
-            } else {
-                started = true;
-                token.push(b as char);
+                let skip = buf.iter().position(|&b| b > b' ').unwrap_or(buf.len());
+                (skip, buf.len())
+            };
+            reader.consume(skip);
+            if skip < buf_len {
+                break;
             }
         }
-        token
+        // 次の空白までを取得
+        loop {
+            let (end, buf_len) = {
+                let buf = reader.fill_buf().unwrap();
+                if buf.is_empty() {
+                    break;
+                }
+                let end = buf.iter().position(|&b| b <= b' ').unwrap_or(buf.len());
+                token.extend_from_slice(&buf[..end]);
+                (end, buf.len())
+            };
+            reader.consume(end);
+            if end < buf_len {
+                break;
+            }
+        }
+        // 入力はASCII想定なのでUTF-8チェックを省略
+        unsafe { String::from_utf8_unchecked(token) }
     })
 }
 
@@ -156,12 +176,14 @@ impl<T: Elem> Printable for Vec<Vec<T>> {
 }
 
 pub fn Output(obj: impl Printable) {
-    println!("{}", obj.output_str());
+    WRITER.with(|w| writeln!(w.borrow_mut(), "{}", obj.output_str()).unwrap());
 }
 pub fn EOutput(obj: impl Printable) {
     eprintln!("{}", obj.output_str());
 }
 
 pub fn flush() {
-    let _ = stdout().flush();
+    WRITER.with(|w| {
+        let _ = w.borrow_mut().flush();
+    });
 }
