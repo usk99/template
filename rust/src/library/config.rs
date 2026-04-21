@@ -5,17 +5,17 @@ use {
 };
 
 /// 実行時間
-pub static TIME_LIMIT: f64 = 0000.0;
+pub const TIME_LIMIT: f64 = 0000.0;
 /// 乱数生成用のシード
-pub static RNG_SEED: u64 = 123456789;
+pub const RNG_SEED: u64 = 123456789;
 /// アルゴリズム
-pub static ENABLE_ALGORITHM: bool = true;
+pub const ENABLE_ALGORITHM: bool = true;
 /// 貪欲
-pub static ENABLE_GREEDY: bool = false;
+pub const ENABLE_GREEDY: bool = false;
 /// 焼きなまし
-pub static ENABLE_SA: bool = false;
+pub const ENABLE_SA: bool = false;
 /// ビームサーチ
-pub static ENABLE_BEAM: bool = false;
+pub const ENABLE_BEAM: bool = false;
 
 /// 設定用
 pub struct Config {
@@ -88,7 +88,7 @@ impl FastRng {
     /// 確率 prob (0.0~1.0) で true を返す
     #[inline(always)]
     pub const fn bool(&mut self, prob: f64) -> bool {
-        self.u64() < (prob * 18446744073709551616.0) as u64
+        self.f64() < prob
     }
 
     /// 配列からランダムに要素を参照

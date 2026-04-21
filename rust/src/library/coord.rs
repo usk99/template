@@ -114,33 +114,17 @@ impl Coord {
     pub const ORIGIN: Self = Self { r: 0, c: 0 };
 
     /// 座標生成
+    /// - row, col は `CoordType::MAX` 未満であること (境界値はwrapping判定が破綻するためNG)
     #[inline]
     pub fn new(row: usize, col: usize) -> Self {
-        // デバッグ時のみ、型チェック
-        #[cfg(debug_assertions)]
-        if row > CoordType::MAX as usize || col > CoordType::MAX as usize {
-            panic!(
-                "Coord overflow: ({} {}) fits in {:?}",
-                row,
-                col,
-                std::any::type_name::<CoordType>()
-            );
-        }
-        // 型の上限と境界が同じ場合は、Direction移動時に範囲チェックが正常に動かない可能性があるのでアウト
-        // 型の上限とグリッドサイズが同じになりそうな場合の警告
-        // (Wrapping戦略が破綻するリスクがあるため)
-        #[cfg(debug_assertions)]
-        if row == CoordType::MAX as usize || col == CoordType::MAX as usize {
-            eprintln!(
-                "Warning: Coord value ({}, {}) is at the limit of {:?}. \
-                    If grid size > {}, wrapping check logic will fail.",
-                row,
-                col,
-                std::any::type_name::<CoordType>(),
-                CoordType::MAX
-            );
-        }
-
+        debug_assert!(
+            row < CoordType::MAX as usize && col < CoordType::MAX as usize,
+            "Coord({}, {}) overflows {} (MAX={}). Wrapping logic requires strict inequality.",
+            row,
+            col,
+            std::any::type_name::<CoordType>(),
+            CoordType::MAX
+        );
         Self {
             r: row as CoordType,
             c: col as CoordType,

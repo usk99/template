@@ -121,9 +121,7 @@ impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
         self.iter().cloned().max()
     }
     fn index_sort(&self) -> Vec<usize> {
-        (0..self.len())
-            .sorted_by(|&a, &b| self[a].cmp(&self[b]).then(a.cmp(&b)))
-            .collect()
+        (0..self.len()).sorted_by_key(|&i| &self[i]).collect()
     }
     fn compress(&self) -> (Vec<T>, Vec<usize>) {
         let mut vals = self.to_vec();
