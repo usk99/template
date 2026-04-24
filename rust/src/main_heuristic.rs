@@ -1,7 +1,4 @@
-#![allow(dead_code)]
-#![allow(non_snake_case)]
-#![allow(unused_imports)]
-#![allow(unused_macros)]
+#![allow(dead_code, non_snake_case, unused_imports, unused_macros)]
 #![deny(arithmetic_overflow)]
 
 fn main() {
@@ -13,11 +10,11 @@ fn main() {
     let mut rng = FastRng::new(RNG_SEED);
 
     // 解く
-    let mut solve = solve(&timer, &mut rng, &mut answer);
+    let mut result = solve(&timer, &mut rng, &mut answer);
 
     use std::fmt::Write;
-    writeln!(solve, "       time : {:>6}", timer.get_time_str()).unwrap();
-    eprintln!("{solve}");
+    writeln!(result, "       time : {:>6}", timer.get_time_str()).unwrap();
+    eprintln!("{result}");
 }
 fn solve(timer: &Timer, rng: &mut FastRng, answer: &mut Answer) -> String {
     let mut result = bare_minimum(timer, rng);
@@ -82,8 +79,9 @@ fn greedy(_timer: &Timer, _rng: &mut FastRng) -> State {
 use template::library::config::*; // Timer, FastRng, is_local
 use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
+use template::library::heap::*; // MaxHeap, MinHeap
 use template::library::heuristic::*;
 use template::library::io::*; // InputNum, Output, Answer 等の入出力
 use template::library::usermacro::*; // min!, max!, chmin!, chmax!
-use template::library::util::*; // MinHeap, bisect
+use template::library::util::*; // ABC, Set, Map
 use template::*; // impl_elem!

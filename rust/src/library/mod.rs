@@ -4,6 +4,7 @@ pub mod ext;
 pub mod fmt;
 pub mod graph;
 pub mod grid;
+pub mod heap;
 pub mod heuristic;
 pub mod io;
 pub mod monoid;
