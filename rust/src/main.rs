@@ -27,6 +27,8 @@ fn main() {
 // === 単体 ===
 // use template::library::graph::*;     // graph
 // use template::library::prime::*;     // is_prime, factorize
+// use template::library::rng::*;       // FastRng
+// use template::library::timer::*;     // Timer
 // use template::library::unionfind::*; // UnionFind
 
 // === 常用 ===

@@ -82,6 +82,8 @@ use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
 use template::library::heap::*; // MaxHeap, MinHeap
 use template::library::heuristic::*;
 use template::library::io::*; // InputNum, Output, Answer 等の入出力
+use template::library::rng::*; // FastRng
+use template::library::timer::*; // Timer
 use template::library::usermacro::*; // min!, max!, chmin!, chmax!
 use template::library::util::*; // ABC, Set, Map
 use template::*; // impl_elem!

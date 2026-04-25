@@ -3,8 +3,8 @@
 #![allow(unused_imports)]
 
 use {
-    super::{config::*, coord::*, fmt::*, grid::*, io::*, util::*},
-    std::{collections::*, mem::*, sync::*},
+    super::{config::*, fmt::*, io::*, rng::*, timer::*},
+    std::collections::*,
 };
 
 #[derive(Clone, Default)]
@@ -14,7 +14,7 @@ impl Input {
         Self {}
     }
 }
-pub static INPUT: OnceLock<Input> = OnceLock::new();
+pub static INPUT: std::sync::OnceLock<Input> = std::sync::OnceLock::new();
 pub fn input() -> &'static Input {
     INPUT.get().expect("Input has not been initialized")
 }
@@ -464,7 +464,7 @@ impl BeamSearch {
     pub fn run(&mut self, initial: State, timer: &Timer, _rng: &mut FastRng) -> State {
         self.candidates.clear();
         for _ in 0..self.params.max_depth {
-            let mut current = take(&mut self.candidates);
+            let mut current = std::mem::take(&mut self.candidates);
             // 次の状態生成
             if current.is_empty() {
                 current = initial.next_states();
