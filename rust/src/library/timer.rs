@@ -1,4 +1,3 @@
-use super::fmt::ToComma;
 use std::time::Instant;
 
 /// タイマー
@@ -25,7 +24,7 @@ impl Timer {
     /// 時間取得(カンマ区切り文字列)
     #[inline]
     pub fn get_time_str(&self) -> String {
-        format!("{}ms", (self.get_time() as usize).comma())
+        format!("{}ms", comma(self.get_time() as usize))
     }
 
     /// 進捗
@@ -70,4 +69,25 @@ impl Timer {
     pub fn get_temp_exp(&self, start_temp: f64, end_temp: f64) -> f64 {
         start_temp * (end_temp / start_temp).powf(self.progress())
     }
+}
+
+/// 数値を3桁区切り文字列に変換 (timer内部用)
+fn comma(mut n: usize) -> String {
+    if n == 0 {
+        return "0".to_string();
+    }
+    let mut buf = [0u8; 50];
+    let mut p = 50;
+    let mut c = 0;
+    while n > 0 {
+        if c > 0 && c % 3 == 0 {
+            p -= 1;
+            buf[p] = b',';
+        }
+        p -= 1;
+        buf[p] = b'0' + (n % 10) as u8;
+        n /= 10;
+        c += 1;
+    }
+    unsafe { String::from_utf8_unchecked(buf[p..].to_vec()) }
 }

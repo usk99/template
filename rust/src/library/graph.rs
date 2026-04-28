@@ -1,4 +1,4 @@
-use crate::library::heap::*;
+use std::{cmp::Reverse, collections::BinaryHeap};
 
 // =====================================================
 // 定数定義
@@ -57,12 +57,12 @@ impl Graph {
     pub fn dijkstra(&self, start: usize) -> (Vec<i64>, Vec<usize>) {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
-        let mut heap = MinHeap::new();
+        let mut heap: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
 
         dist[start] = 0;
-        heap.push((0, start));
+        heap.push(Reverse((0, start)));
 
-        while let Some((d, u)) = heap.pop() {
+        while let Some(Reverse((d, u))) = heap.pop() {
             if d > dist[u] {
                 continue;
             }
@@ -71,7 +71,7 @@ impl Graph {
                 if next_dist < dist[edge.to] {
                     dist[edge.to] = next_dist;
                     pre[edge.to] = u;
-                    heap.push((next_dist, edge.to));
+                    heap.push(Reverse((next_dist, edge.to)));
                 }
             }
         }
@@ -165,11 +165,11 @@ impl Graph {
             return Some(0);
         }
         let mut visited = vec![false; self.n];
-        let mut heap = MinHeap::new();
+        let mut heap: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
         let mut total_cost = 0;
         let mut visited_count = 0;
-        heap.push((0, 0));
-        while let Some((cost, u)) = heap.pop() {
+        heap.push(Reverse((0, 0)));
+        while let Some(Reverse((cost, u))) = heap.pop() {
             if visited[u] {
                 continue;
             }
@@ -179,7 +179,7 @@ impl Graph {
 
             for edge in &self.edges[u] {
                 if !visited[edge.to] {
-                    heap.push((edge.weight, edge.to));
+                    heap.push(Reverse((edge.weight, edge.to)));
                 }
             }
         }

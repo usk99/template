@@ -67,8 +67,7 @@ fn greedy(_timer: &Timer, _rng: &mut FastRng) -> State {
 // use library::grid::*;      // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===
-// use library::monoid::*;    // Monoid定義, SegSum等のエイリアス
-// use library::seg::*;       // Seg, LazySeg
+// use library::seg::*;       // Seg, LazySeg, SegSum等のエイリアス, Monoid trait
 
 // === 単体 ===
 // use library::graph::*;     // graph
