@@ -7,21 +7,16 @@ library_dir=./rust/src/library
 # true: 提出用ファイルを作成してからコピー, false: 直接クリップボードにコピーのみ
 SAVE_FILE=${1:-false}
 
-# ディレクトリ名からクレート名を取得 (例: abc400/a -> abc400_a)
-# '-'は'_'に置換
-crate_name=$(basename "$(dirname "$PWD")")_$(basename "$PWD")
-crate_name=${crate_name//-/_}
-
 echo -ne "提出用ファイルを生成します"
 
 # ==========================================
 # main.rs の処理
 # ==========================================
 contents=""
-# mod xxx; 以外を抜き出して提出ファイルに追加
-contents=$(cat $base_file | grep -v "^use ${crate_name}::library::")
-# mod xxx; からxxxを抽出
-items=(`cat $base_file | grep "^use ${crate_name}::library::" | sed -E "s/use ${crate_name}::library::(.*)::\*;(.*)/\1/"`)
+# `use library::xxx::*;` 行と `mod library;` 行を除外して提出ファイルに追加
+contents=$(cat $base_file | grep -v "^use library::" | grep -v "^mod library;")
+# `use library::xxx::*;` から xxx (モジュール名) を抽出
+items=(`cat $base_file | grep "^use library::" | sed -E "s/use library::(.*)::\*;(.*)/\1/"`)
 
 
 # ==========================================

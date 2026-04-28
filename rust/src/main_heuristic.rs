@@ -63,26 +63,27 @@ fn greedy(_timer: &Timer, _rng: &mut FastRng) -> State {
 }
 
 // === グリッド系 ===
-// use template::library::coord::*;     // Coord (座標)
-// use template::library::grid::*;      // Grid (2次元配列) Coord必要
+// use library::coord::*;     // Coord (座標)
+// use library::grid::*;      // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===
-// use template::library::monoid::*;    // Monoid定義, SegSum等のエイリアス
-// use template::library::seg::*;       // Seg, LazySeg
+// use library::monoid::*;    // Monoid定義, SegSum等のエイリアス
+// use library::seg::*;       // Seg, LazySeg
 
 // === 単体 ===
-// use template::library::graph::*;     // graph
-// use template::library::prime::*;     // is_prime, factorize
-// use template::library::unionfind::*; // UnionFind
+// use library::graph::*;     // graph
+// use library::prime::*;     // is_prime, factorize
+// use library::unionfind::*; // UnionFind
 
 // === 常用 ===
-use template::library::config::*; // Timer, FastRng, is_local
-use template::library::ext::*; // SliceExt, NumExt 等の拡張トレイト
-use template::library::fmt::*; // ToComma (数値のカンマ区切り表示)
-use template::library::heap::*; // MaxHeap, MinHeap
-use template::library::heuristic::*;
-use template::library::io::*; // InputNum, Output, Answer 等の入出力
-use template::library::rng::*; // FastRng
-use template::library::timer::*; // Timer
-use template::library::usermacro::*; // min!, max!, chmin!, chmax!
-use template::library::util::*; // ABC, Set, Map
+mod library;
+use library::config::*; // Timer, FastRng, is_local
+use library::ext::*; // SliceExt, NumExt 等の拡張トレイト
+use library::fmt::*; // ToComma (数値のカンマ区切り表示)
+use library::heap::*; // MaxHeap, MinHeap
+use library::heuristic::*;
+use library::io::*; // InputNum, Output, Answer 等の入出力
+use library::rng::*; // FastRng
+use library::timer::*; // Timer
+use library::usermacro::*; // min!, max!, chmin!, chmax!
+use library::util::*; // ABC, Set, Map
