@@ -30,8 +30,8 @@ fn main() {
 // use library::timer::*;     // Timer
 // use library::unionfind::*; // UnionFind
 
-// === 常用 ===
 mod library;
+// === 常用 ===
 use itertools::Itertools;
 use std::collections::*;
 

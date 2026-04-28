@@ -74,8 +74,8 @@ fn greedy(_timer: &Timer, _rng: &mut FastRng) -> State {
 // use library::prime::*;     // is_prime, factorize
 // use library::unionfind::*; // UnionFind
 
-// === 常用 ===
 mod library;
+// === 常用 ===
 use library::config::*; // Timer, FastRng, is_local
 use library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use library::fmt::*; // ToComma (数値のカンマ区切り表示)
