@@ -86,4 +86,3 @@ use template::library::rng::*; // FastRng
 use template::library::timer::*; // Timer
 use template::library::usermacro::*; // min!, max!, chmin!, chmax!
 use template::library::util::*; // ABC, Set, Map
-use template::*; // impl_elem!

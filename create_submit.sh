@@ -19,9 +19,9 @@ echo -ne "提出用ファイルを生成します"
 # ==========================================
 contents=""
 # mod xxx; 以外を抜き出して提出ファイルに追加
-contents=$(cat $base_file | grep -v "^use ${crate_name}::library::*" | sed "/^use ${crate_name}::\*;/d")
+contents=$(cat $base_file | grep -v "^use ${crate_name}::library::")
 # mod xxx; からxxxを抽出
-items=(`cat $base_file | grep "^use ${crate_name}::library::*" | sed -E "s/use ${crate_name}::library::(.*)::\*;(.*)/\1/"`)
+items=(`cat $base_file | grep "^use ${crate_name}::library::" | sed -E "s/use ${crate_name}::library::(.*)::\*;(.*)/\1/"`)
 
 
 # ==========================================
