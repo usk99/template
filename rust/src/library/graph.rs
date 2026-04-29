@@ -114,10 +114,10 @@ impl Graph {
             }
             for edge in &self.edges[u] {
                 // checked_add: 巨大な weight でも検出時にオーバーフローを起こさない
-                if let Some(next_dist) = dist[u].checked_add(edge.weight) {
-                    if next_dist < dist[edge.to] {
-                        return None;
-                    }
+                if let Some(next_dist) = dist[u].checked_add(edge.weight)
+                    && next_dist < dist[edge.to]
+                {
+                    return None;
                 }
             }
         }
