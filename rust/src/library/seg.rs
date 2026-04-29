@@ -36,6 +36,7 @@ pub struct Seg<M: Monoid> {
 impl<M: Monoid> Seg<M> {
     /// 単位元初期化
     pub fn new(n: usize) -> Seg<M> {
+        assert!(n > 0, "Seg::new(0) は許可されていません");
         let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         Self {
@@ -215,6 +216,7 @@ impl<F: MapMonoid> LazySeg<F> {
     /// このメソッドで初期化すると長さが 0 になり、加算が反映されません。
     /// 代わりに `new_with_size` や `from_values` を使用してください。
     pub fn new(n: usize) -> Self {
+        assert!(n > 0, "LazySeg::new(0) は許可されていません");
         let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         Self {

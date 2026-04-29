@@ -591,13 +591,11 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "Grid requires at least 1 row")]
     fn test_conversions_empty_rows() {
-        // 空のVec<Vec>からの変換
+        // 空のVec<Vec>からの変換は禁止 (0x0 Grid は仕様上不可)
         let empty_vec: Vec<Vec<i32>> = vec![];
-        let grid = Grid::from(empty_vec);
-        assert_eq!(grid.row, 0);
-        assert_eq!(grid.col, 0);
-        assert_eq!(grid.vec.len(), 0);
+        let _ = Grid::from(empty_vec);
     }
 
     #[test]
@@ -613,7 +611,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Grid index out of bounds")]
+    #[should_panic(expected = "Grid out of bounds")]
     fn test_index_out_of_bounds_panic() {
         let grid = setup_2x3();
         // 2行3列なので (2, 0) は範囲外
@@ -621,7 +619,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Grid index out of bounds")]
+    #[should_panic(expected = "Grid out of bounds")]
     fn test_index_coord_out_of_bounds_panic() {
         let grid = setup_2x3();
         // (1, 3) は範囲外 (colは0,1,2)
@@ -629,7 +627,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Grid index out of bounds")]
+    #[should_panic(expected = "Grid out of bounds")]
     fn test_index_mut_out_of_bounds_panic() {
         let mut grid = setup_2x3();
         grid[(5, 5)] = 100;

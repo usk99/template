@@ -7,7 +7,7 @@ pub static INF: i64 = 1_000_000_000_000_000_000; // オーバーフローしな�
 pub static NONE: usize = usize::MAX;
 
 // =====================================================
-// 定数定義
+// Edge構造体
 // =====================================================
 #[derive(Debug, Clone, Copy)]
 pub struct Edge {
@@ -37,7 +37,7 @@ impl Graph {
     /// 辺の追加(重み有)
     pub fn add_edge(&mut self, from: usize, to: usize, weight: i64) {
         self.edges[from].push(Edge { to, weight });
-        if !self.is_directed {
+        if !self.is_directed && from != to {
             self.edges[to].push(Edge { to: from, weight });
         }
     }
@@ -92,7 +92,10 @@ impl Graph {
                     continue;
                 }
                 for edge in &self.edges[u] {
-                    let next_dist = dist[u] + edge.weight;
+                    // 巨大な weight でのオーバーフローを回避
+                    let Some(next_dist) = dist[u].checked_add(edge.weight) else {
+                        continue;
+                    };
                     if next_dist < dist[edge.to] {
                         dist[edge.to] = next_dist;
                         pre[edge.to] = u;
@@ -110,8 +113,11 @@ impl Graph {
                 continue;
             }
             for edge in &self.edges[u] {
-                if dist[u] + edge.weight < dist[edge.to] {
-                    return None;
+                // checked_add: 巨大な weight でも検出時にオーバーフローを起こさない
+                if let Some(next_dist) = dist[u].checked_add(edge.weight) {
+                    if next_dist < dist[edge.to] {
+                        return None;
+                    }
                 }
             }
         }

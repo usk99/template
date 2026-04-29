@@ -213,7 +213,10 @@ impl CharExt for char {
         match self {
             'a'..='z' => self as usize - 'a' as usize,
             'A'..='Z' => self as usize - 'A' as usize,
-            _ => panic!("not alphabetic: {}", self),
+            _ => panic!(
+                "to_alpha: not an ASCII alphabetic char: {:?} (U+{:04X})",
+                self, self as u32
+            ),
         }
     }
     fn from_alpha(i: usize, upper: bool) -> char {
