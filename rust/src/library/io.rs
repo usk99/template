@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use {
     itertools::Itertools,
     std::{cell::RefCell, fmt::Display, io::*},
@@ -83,29 +81,32 @@ define_input_functions! {
 
 #[derive(Default)]
 pub struct Answer {
-    output: Vec<String>,
+    buf: String,
 }
 impl Answer {
     /// 初期化
     pub const fn new() -> Self {
-        Self { output: Vec::new() }
+        Self { buf: String::new() }
     }
 
     /// 追加
     #[inline]
     pub fn push<T: Printable>(&mut self, element: T) {
-        self.output.push(element.output_str());
+        if !self.buf.is_empty() {
+            self.buf.push('\n');
+        }
+        self.buf.push_str(&element.output_str());
     }
 
     /// 初期化
     #[inline]
     pub fn clear(&mut self) {
-        self.output.clear();
+        self.buf.clear();
     }
 
     /// 文字列化
-    pub fn outstr(&self) -> String {
-        self.output.iter().join("\n")
+    pub fn outstr(&self) -> &str {
+        &self.buf
     }
 }
 
