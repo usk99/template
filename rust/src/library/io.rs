@@ -1,7 +1,4 @@
-use {
-    itertools::Itertools,
-    std::{cell::RefCell, fmt::Display, io::*},
-};
+use std::{cell::RefCell, fmt::Display, io, io::*};
 
 // 入力 (内部実装をインタラクティブ対応版に置換)
 thread_local! {
@@ -81,21 +78,21 @@ define_input_functions! {
 
 #[derive(Default)]
 pub struct Answer {
-    buf: String,
+    buf: Vec<u8>,
 }
 impl Answer {
     /// 初期化
     pub const fn new() -> Self {
-        Self { buf: String::new() }
+        Self { buf: Vec::new() }
     }
 
     /// 追加
     #[inline]
     pub fn push<T: Printable>(&mut self, element: T) {
         if !self.buf.is_empty() {
-            self.buf.push('\n');
+            self.buf.push(b'\n');
         }
-        self.buf.push_str(&element.output_str());
+        element.write_to(&mut self.buf).unwrap();
     }
 
     /// 初期化
@@ -106,19 +103,27 @@ impl Answer {
 
     /// 文字列化
     pub fn outstr(&self) -> &str {
-        &self.buf
+        unsafe { std::str::from_utf8_unchecked(&self.buf) }
     }
 }
 
 pub trait Elem: Display {
-    fn to_s(&self) -> String {
-        self.to_string()
+    fn write_elem(&self, w: &mut impl Write) -> io::Result<()> {
+        write!(w, "{}", self)
     }
-    fn vec_to_s(data: &[Self]) -> String
+    fn write_vec(data: &[Self], w: &mut impl Write) -> io::Result<()>
     where
         Self: Sized,
     {
-        data.iter().join(" ")
+        let mut first = true;
+        for e in data {
+            if !first {
+                w.write_all(b" ")?;
+            }
+            first = false;
+            e.write_elem(w)?;
+        }
+        Ok(())
     }
 }
 
@@ -138,49 +143,58 @@ impl_elem!(
 
 impl Elem for bool {
     #[inline]
-    fn to_s(&self) -> String {
-        String::from(if *self { "Yes" } else { "No" })
-    }
-    fn vec_to_s(data: &[Self]) -> String
-    where
-        Self: Sized,
-    {
-        data.iter().map(|e| e.to_s()).join(" ")
+    fn write_elem(&self, w: &mut impl Write) -> io::Result<()> {
+        w.write_all(if *self { b"Yes" } else { b"No" })
     }
 }
 pub trait Printable {
-    fn output_str(&self) -> String;
+    fn write_to(&self, w: &mut impl Write) -> io::Result<()>;
 }
 impl<T: Elem> Printable for T {
     #[inline]
-    fn output_str(&self) -> String {
-        self.to_s()
+    fn write_to(&self, w: &mut impl Write) -> io::Result<()> {
+        self.write_elem(w)
     }
 }
 impl<T: Elem> Printable for &[T] {
     #[inline]
-    fn output_str(&self) -> String {
-        T::vec_to_s(self)
+    fn write_to(&self, w: &mut impl Write) -> io::Result<()> {
+        T::write_vec(self, w)
     }
 }
 impl<T: Elem> Printable for Vec<T> {
     #[inline]
-    fn output_str(&self) -> String {
-        T::vec_to_s(self)
+    fn write_to(&self, w: &mut impl Write) -> io::Result<()> {
+        T::write_vec(self, w)
     }
 }
 impl<T: Elem> Printable for Vec<Vec<T>> {
     #[inline]
-    fn output_str(&self) -> String {
-        self.iter().map(|v| T::vec_to_s(v)).join("\n")
+    fn write_to(&self, w: &mut impl Write) -> io::Result<()> {
+        let mut first = true;
+        for v in self {
+            if !first {
+                w.write_all(b"\n")?;
+            }
+            first = false;
+            T::write_vec(v, w)?;
+        }
+        Ok(())
     }
 }
 
 pub fn Output(obj: impl Printable) {
-    WRITER.with(|w| writeln!(w.borrow_mut(), "{}", obj.output_str()).unwrap());
+    WRITER.with(|w| {
+        let mut w = w.borrow_mut();
+        obj.write_to(&mut *w).unwrap();
+        w.write_all(b"\n").unwrap();
+    });
 }
 pub fn EOutput(obj: impl Printable) {
-    eprintln!("{}", obj.output_str());
+    let stderr = stderr();
+    let mut w = stderr.lock();
+    let _ = obj.write_to(&mut w);
+    let _ = w.write_all(b"\n");
 }
 
 pub fn flush() {
