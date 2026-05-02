@@ -5,12 +5,14 @@ import (
 	"slices"
 )
 
+type Number interface{ int | int64 | float64 }
+
 // ==========================================================
 // 1. スライス拡張
 // ==========================================================
 
 // 合計
-func SumAll[T int | int64 | float64](a []T) T {
+func SumAll[T Number](a []T) T {
 	var s T
 	for _, v := range a {
 		s += v
@@ -19,7 +21,7 @@ func SumAll[T int | int64 | float64](a []T) T {
 }
 
 // 積
-func ProductAll[T int | int64 | float64](a []T) T {
+func ProductAll[T Number](a []T) T {
 	var p T = 1
 	for _, v := range a {
 		p *= v
@@ -28,11 +30,11 @@ func ProductAll[T int | int64 | float64](a []T) T {
 }
 
 // 平均（空のとき0）
-func Average(a []int) float64 {
+func Average[T Number](a []T) float64 {
 	if len(a) == 0 {
 		return 0
 	}
-	s := 0
+	var s T
 	for _, v := range a {
 		s += v
 	}
@@ -40,8 +42,8 @@ func Average(a []int) float64 {
 }
 
 // 累積和（長さ len(a)+1、先頭は0）
-func PrefixSum(a []int) []int {
-	res := make([]int, len(a)+1)
+func PrefixSum[T Number](a []T) []T {
+	res := make([]T, len(a)+1)
 	for i, v := range a {
 		res[i+1] = res[i] + v
 	}
@@ -56,7 +58,7 @@ type RLEPair[T any] struct {
 
 // ランレングス圧縮
 func RLE[T comparable](a []T) []RLEPair[T] {
-	var res []RLEPair[T]
+	res := make([]RLEPair[T], 0, len(a))
 	for _, v := range a {
 		if len(res) > 0 && res[len(res)-1].Val == v {
 			res[len(res)-1].Cnt++
@@ -269,7 +271,7 @@ func Digits(n int) []int {
 	if n == 0 {
 		return []int{0}
 	}
-	var res []int
+	res := make([]int, 0, 20)
 	for n > 0 {
 		res = append(res, n%10)
 		n /= 10

@@ -1,6 +1,6 @@
 package main
 
-func chmax[T int | int64 | float64](a *T, b T) bool {
+func chmax[T Number](a *T, b T) bool {
 	if *a < b {
 		*a = b
 		return true
@@ -8,10 +8,21 @@ func chmax[T int | int64 | float64](a *T, b T) bool {
 	return false
 }
 
-func chmin[T int | int64 | float64](a *T, b T) bool {
+func chmin[T Number](a *T, b T) bool {
 	if *a > b {
 		*a = b
 		return true
 	}
 	return false
+}
+
+func abs[T Number](a T) T {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
+func absDiff[T Number](a, b T) T {
+	return abs(a - b)
 }

@@ -15,17 +15,12 @@ var (
 
 func InitIO() {
 	sc = bufio.NewScanner(os.Stdin)
-	sc.Buffer(make([]byte, 256), 1e9)
+	sc.Buffer(make([]byte, 1<<20), 1<<30)
 	sc.Split(bufio.ScanWords)
 	writer = bufio.NewWriterSize(os.Stdout, 1<<20)
 }
 
 // 入力 -------------------------------------------------------------------
-
-func nextString() string {
-	sc.Scan()
-	return sc.Text()
-}
 
 func InputNum() int {
 	sc.Scan()
@@ -50,7 +45,8 @@ func InputsNums(h, w int) [][]int {
 }
 
 func InputString() string {
-	return nextString()
+	sc.Scan()
+	return sc.Text()
 }
 
 func InputStrings(n int) []string {
