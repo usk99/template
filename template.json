@@ -8,10 +8,12 @@
             "memo",
             "rust",
             "create_submit.sh",
+            "go_submit.sh",
             "Main.cpp",
             "Main.cs",
             "Main.java",
             "Main.py",
+            "go",
             "setup.py",
             "x.csproj"
         ],
