@@ -57,6 +57,24 @@ func InputStrings(n int) []string {
 	return v
 }
 
+func InputChars() []string {
+	sc.Scan()
+	chars := []rune(sc.Text())
+	result := make([]string, len(chars))
+	for i, c := range chars {
+		result[i] = string(c)
+	}
+	return result
+}
+
+func InputsChars(n int) [][]string {
+	v := make([][]string, n)
+	for i := range v {
+		v[i] = InputChars()
+	}
+	return v
+}
+
 // 出力 -------------------------------------------------------------------
 
 func Output(v any, opts ...string) {
