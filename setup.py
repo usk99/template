@@ -43,5 +43,10 @@ if os.path.exists(toml_path):
                 with open(rs_file, "w", encoding="utf-8") as f:
                     f.write(rs_content)
 
+# go のテストファイルを削除
+import glob
+for f in glob.glob("go/*_test.go"):
+    os.remove(f)
+
 # このスクリプト自身を削除
 os.remove(__file__)

@@ -8,7 +8,7 @@
             "memo",
             "rust",
             "create_submit.sh",
-            "go_submit.sh",
+            "gosubmit.sh",
             "Main.cpp",
             "Main.cs",
             "Main.java",
