@@ -44,6 +44,20 @@ func InputsNums(h, w int) [][]int {
 	return v
 }
 
+func InputFloat() float64 {
+	sc.Scan()
+	f, _ := strconv.ParseFloat(sc.Text(), 64)
+	return f
+}
+
+func InputFloats(n int) []float64 {
+	v := make([]float64, n)
+	for i := range v {
+		v[i] = InputFloat()
+	}
+	return v
+}
+
 func InputString() string {
 	sc.Scan()
 	return sc.Text()

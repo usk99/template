@@ -86,3 +86,23 @@ func TestSetLen(t *testing.T) {
 		t.Errorf("expected 1, got %d", s.len())
 	}
 }
+
+func TestSetToSlice(t *testing.T) {
+	s := newSetFrom([]int{1, 2, 3})
+	sl := s.toSlice()
+	if len(sl) != 3 {
+		t.Errorf("expected len 3, got %d", len(sl))
+	}
+	// 全要素が含まれているか（順序不定）
+	got := newSetFrom(sl)
+	for _, v := range []int{1, 2, 3} {
+		if !got.contains(v) {
+			t.Errorf("expected %d in toSlice result", v)
+		}
+	}
+	// 空セット
+	empty := newSet[int]()
+	if sl2 := empty.toSlice(); len(sl2) != 0 {
+		t.Errorf("expected empty slice, got %v", sl2)
+	}
+}

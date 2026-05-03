@@ -14,3 +14,10 @@ func (s Set[T]) insert(v T)        { s[v] = struct{}{} }
 func (s Set[T]) delete(v T)        { delete(s, v) }
 func (s Set[T]) contains(v T) bool { _, ok := s[v]; return ok }
 func (s Set[T]) len() int          { return len(s) }
+func (s Set[T]) toSlice() []T {
+	res := make([]T, 0, len(s))
+	for v := range s {
+		res = append(res, v)
+	}
+	return res
+}

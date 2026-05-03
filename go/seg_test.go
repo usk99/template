@@ -110,3 +110,48 @@ func TestSegSize1(t *testing.T) {
 		t.Errorf("size-1 queryAll got %v, want 42", got)
 	}
 }
+
+func TestSegFindFirst(t *testing.T) {
+	// [1, 3, 2, 5, 4] の最大値セグ木で「値 >= x の最左インデックス」を探す
+	s := newSegMax(5)
+	s.build([]int{1, 3, 2, 5, 4})
+
+	// [0,5) で >= 3 の最左 → index 1
+	if got := s.findFirst(0, 5, func(v int) bool { return v >= 3 }); got != 1 {
+		t.Errorf("findFirst(0,5,>=3) got %v, want 1", got)
+	}
+	// [2,5) で >= 3 の最左 → index 3
+	if got := s.findFirst(2, 5, func(v int) bool { return v >= 3 }); got != 3 {
+		t.Errorf("findFirst(2,5,>=3) got %v, want 3", got)
+	}
+	// 条件を満たす要素なし → r を返す
+	if got := s.findFirst(0, 5, func(v int) bool { return v >= 10 }); got != 5 {
+		t.Errorf("findFirst no match got %v, want 5", got)
+	}
+	// 単一要素区間
+	if got := s.findFirst(3, 4, func(v int) bool { return v >= 5 }); got != 3 {
+		t.Errorf("findFirst(3,4,>=5) got %v, want 3", got)
+	}
+}
+
+func TestSegFindLast(t *testing.T) {
+	s := newSegMax(5)
+	s.build([]int{1, 3, 2, 5, 4})
+
+	// [0,5) で >= 3 の最右 → index 4
+	if got := s.findLast(0, 5, func(v int) bool { return v >= 3 }); got != 4 {
+		t.Errorf("findLast(0,5,>=3) got %v, want 4", got)
+	}
+	// [0,3) で >= 3 の最右 → index 1
+	if got := s.findLast(0, 3, func(v int) bool { return v >= 3 }); got != 1 {
+		t.Errorf("findLast(0,3,>=3) got %v, want 1", got)
+	}
+	// 条件を満たす要素なし → l-1 を返す
+	if got := s.findLast(0, 5, func(v int) bool { return v >= 10 }); got != -1 {
+		t.Errorf("findLast no match got %v, want -1", got)
+	}
+	// 単一要素区間
+	if got := s.findLast(3, 4, func(v int) bool { return v >= 5 }); got != 3 {
+		t.Errorf("findLast(3,4,>=5) got %v, want 3", got)
+	}
+}

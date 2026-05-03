@@ -87,6 +87,50 @@ func TestMapContains(t *testing.T) {
 	}
 }
 
+func TestMapKeys(t *testing.T) {
+	m := newMap[string, int]()
+	m.set("a", 1)
+	m.set("b", 2)
+	ks := m.keys()
+	if len(ks) != 2 {
+		t.Errorf("expected len 2, got %d", len(ks))
+	}
+	// 全キーが含まれているか（順序不定）
+	km := newSetFrom(ks)
+	for _, k := range []string{"a", "b"} {
+		if !km.contains(k) {
+			t.Errorf("expected key %q in keys()", k)
+		}
+	}
+	// 空マップ
+	empty := newMap[string, int]()
+	if ks2 := empty.keys(); len(ks2) != 0 {
+		t.Errorf("expected empty, got %v", ks2)
+	}
+}
+
+func TestMapValues(t *testing.T) {
+	m := newMap[string, int]()
+	m.set("a", 10)
+	m.set("b", 20)
+	vs := m.values()
+	if len(vs) != 2 {
+		t.Errorf("expected len 2, got %d", len(vs))
+	}
+	// 全値が含まれているか（順序不定）
+	vm := newSetFrom(vs)
+	for _, v := range []int{10, 20} {
+		if !vm.contains(v) {
+			t.Errorf("expected value %d in values()", v)
+		}
+	}
+	// 空マップ
+	empty := newMap[string, int]()
+	if vs2 := empty.values(); len(vs2) != 0 {
+		t.Errorf("expected empty, got %v", vs2)
+	}
+}
+
 func TestMapLen(t *testing.T) {
 	m := newMap[int, int]()
 	if m.len() != 0 {

@@ -75,6 +75,44 @@ func (s *Seg[T]) queryAll() T {
 	return s.d[1]
 }
 
+// [l, r) で f を満たす最左インデックス。なければ r を返す。
+func (s *Seg[T]) findFirst(l, r int, f func(T) bool) int {
+	var rec func(node, nodeL, nodeR int) int
+	rec = func(node, nodeL, nodeR int) int {
+		if nodeR <= l || r <= nodeL || !f(s.d[node]) {
+			return r
+		}
+		if nodeR-nodeL == 1 {
+			return nodeL
+		}
+		mid := (nodeL + nodeR) / 2
+		if res := rec(2*node, nodeL, mid); res < r {
+			return res
+		}
+		return rec(2*node+1, mid, nodeR)
+	}
+	return rec(1, 0, s.size)
+}
+
+// [l, r) で f を満たす最右インデックス。なければ l-1 を返す。
+func (s *Seg[T]) findLast(l, r int, f func(T) bool) int {
+	var rec func(node, nodeL, nodeR int) int
+	rec = func(node, nodeL, nodeR int) int {
+		if nodeR <= l || r <= nodeL || !f(s.d[node]) {
+			return l - 1
+		}
+		if nodeR-nodeL == 1 {
+			return nodeL
+		}
+		mid := (nodeL + nodeR) / 2
+		if res := rec(2*node+1, mid, nodeR); res >= l {
+			return res
+		}
+		return rec(2*node, nodeL, mid)
+	}
+	return rec(1, 0, s.size)
+}
+
 // ==========================================================
 // 頻出セグ木
 // ==========================================================
