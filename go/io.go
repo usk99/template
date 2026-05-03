@@ -24,7 +24,10 @@ func InitIO() {
 
 func InputNum() int {
 	sc.Scan()
-	n, _ := strconv.Atoi(sc.Text())
+	n, err := strconv.Atoi(sc.Text())
+	if err != nil {
+		panic("InputNum: " + sc.Text())
+	}
 	return n
 }
 
@@ -46,7 +49,10 @@ func InputsNums(h, w int) [][]int {
 
 func InputFloat() float64 {
 	sc.Scan()
-	f, _ := strconv.ParseFloat(sc.Text(), 64)
+	f, err := strconv.ParseFloat(sc.Text(), 64)
+	if err != nil {
+		panic("InputFloat: " + sc.Text())
+	}
 	return f
 }
 
