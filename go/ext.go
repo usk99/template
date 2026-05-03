@@ -11,8 +11,7 @@ type Number interface{ int | int64 | float64 }
 // 1. スライス拡張
 // ==========================================================
 
-// 合計
-func SumAll[T Number](a []T) T {
+func sumAll[T Number](a []T) T {
 	var s T
 	for _, v := range a {
 		s += v
@@ -20,8 +19,7 @@ func SumAll[T Number](a []T) T {
 	return s
 }
 
-// 積
-func ProductAll[T Number](a []T) T {
+func productAll[T Number](a []T) T {
 	var p T = 1
 	for _, v := range a {
 		p *= v
@@ -29,8 +27,7 @@ func ProductAll[T Number](a []T) T {
 	return p
 }
 
-// 平均（空のとき0）
-func Average[T Number](a []T) float64 {
+func average[T Number](a []T) float64 {
 	if len(a) == 0 {
 		return 0
 	}
@@ -41,8 +38,7 @@ func Average[T Number](a []T) float64 {
 	return float64(s) / float64(len(a))
 }
 
-// 累積和（長さ len(a)+1、先頭は0）
-func PrefixSum[T Number](a []T) []T {
+func prefixSum[T Number](a []T) []T {
 	res := make([]T, len(a)+1)
 	for i, v := range a {
 		res[i+1] = res[i] + v
@@ -50,27 +46,24 @@ func PrefixSum[T Number](a []T) []T {
 	return res
 }
 
-// ランレングス圧縮の1要素
-type RLEPair[T any] struct {
+type RlePair[T any] struct {
 	Val T
 	Cnt int
 }
 
-// ランレングス圧縮
-func RLE[T comparable](a []T) []RLEPair[T] {
-	res := make([]RLEPair[T], 0, len(a))
+func rle[T comparable](a []T) []RlePair[T] {
+	res := make([]RlePair[T], 0, len(a))
 	for _, v := range a {
 		if len(res) > 0 && res[len(res)-1].Val == v {
 			res[len(res)-1].Cnt++
 		} else {
-			res = append(res, RLEPair[T]{v, 1})
+			res = append(res, RlePair[T]{v, 1})
 		}
 	}
 	return res
 }
 
-// 各要素の出現回数
-func Counter[T comparable](a []T) map[T]int {
+func counter[T comparable](a []T) map[T]int {
 	m := make(map[T]int)
 	for _, v := range a {
 		m[v]++
@@ -78,8 +71,7 @@ func Counter[T comparable](a []T) map[T]int {
 	return m
 }
 
-// 回文判定
-func IsPalindrome[T comparable](a []T) bool {
+func isPalindrome[T comparable](a []T) bool {
 	n := len(a)
 	for i := 0; i < n/2; i++ {
 		if a[i] != a[n-1-i] {
@@ -93,18 +85,15 @@ func IsPalindrome[T comparable](a []T) bool {
 // 2. Ord拡張
 // ==========================================================
 
-// 最小値
-func MinAll[T cmp.Ordered](a []T) T {
+func minAll[T cmp.Ordered](a []T) T {
 	return slices.Min(a)
 }
 
-// 最大値
-func MaxAll[T cmp.Ordered](a []T) T {
+func maxAll[T cmp.Ordered](a []T) T {
 	return slices.Max(a)
 }
 
-// ソート後のインデックス列
-func IndexSort[T cmp.Ordered](a []T) []int {
+func indexSort[T cmp.Ordered](a []T) []int {
 	idx := make([]int, len(a))
 	for i := range idx {
 		idx[i] = i
@@ -115,8 +104,7 @@ func IndexSort[T cmp.Ordered](a []T) []int {
 	return idx
 }
 
-// 座標圧縮（ユニーク値列, 圧縮後インデックス列）
-func Compress[T cmp.Ordered](a []T) ([]T, []int) {
+func compress[T cmp.Ordered](a []T) ([]T, []int) {
 	vals := slices.Clone(a)
 	slices.Sort(vals)
 	vals = slices.Compact(vals)
@@ -127,8 +115,7 @@ func Compress[T cmp.Ordered](a []T) ([]T, []int) {
 	return vals, encoded
 }
 
-// x 以上の最初のインデックス（ソート済み前提）
-func LowerBound[T cmp.Ordered](a []T, x T) int {
+func lowerBound[T cmp.Ordered](a []T, x T) int {
 	lo, hi := 0, len(a)
 	for lo < hi {
 		mid := (lo + hi) / 2
@@ -141,8 +128,7 @@ func LowerBound[T cmp.Ordered](a []T, x T) int {
 	return lo
 }
 
-// x より大きい最初のインデックス（ソート済み前提）
-func UpperBound[T cmp.Ordered](a []T, x T) int {
+func upperBound[T cmp.Ordered](a []T, x T) int {
 	lo, hi := 0, len(a)
 	for lo < hi {
 		mid := (lo + hi) / 2
@@ -155,8 +141,7 @@ func UpperBound[T cmp.Ordered](a []T, x T) int {
 	return lo
 }
 
-// 次の順列（最後の順列なら false）
-func NextPermutation[T cmp.Ordered](a []T) bool {
+func nextPermutation[T cmp.Ordered](a []T) bool {
 	n := len(a)
 	i := n - 2
 	for i >= 0 && a[i] >= a[i+1] {
@@ -174,8 +159,7 @@ func NextPermutation[T cmp.Ordered](a []T) bool {
 	return true
 }
 
-// 前の順列（最初の順列なら false）
-func PrevPermutation[T cmp.Ordered](a []T) bool {
+func prevPermutation[T cmp.Ordered](a []T) bool {
 	n := len(a)
 	i := n - 2
 	for i >= 0 && a[i] <= a[i+1] {
@@ -208,8 +192,7 @@ func lcm(a, b int) int {
 	return a / gcd(a, b) * b
 }
 
-// 全要素の最大公約数
-func GcdAll(a []int) int {
+func gcdAll(a []int) int {
 	if len(a) == 0 {
 		return 0
 	}
@@ -220,8 +203,7 @@ func GcdAll(a []int) int {
 	return res
 }
 
-// 全要素の最小公倍数
-func LcmAll(a []int) int {
+func lcmAll(a []int) int {
 	if len(a) == 0 {
 		return 0
 	}
@@ -236,8 +218,7 @@ func LcmAll(a []int) int {
 // 4. 文字・数値拡張
 // ==========================================================
 
-// 文字列の各文字の出現回数
-func RuneCounter(s string) map[rune]int {
+func runeCounter(s string) map[rune]int {
 	m := make(map[rune]int)
 	for _, c := range s {
 		m[c]++
@@ -245,29 +226,25 @@ func RuneCounter(s string) map[rune]int {
 	return m
 }
 
-// 数字文字→数値（'0'→0）
-func CharToNum(c byte) int {
+func charToNum(c byte) int {
 	return int(c - '0')
 }
 
-// アルファベット→0始まりインデックス（'a','A'→0）
-func CharToAlpha(c byte) int {
+func charToAlpha(c byte) int {
 	if c >= 'a' && c <= 'z' {
 		return int(c - 'a')
 	}
 	return int(c - 'A')
 }
 
-// 0始まりインデックス→アルファベット文字
-func CharFromAlpha(i int, upper bool) byte {
+func charFromAlpha(i int, upper bool) byte {
 	if upper {
 		return 'A' + byte(i)
 	}
 	return 'a' + byte(i)
 }
 
-// 整数→各桁のスライス（0→[0]）
-func Digits(n int) []int {
+func digits(n int) []int {
 	if n == 0 {
 		return []int{0}
 	}
@@ -280,8 +257,7 @@ func Digits(n int) []int {
 	return res
 }
 
-// 各桁の和
-func DigitSum(n int) int {
+func digitSum(n int) int {
 	s := 0
 	for n > 0 {
 		s += n % 10
@@ -290,8 +266,7 @@ func DigitSum(n int) int {
 	return s
 }
 
-// 整数の累乗（繰り返し二乗法）
-func Pow(base, exp int) int {
+func pow(base, exp int) int {
 	res := 1
 	for exp > 0 {
 		if exp&1 == 1 {

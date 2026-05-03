@@ -4,27 +4,37 @@ import "testing"
 
 func TestNewMap(t *testing.T) {
 	m := newMap[string, int]()
-	if m.Len() != 0 {
-		t.Errorf("expected 0, got %d", m.Len())
+	if m.len() != 0 {
+		t.Errorf("expected 0, got %d", m.len())
 	}
 }
 
 func TestMapSet(t *testing.T) {
 	m := newMap[string, int]()
-	m.Set("a", 1)
-	if m.Len() != 1 {
-		t.Errorf("expected 1, got %d", m.Len())
+	m.set("a", 1)
+	if m.len() != 1 {
+		t.Errorf("expected 1, got %d", m.len())
+	}
+	// 上書き
+	m.set("a", 99)
+	if m.len() != 1 {
+		t.Errorf("expected 1 after overwrite, got %d", m.len())
+	}
+	v, _ := m.get("a")
+	if v != 99 {
+		t.Errorf("expected 99 after overwrite, got %d", v)
 	}
 }
 
 func TestMapGet(t *testing.T) {
 	m := newMap[string, int]()
-	m.Set("a", 1)
-	v, ok := m.Get("a")
+	m.set("a", 1)
+	v, ok := m.get("a")
 	if !ok || v != 1 {
-		t.Errorf("expected 1, got %d", v)
+		t.Errorf("expected (1, true), got (%d, %v)", v, ok)
 	}
-	_, ok = m.Get("b")
+	// 存在しないキー
+	_, ok = m.get("b")
 	if ok {
 		t.Error("expected ok to be false for missing key")
 	}
@@ -32,31 +42,63 @@ func TestMapGet(t *testing.T) {
 
 func TestMapGetOr(t *testing.T) {
 	m := newMap[string, int]()
-	m.Set("a", 1)
-	if m.GetOr("a", -1) != 1 {
+	m.set("a", 1)
+	if m.getOr("a", -1) != 1 {
 		t.Error("expected 1")
 	}
-	if m.GetOr("b", -1) != -1 {
+	// 存在しないキー → デフォルト値
+	if m.getOr("b", -1) != -1 {
 		t.Error("expected -1 for missing key")
+	}
+	// ゼロ値が格納されている場合はゼロ値を返す（デフォルト値ではない）
+	m.set("z", 0)
+	if m.getOr("z", -1) != 0 {
+		t.Error("expected 0 (stored zero value), not default")
 	}
 }
 
 func TestMapDelete(t *testing.T) {
 	m := newMap[string, int]()
-	m.Set("a", 1)
-	m.Delete("a")
-	if m.Contains("a") {
-		t.Error("expected Contains to be false after Delete")
+	m.set("a", 1)
+	m.delete("a")
+	if m.contains("a") {
+		t.Error("expected contains to be false after delete")
+	}
+	// 存在しないキーのdelete（パニックしないこと）
+	m.delete("nonexistent")
+	if m.len() != 0 {
+		t.Errorf("expected 0, got %d", m.len())
 	}
 }
 
 func TestMapContains(t *testing.T) {
 	m := newMap[string, int]()
-	m.Set("a", 1)
-	if !m.Contains("a") {
-		t.Error("expected Contains(a) to be true")
+	m.set("a", 1)
+	if !m.contains("a") {
+		t.Error("expected contains(a) to be true")
 	}
-	if m.Contains("b") {
-		t.Error("expected Contains(b) to be false")
+	if m.contains("b") {
+		t.Error("expected contains(b) to be false")
+	}
+	// 空マップ
+	empty := newMap[string, int]()
+	if empty.contains("x") {
+		t.Error("expected contains(x) to be false on empty map")
+	}
+}
+
+func TestMapLen(t *testing.T) {
+	m := newMap[int, int]()
+	if m.len() != 0 {
+		t.Errorf("expected 0, got %d", m.len())
+	}
+	m.set(1, 10)
+	m.set(2, 20)
+	if m.len() != 2 {
+		t.Errorf("expected 2, got %d", m.len())
+	}
+	m.delete(1)
+	if m.len() != 1 {
+		t.Errorf("expected 1, got %d", m.len())
 	}
 }

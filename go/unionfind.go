@@ -2,25 +2,25 @@ package main
 
 type UnionFind struct {
 	parentOrSize []int
-	groupCount   int
+	cnt          int
 }
 
-func NewUnionFind(n int) *UnionFind {
+func newUnionFind(n int) *UnionFind {
 	s := make([]int, n)
 	for i := range s {
 		s[i] = -1
 	}
-	return &UnionFind{parentOrSize: s, groupCount: n}
+	return &UnionFind{parentOrSize: s, cnt: n}
 }
 
-func (uf *UnionFind) Reset() {
+func (uf *UnionFind) reset() {
 	for i := range uf.parentOrSize {
 		uf.parentOrSize[i] = -1
 	}
-	uf.groupCount = len(uf.parentOrSize)
+	uf.cnt = len(uf.parentOrSize)
 }
 
-func (uf *UnionFind) Root(i int) int {
+func (uf *UnionFind) root(i int) int {
 	root := i
 	for uf.parentOrSize[root] >= 0 {
 		root = uf.parentOrSize[root]
@@ -33,12 +33,12 @@ func (uf *UnionFind) Root(i int) int {
 	return root
 }
 
-func (uf *UnionFind) IsSame(u, v int) bool {
-	return uf.Root(u) == uf.Root(v)
+func (uf *UnionFind) isSame(u, v int) bool {
+	return uf.root(u) == uf.root(v)
 }
 
-func (uf *UnionFind) Unite(u, v int) bool {
-	x, y := uf.Root(u), uf.Root(v)
+func (uf *UnionFind) unite(u, v int) bool {
+	x, y := uf.root(u), uf.root(v)
 	if x == y {
 		return false
 	}
@@ -47,23 +47,23 @@ func (uf *UnionFind) Unite(u, v int) bool {
 	}
 	uf.parentOrSize[x] += uf.parentOrSize[y]
 	uf.parentOrSize[y] = x
-	uf.groupCount--
+	uf.cnt--
 	return true
 }
 
-func (uf *UnionFind) Size(i int) int {
-	return -uf.parentOrSize[uf.Root(i)]
+func (uf *UnionFind) size(i int) int {
+	return -uf.parentOrSize[uf.root(i)]
 }
 
-func (uf *UnionFind) GroupCount() int {
-	return uf.groupCount
+func (uf *UnionFind) groupCount() int {
+	return uf.cnt
 }
 
-func (uf *UnionFind) GetGroups() [][]int {
+func (uf *UnionFind) getGroups() [][]int {
 	n := len(uf.parentOrSize)
 	tmp := make([][]int, n)
 	for i := range n {
-		tmp[uf.Root(i)] = append(tmp[uf.Root(i)], i)
+		tmp[uf.root(i)] = append(tmp[uf.root(i)], i)
 	}
 	result := tmp[:0]
 	for _, g := range tmp {
