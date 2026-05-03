@@ -39,6 +39,8 @@ func InputNums(n int) []int {
 	return v
 }
 
+func InputNumsSelf() []int { return InputNums(InputNum()) }
+
 func InputsNums(h, w int) [][]int {
 	v := make([][]int, h)
 	for i := range v {
@@ -64,6 +66,8 @@ func InputFloats(n int) []float64 {
 	return v
 }
 
+func InputFloatsSelf() []float64 { return InputFloats(InputNum()) }
+
 func InputString() string {
 	sc.Scan()
 	return sc.Text()
@@ -77,23 +81,8 @@ func InputStrings(n int) []string {
 	return v
 }
 
-func InputChars() []string {
-	sc.Scan()
-	chars := []rune(sc.Text())
-	result := make([]string, len(chars))
-	for i, c := range chars {
-		result[i] = string(c)
-	}
-	return result
-}
+func InputStringsSelf() []string { return InputStrings(InputNum()) }
 
-func InputsChars(n int) [][]string {
-	v := make([][]string, n)
-	for i := range v {
-		v[i] = InputChars()
-	}
-	return v
-}
 
 // 出力 -------------------------------------------------------------------
 
