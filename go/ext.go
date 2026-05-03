@@ -5,6 +5,7 @@ import (
 	"slices"
 )
 
+type Integer interface{ int | int64 }
 type Number interface{ int | int64 | float64 }
 
 // ==========================================================
@@ -181,18 +182,18 @@ func prevPermutation[T cmp.Ordered](a []T) bool {
 // 3. 数学拡張
 // ==========================================================
 
-func gcd(a, b int) int {
+func gcd[T Integer](a, b T) T {
 	for b != 0 {
 		a, b = b, a%b
 	}
 	return a
 }
 
-func lcm(a, b int) int {
+func lcm[T Integer](a, b T) T {
 	return a / gcd(a, b) * b
 }
 
-func gcdAll(a []int) int {
+func gcdAll[T Integer](a []T) T {
 	if len(a) == 0 {
 		return 0
 	}
@@ -203,7 +204,7 @@ func gcdAll(a []int) int {
 	return res
 }
 
-func lcmAll(a []int) int {
+func lcmAll[T Integer](a []T) T {
 	if len(a) == 0 {
 		return 0
 	}
@@ -244,21 +245,27 @@ func charFromAlpha(i int, upper bool) byte {
 	return 'a' + byte(i)
 }
 
-func digits(n int) []int {
+func digits[T Integer](n T) []int {
 	if n == 0 {
 		return []int{0}
 	}
+	if n < 0 {
+		n = -n
+	}
 	res := make([]int, 0, 20)
 	for n > 0 {
-		res = append(res, n%10)
+		res = append(res, int(n%10))
 		n /= 10
 	}
 	slices.Reverse(res)
 	return res
 }
 
-func digitSum(n int) int {
-	s := 0
+func digitSum[T Integer](n T) T {
+	if n < 0 {
+		n = -n
+	}
+	var s T
 	for n > 0 {
 		s += n % 10
 		n /= 10
@@ -266,8 +273,8 @@ func digitSum(n int) int {
 	return s
 }
 
-func pow(base, exp int) int {
-	res := 1
+func pow[T Number](base T, exp int) T {
+	var res T = 1
 	for exp > 0 {
 		if exp&1 == 1 {
 			res *= base

@@ -256,6 +256,10 @@ func TestGcdAll(t *testing.T) {
 	if got := gcdAll([]int{7, 11}); got != 1 {
 		t.Errorf("got %v, want 1", got)
 	}
+	// int64
+	if got := gcdAll([]int64{12, 8, 4}); got != 4 {
+		t.Errorf("int64: got %v, want 4", got)
+	}
 }
 
 func TestLcmAll(t *testing.T) {
@@ -269,6 +273,10 @@ func TestLcmAll(t *testing.T) {
 	// 空スライス
 	if got := lcmAll([]int{}); got != 0 {
 		t.Errorf("got %v, want 0", got)
+	}
+	// int64
+	if got := lcmAll([]int64{4, 6}); got != 12 {
+		t.Errorf("int64: got %v, want 12", got)
 	}
 }
 
@@ -341,6 +349,14 @@ func TestDigits(t *testing.T) {
 	if got := digits(7); !reflect.DeepEqual(got, []int{7}) {
 		t.Errorf("got %v, want [7]", got)
 	}
+	// 負数
+	if got := digits(-123); !reflect.DeepEqual(got, []int{1, 2, 3}) {
+		t.Errorf("negative: got %v, want [1 2 3]", got)
+	}
+	// int64
+	if got := digits(int64(456)); !reflect.DeepEqual(got, []int{4, 5, 6}) {
+		t.Errorf("int64: got %v, want [4 5 6]", got)
+	}
 }
 
 func TestDigitSum(t *testing.T) {
@@ -354,6 +370,14 @@ func TestDigitSum(t *testing.T) {
 	// 単一桁
 	if got := digitSum(9); got != 9 {
 		t.Errorf("got %v, want 9", got)
+	}
+	// 負数
+	if got := digitSum(-123); got != 6 {
+		t.Errorf("negative: got %v, want 6", got)
+	}
+	// int64
+	if got := digitSum(int64(456)); got != 15 {
+		t.Errorf("int64: got %v, want 15", got)
 	}
 }
 
@@ -372,5 +396,13 @@ func TestPow(t *testing.T) {
 	// 底が0
 	if got := pow(0, 5); got != 0 {
 		t.Errorf("got %v, want 0", got)
+	}
+	// int64
+	if got := pow(int64(2), 10); got != 1024 {
+		t.Errorf("int64: got %v, want 1024", got)
+	}
+	// float64
+	if got := pow(2.0, 3); got != 8.0 {
+		t.Errorf("float64: got %v, want 8.0", got)
 	}
 }
