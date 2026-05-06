@@ -486,9 +486,8 @@ macro_rules! define_monoid {
     )*};
 }
 
-// 型を変えたい場合は usize を i64 等に書き換える（単位元も合わせて変更すること）
 define_monoid!(
-    // 基本演算
+    // 基本演算 (usize)
     Max,    SegMax,    usize,          0, |a, b| a.max(b);
     Min,    SegMin,    usize, usize::MAX, |a, b| a.min(b);
     Sum,    SegSum,    usize,          0, |a, b| a + b;
@@ -501,6 +500,11 @@ define_monoid!(
     // 数論
     Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(&b);
     Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(&b);
+    // 基本演算 (isize)
+    MaxI,    SegMaxI,    isize, isize::MIN, |a, b| a.max(b);
+    MinI,    SegMinI,    isize, isize::MAX, |a, b| a.min(b);
+    SumI,    SegSumI,    isize,          0, |a, b| a + b;
+    SumLenI, SegSumLenI, (isize, isize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
 );
 
 macro_rules! define_map_monoid {
@@ -534,11 +538,15 @@ macro_rules! define_map_monoid {
 }
 define_map_monoid!(
     // -------------------------------------------------------
-    // 区間加算 (Add) 系
+    // 区間加算 (Add) 系 (usize)
     // -------------------------------------------------------
     AddMax, LazySegAddMax, Max, usize, 0, |f, g| f + g, |f, x| x + f;
     AddMin, LazySegAddMin, Min, usize, 0, |f, g| f + g, |f, x| x + f;
     AddSum, LazySegAddSum, SumLen, usize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
+    // 区間加算 (Add) 系 (isize)
+    AddMaxI, LazySegAddMaxI, MaxI, isize, 0, |f, g| f + g, |f, x| x + f;
+    AddMinI, LazySegAddMinI, MinI, isize, 0, |f, g| f + g, |f, x| x + f;
+    AddSumI, LazySegAddSumI, SumLenI, isize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
 );
 define_map_monoid!(
     // -------------------------------------------------------
@@ -572,6 +580,15 @@ define_map_monoid!(
     |f, g| if f.is_some() { *f } else { *g },
     |f, x| if let Some(v) = f { *v } else { *x };
 
+    // 区間更新 (Update) 系 (isize)
+    UpdateMaxI, LazySegUpdateMaxI, MaxI, Option<isize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
+    UpdateMinI, LazySegUpdateMinI, MinI, Option<isize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { *v } else { *x };
+
     // -------------------------------------------------------
     // 特殊形: 長さが計算に絡むもの (Sum, Xor)
     // -------------------------------------------------------
@@ -587,9 +604,14 @@ define_map_monoid!(
     UpdateXor, LazySegUpdateXor, XorLen, Option<usize>, None,
     |f, g| if f.is_some() { *f } else { *g },
     |f, x| if let Some(v) = f { (if x.1 % 2 == 0 { 0 } else { *v }, x.1) } else { *x };
+
+    // 区間更新・区間和 (isize)
+    UpdateSumI, LazySegUpdateSumI, SumLenI, Option<isize>, None,
+    |f, g| if f.is_some() { *f } else { *g },
+    |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x };
 );
 
-// 長さ付きモノイド用の便利メソッド
+// 長さ付きモノイド用の便利メソッド (usize)
 macro_rules! impl_value_methods {
     ($seg_type:ty) => {
         impl $seg_type {
@@ -597,19 +619,40 @@ macro_rules! impl_value_methods {
             pub fn from_values(values: Vec<usize>) -> Self {
                 Self::from(values.into_iter().map(|v| (v, 1)).collect::<Vec<_>>())
             }
-
             /// サイズだけ指定して0初期化
             pub fn new_with_size(n: usize) -> Self {
                 Self::from_values(vec![0; n])
             }
-
             /// 値のみで set（長さは自動で1）
             pub fn set_value(&mut self, p: usize, val: usize) {
                 self.set(p, (val, 1));
             }
-
             /// 値のみ取得
             pub fn get_value(&mut self, p: usize) -> usize {
+                self.get(p).0
+            }
+        }
+    };
+}
+
+// 長さ付きモノイド用の便利メソッド (isize)
+macro_rules! impl_ivalue_methods {
+    ($seg_type:ty) => {
+        impl $seg_type {
+            /// 値のみで初期化（長さは自動で1に設定）
+            pub fn from_values(values: Vec<isize>) -> Self {
+                Self::from(values.into_iter().map(|v| (v, 1)).collect::<Vec<_>>())
+            }
+            /// サイズだけ指定して0初期化
+            pub fn new_with_size(n: usize) -> Self {
+                Self::from(vec![(0isize, 1isize); n])
+            }
+            /// 値のみで set（長さは自動で1）
+            pub fn set_value(&mut self, p: usize, val: isize) {
+                self.set(p, (val, 1));
+            }
+            /// 値のみ取得
+            pub fn get_value(&mut self, p: usize) -> isize {
                 self.get(p).0
             }
         }
@@ -619,6 +662,8 @@ macro_rules! impl_value_methods {
 impl_value_methods!(LazySegAddSum);
 impl_value_methods!(LazySegUpdateSum);
 impl_value_methods!(LazySegUpdateXor);
+impl_ivalue_methods!(LazySegAddSumI);
+impl_ivalue_methods!(LazySegUpdateSumI);
 
 #[cfg(test)]
 mod tests {
@@ -1237,5 +1282,129 @@ mod tests {
         assert_eq!(seg.get_range(0, 4).0, 0); // 7^7^15^15
         assert_eq!(seg.get_range(0, 3).0, 15); // 7^7^15 = 15
         assert_eq!(seg.get_range(1, 4).0, 7); // 7^15^15 = 7
+    }
+
+    // -------------------------------------------------------------------------
+    // isize 版のテスト
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_isize_basic() {
+        // SegMaxI: 負の値を含む最大値
+        let n = 5;
+        let mut seg = SegMaxI::new(n);
+        let data: Vec<isize> = vec![-3, 1, -5, 4, -2];
+        for (i, &v) in data.iter().enumerate() {
+            seg.set(i, v);
+        }
+        assert_eq!(seg.get_range(0, 5), 4);
+        assert_eq!(seg.get_range(0, 3), 1);
+        assert_eq!(seg.get_range(0, 0), isize::MIN); // 単位元
+
+        // SegMinI: 負の値を含む最小値
+        let mut seg = SegMinI::new(n);
+        for (i, &v) in data.iter().enumerate() {
+            seg.set(i, v);
+        }
+        assert_eq!(seg.get_range(0, 5), -5);
+        assert_eq!(seg.get_range(3, 5), -2);
+        assert_eq!(seg.get_range(0, 0), isize::MAX); // 単位元
+
+        // SegSumI: 負の値の和
+        let mut seg = SegSumI::new(n);
+        for (i, &v) in data.iter().enumerate() {
+            seg.set(i, v);
+        }
+        assert_eq!(seg.get_range(0, 5), -5); // -3+1-5+4-2
+        assert_eq!(seg.get_range(1, 4), 0); // 1-5+4
+    }
+
+    #[test]
+    fn test_isize_lazy_add() {
+        // LazySegAddMaxI: 区間加算・区間最大値 (負のオフセット)
+        let n = 5;
+        let mut seg = LazySegAddMaxI::new(n);
+        let data: Vec<isize> = vec![3, -1, 4, -1, 5];
+        for (i, &v) in data.iter().enumerate() {
+            seg.set(i, v);
+        }
+        // 全体に -10 を加算
+        seg.apply_range(0, 5, -10);
+        assert_eq!(seg.get_range(0, 5), -5); // 5-10
+
+        // LazySegAddMinI: 区間加算・区間最小値
+        let mut seg = LazySegAddMinI::new(n);
+        for (i, &v) in data.iter().enumerate() {
+            seg.set(i, v);
+        }
+        seg.apply_range(0, 5, -10);
+        assert_eq!(seg.get_range(0, 5), -11); // -1-10
+
+        // LazySegAddSumI: 区間加算・区間和
+        let mut seg = LazySegAddSumI::from_values(vec![1, -2, 3, -4, 5]);
+        assert_eq!(seg.get_range(0, 5).0, 3); // 1-2+3-4+5
+        seg.apply_range(0, 5, -1); // 全体 -1
+        assert_eq!(seg.get_range(0, 5).0, -2); // 3 - 5*1
+        seg.apply_range(1, 3, 10); // index 1,2 に +10
+        assert_eq!(seg.get_range(0, 5).0, 18); // -2 + 10*2
+    }
+
+    #[test]
+    fn test_isize_lazy_update() {
+        // LazySegUpdateMaxI: 区間更新・区間最大値
+        let n = 5;
+        let mut seg = LazySegUpdateMaxI::new(n);
+        seg.apply_range(0, 5, Some(-100)); // 全体を -100 に
+        assert_eq!(seg.get_range(0, 5), -100);
+        seg.apply_range(2, 4, Some(50)); // [2,4) を 50 に
+        assert_eq!(seg.get_range(0, 5), 50);
+        assert_eq!(seg.get_range(0, 2), -100);
+
+        // LazySegUpdateMinI: 区間更新・区間最小値
+        let mut seg = LazySegUpdateMinI::new(n);
+        seg.apply_range(0, 5, Some(100));
+        assert_eq!(seg.get_range(0, 5), 100);
+        seg.apply_range(1, 4, Some(-50));
+        assert_eq!(seg.get_range(0, 5), -50);
+        assert_eq!(seg.get_range(0, 1), 100);
+        seg.apply_range(0, 5, None); // 変化なし
+        assert_eq!(seg.get_range(0, 5), -50);
+
+        // LazySegUpdateSumI: 区間更新・区間和
+        let mut seg = LazySegUpdateSumI::from_values(vec![1, 2, 3, 4, 5]);
+        assert_eq!(seg.get_range(0, 5).0, 15);
+        seg.apply_range(0, 5, Some(-3)); // 全て -3 に更新
+        assert_eq!(seg.get_range(0, 5).0, -15);
+        seg.apply_range(1, 3, Some(10)); // index 1,2 を 10 に
+        assert_eq!(seg.get_range(0, 5).0, -3 + 10 + 10 + (-3) + (-3)); // = 11
+    }
+
+    #[test]
+    fn test_isize_value_methods() {
+        // LazySegAddSumI の便利メソッド
+        let mut seg = LazySegAddSumI::from_values(vec![-5, 0, 5, -10, 10]);
+        assert_eq!(seg.get_range(0, 5).0, 0); // sum = 0
+        assert_eq!(seg.get_value(0), -5);
+        assert_eq!(seg.get_value(2), 5);
+
+        seg.set_value(0, -100);
+        assert_eq!(seg.get_value(0), -100);
+        assert_eq!(seg.get_range(0, 5).0, -95);
+
+        seg.apply_range(0, 3, 1); // [0,3) に +1
+        assert_eq!(seg.get_range(0, 5).0, -92); // -95 + 3*1
+
+        // new_with_size
+        let mut seg = LazySegAddSumI::new_with_size(3);
+        assert_eq!(seg.get_range(0, 3).0, 0);
+        seg.apply_range(0, 3, -7);
+        assert_eq!(seg.get_range(0, 3).0, -21);
+
+        // LazySegUpdateSumI の便利メソッド
+        let mut seg = LazySegUpdateSumI::from_values(vec![10, 20, 30]);
+        seg.apply_range(0, 3, Some(-1));
+        assert_eq!(seg.get_range(0, 3).0, -3);
+        seg.set_value(1, 100);
+        assert_eq!(seg.get_value(1), 100);
+        assert_eq!(seg.get_range(0, 3).0, 98); // -1 + 100 + (-1)
     }
 }
