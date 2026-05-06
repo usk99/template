@@ -45,14 +45,14 @@ fn pollard_rho(n: u128) -> u128 {
         return 2;
     }
     let mut d: u128 = 1;
-    // 適当な c を試す
     let mut c: u128 = 1;
-    while d == 1 {
-        let mut x = 2;
-        let mut y = 2;
+    // c を変えながら最大 64 回試行
+    while c <= 64 {
+        let mut x = 2u128;
+        let mut y = 2u128;
         d = 1;
         let f = |x: u128| -> u128 { (mod_mul(x, x, n) + c) % n };
-        for _ in 0..100_000 {
+        for _ in 0..1_000_000 {
             x = f(x);
             y = f(f(y));
             let diff = x.abs_diff(y);
@@ -64,10 +64,12 @@ fn pollard_rho(n: u128) -> u128 {
                 return d;
             }
         }
+        if d > 1 && d < n {
+            return d;
+        }
         c += 1;
-        // 万が一見つからなければ別の c を試行
     }
-    // ここに来るのは通常ないが、n を返すフォールバック
+    // 全試行で見つからなければ n を返すフォールバック
     n
 }
 

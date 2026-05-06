@@ -18,7 +18,7 @@ pub trait SliceExt<T> {
     /// 累積和取得
     fn prefix_sum(&self)    ->            Vec<T> where T: Default + Copy + AddAssign<T>;
     /// ランレングス圧縮
-    fn rle(&self)           ->   Vec<(T, usize)> where T: PartialEq;
+    fn rle(&self)           ->   Vec<(usize, T)> where T: PartialEq;
     /// 要素出現回数カウント
     fn counter(&self)       -> HashMap<T, usize> where T: Hash + Eq;
     /// 回文判定
@@ -61,15 +61,11 @@ impl<T: Clone> SliceExt<T> for [T] {
         result
     }
 
-    fn rle(&self) -> Vec<(T, usize)>
+    fn rle(&self) -> Vec<(usize, T)>
     where
         T: PartialEq,
     {
-        self.iter()
-            .cloned()
-            .dedup_with_count()
-            .map(|(c, v)| (v, c))
-            .collect()
+        self.iter().cloned().dedup_with_count().collect()
     }
 
     fn counter(&self) -> HashMap<T, usize>

@@ -171,6 +171,7 @@ impl<M: Monoid> Seg<M> {
 impl<M: Monoid> From<Vec<M::S>> for Seg<M> {
     fn from(v: Vec<M::S>) -> Self {
         let n = v.len();
+        assert!(n > 0, "Seg::from(vec) には1要素以上必要です");
         let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         let mut d = vec![M::identity(); 2 * size];
@@ -438,6 +439,7 @@ impl<F: MapMonoid> LazySeg<F> {
 impl<F: MapMonoid> From<Vec<<F::M as Monoid>::S>> for LazySeg<F> {
     fn from(v: Vec<<F::M as Monoid>::S>) -> Self {
         let n = v.len();
+        assert!(n > 0, "LazySeg::from(vec) には1要素以上必要です");
         let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         let mut d = vec![F::M::identity(); 2 * size];
