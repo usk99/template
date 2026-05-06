@@ -1,4 +1,5 @@
-use {num::*, std::ops::*};
+use num::Integer;
+use std::ops::*;
 
 /// モノイド
 pub trait Monoid {
@@ -424,12 +425,7 @@ impl<F: MapMonoid> LazySeg<F> {
     }
     #[inline]
     fn update(&mut self, k: usize) {
-        unsafe {
-            *self.d.get_unchecked_mut(k) = F::M::binary_operation(
-                *self.d.get_unchecked(2 * k),
-                *self.d.get_unchecked(2 * k + 1),
-            )
-        }
+        self.d[k] = F::M::binary_operation(self.d[2 * k], self.d[2 * k + 1]);
     }
     #[inline]
     fn all_apply(&mut self, k: usize, f: F::F) {
