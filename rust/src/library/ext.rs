@@ -1,6 +1,6 @@
 use {
     itertools::Itertools,
-    num::*,
+    num::{Integer, ToPrimitive},
     std::{cmp::*, collections::*, hash::*, iter::*, ops::*},
 };
 
