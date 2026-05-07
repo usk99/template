@@ -23,6 +23,7 @@ fn main() {
 // use library::seg::*;       // Seg, LazySeg, SegSum等のエイリアス, Monoid trait
 
 // === 単体 ===
+// use library::dp::*;        // dp
 // use library::graph::*;     // graph
 // use library::prime::*;     // is_prime, factorize
 // use library::rng::*;       // FastRng
