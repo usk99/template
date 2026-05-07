@@ -57,7 +57,7 @@ mod_rs = "rust/src/library/mod.rs"
 if os.path.exists(mod_rs):
     with open(mod_rs, encoding="utf-8") as f:
         lines = f.readlines()
-    lines = [l for l in lines if not l.startswith("#[cfg(test)]") and not l.startswith("#[path =")]
+    lines = [l for l in lines if not l.startswith("#[cfg(test)]") and not l.startswith("#[path =") and "_test" not in l]
     with open(mod_rs, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
