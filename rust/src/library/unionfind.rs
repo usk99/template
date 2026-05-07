@@ -1,3 +1,5 @@
+use super::util::*;
+
 #[derive(Clone, Debug)]
 pub struct UnionFind {
     parent_or_size: Vec<i32>,
@@ -72,7 +74,7 @@ impl UnionFind {
     /// 全グループの内容を取得 : O(N)
     pub fn get_groups(&mut self) -> Vec<Vec<usize>> {
         let n = self.parent_or_size.len();
-        let mut map = std::collections::HashMap::with_capacity(self.group_count);
+        let mut map = Map::with_capacity(self.group_count);
         for i in 0..n {
             map.entry(self.root(i)).or_insert_with(Vec::new).push(i);
         }

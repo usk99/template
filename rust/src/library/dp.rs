@@ -1,3 +1,5 @@
+use super::util::*;
+
 // ナップサック系
 
 /// 0/1ナップサック問題を解く。各アイテムは最大1個まで選べる。
@@ -227,7 +229,7 @@ pub fn dp_grid_path_count(
     obstacles: &[(usize, usize)],
     modulo: usize,
 ) -> usize {
-    let blocked: std::collections::HashSet<(usize, usize)> = obstacles.iter().cloned().collect();
+    let blocked: Set<(usize, usize)> = obstacles.iter().cloned().collect();
     let mut dp = vec![vec![0usize; w]; h];
     if blocked.contains(&(0, 0)) {
         return 0;
