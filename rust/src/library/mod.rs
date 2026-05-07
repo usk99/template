@@ -15,3 +15,19 @@ pub mod timer;
 pub mod unionfind;
 pub mod usermacro;
 pub mod util;
+
+#[cfg(test)]
+#[path = "dp_test.rs"]
+mod dp_tests;
+#[cfg(test)]
+#[path = "graph_test.rs"]
+mod graph_tests;
+#[cfg(test)]
+#[path = "unionfind_test.rs"]
+mod unionfind_tests;
+#[cfg(test)]
+#[path = "grid_test.rs"]
+mod grid_tests;
+#[cfg(test)]
+#[path = "seg_test.rs"]
+mod seg_tests;

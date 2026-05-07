@@ -48,5 +48,18 @@ import glob
 for f in glob.glob("go/*_test.go"):
     os.remove(f)
 
+# rust のテストファイルを削除
+for f in glob.glob("rust/src/library/*_test.rs"):
+    os.remove(f)
+
+# mod.rs から #[cfg(test)] ブロックを削除
+mod_rs = "rust/src/library/mod.rs"
+if os.path.exists(mod_rs):
+    with open(mod_rs, encoding="utf-8") as f:
+        lines = f.readlines()
+    lines = [l for l in lines if not l.startswith("#[cfg(test)]") and not l.startswith("#[path =")]
+    with open(mod_rs, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
 # このスクリプト自身を削除
 os.remove(__file__)
