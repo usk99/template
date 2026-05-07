@@ -9,19 +9,19 @@ use {
 // ==========================================================
 #[rustfmt::skip]
 pub trait SliceExt<T> {
-    /// 合計値取得
+    /// 全要素の合計を返す。空なら `T::default()`（通常0）。
     fn sum_all(&self)       ->                 T where T: Sum;
-    /// 積取得
+    /// 全要素の積を返す。空なら `T::default()`（通常1）。
     fn product_all(&self)   ->                 T where T: Product;
-    /// 平均値取得
+    /// 全要素の平均を `f64` で返す。空なら `0.0`。
     fn average(&self)       ->               f64 where T: ToPrimitive;
-    /// 累積和取得
+    /// 累積和を返す。長さ `n` のスライスに対して長さ `n+1` の Vec を返す。`result[i]` = `self[0..i]` の和。
     fn prefix_sum(&self)    ->            Vec<T> where T: Default + Copy + AddAssign<T>;
-    /// ランレングス圧縮
+    /// ランレングス圧縮。連続する同じ値をまとめて `(個数, 値)` のリストを返す。
     fn rle(&self)           ->   Vec<(usize, T)> where T: PartialEq;
-    /// 要素出現回数カウント
+    /// 各要素の出現回数を `HashMap` で返す。
     fn counter(&self)       -> HashMap<T, usize> where T: Hash + Eq;
-    /// 回文判定
+    /// 回文かどうかを返す。空スライスは `true`。
     fn is_palindrome(&self) ->              bool where T: PartialEq;
 }
 impl<T: Clone> SliceExt<T> for [T] {
@@ -90,23 +90,23 @@ impl<T: Clone> SliceExt<T> for [T] {
 // 2. 順序・比較が必要な拡張 (Ord)
 // ==========================================================
 pub trait SliceOrdExt<T> {
-    /// 最小値取得
+    /// 最小値を返す。空なら `None`。
     fn min_all(&self) -> Option<T>;
-    /// 最大値取得
+    /// 最大値を返す。空なら `None`。
     fn max_all(&self) -> Option<T>;
-    /// インデックスソート取得
+    /// ソートしたときの元のインデックス列を返す。時間: O(n log n)。
     fn index_sort(&self) -> Vec<usize>;
-    /// 座標圧縮
+    /// 座標圧縮。`(重複除去済みのソート済み値列, 各要素の圧縮後インデックス列)` を返す。
     fn compress(&self) -> (Vec<T>, Vec<usize>);
-    /// lower_bound取得
+    /// ソート済みスライスで `x` 以上の最初のインデックスを返す。時間: O(log n)。
     fn lower_bound(&self, x: &T) -> usize;
-    /// upper_bound取得
+    /// ソート済みスライスで `x` より大きい最初のインデックスを返す。時間: O(log n)。
     fn upper_bound(&self, x: &T) -> usize;
-    /// xと等しい範囲
+    /// ソート済みスライスで `x` と等しい要素の範囲を `Range` で返す。
     fn equal_range(&self, x: &T) -> Range<usize>;
-    /// 次の順列取得
+    /// 次の辞書順順列に並び替える。最後の順列なら `false` を返す。
     fn next_permutation(&mut self) -> bool;
-    /// 前の順列取得
+    /// 前の辞書順順列に並び替える。最初の順列なら `false` を返す。
     fn prev_permutation(&mut self) -> bool;
 }
 impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
@@ -170,9 +170,9 @@ impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
 // 3. 数学的な拡張 (Integer)
 // ==========================================================
 pub trait SliceIntExt<T> {
-    /// 最大公約数
+    /// 全要素の GCD を返す。空なら `None`。
     fn gcd_all(&self) -> Option<T>;
-    /// 最小公倍数
+    /// 全要素の LCM を返す。空なら `None`。
     fn lcm_all(&self) -> Option<T>;
 }
 impl<T: Integer + Clone> SliceIntExt<T> for [T] {
@@ -188,6 +188,7 @@ impl<T: Integer + Clone> SliceIntExt<T> for [T] {
 // 4. 文字列拡張 (シンプル化)
 // ==========================================================
 pub trait StringExt {
+    /// 各文字の出現回数を `HashMap` で返す。
     fn counter(&self) -> HashMap<char, usize>;
 }
 impl StringExt for str {
@@ -197,8 +198,11 @@ impl StringExt for str {
 }
 
 pub trait CharExt {
+    /// `'0'`～`'9'` を数値 `0`～`9` に変換する。
     fn to_num(self) -> usize;
+    /// `'a'`～`'z'` または `'A'`～`'Z'` を `0`～`25` に変換する。大文字小文字どちらも0始まり。
     fn to_alpha(self) -> usize;
+    /// `0`～`25` を対応するアルファベット文字に変換する。`upper=true` で大文字。
     fn from_alpha(i: usize, upper: bool) -> char;
 }
 impl CharExt for char {
@@ -221,11 +225,11 @@ impl CharExt for char {
 }
 
 pub trait NumExt {
-    /// 累乗ショートカット
+    /// `self` の `exp` 乗を返す。
     fn p(self, exp: Self) -> Self;
-    /// 桁ベクタ
+    /// 10進数の各桁を上位桁から順に `Vec<usize>` で返す。`0` なら `[0]`。
     fn digits(self) -> Vec<usize>;
-    /// 各桁の和
+    /// 10進数の各桁の和を返す。
     fn digit_sum(self) -> usize;
 }
 macro_rules! impl_NumExt {

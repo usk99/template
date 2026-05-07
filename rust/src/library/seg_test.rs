@@ -738,3 +738,153 @@
         assert_eq!(seg.get_value(1), 100);
         assert_eq!(seg.get_range(0, 3).0, 98); // -1 + 100 + (-1)
     }
+
+    // -------------------------------------------------------------------------
+    // Seg の構築・アクセス
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_seg_from_vec() {
+        let seg = SegSum::from(vec![1, 2, 3, 4, 5]);
+        assert_eq!(seg.get_range(0, 5), 15);
+        assert_eq!(seg.get_range(1, 3), 5); // 2+3
+        assert_eq!(seg[0], 1);
+        assert_eq!(seg[4], 5);
+    }
+
+    #[test]
+    fn test_seg_from_iter() {
+        let seg: SegMax = (0..5).collect();
+        assert_eq!(seg.get_range(0, 5), 4);
+        assert_eq!(seg[2], 2);
+    }
+
+    #[test]
+    fn test_seg_index() {
+        let mut seg = SegSum::from(vec![10, 20, 30]);
+        assert_eq!(seg[0], 10);
+        assert_eq!(seg[2], 30);
+        seg.set(1, 99);
+        assert_eq!(seg[1], 99);
+    }
+
+    // -------------------------------------------------------------------------
+    // max_right / min_left の境界値
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_max_right_boundary() {
+        let seg = SegSum::from(vec![1, 2, 3, 4, 5]);
+        // l == n は即 n を返す
+        assert_eq!(seg.max_right(5, |&s| s < 100), 5);
+        // 単位元は常に true なので l=0 で全部 true なら n を返す
+        assert_eq!(seg.max_right(0, |&_s| true), 5);
+        // 単位元は true でも sum(0..1)=1 で即 false -> 0
+        assert_eq!(seg.max_right(0, |&s| s == 0), 0);
+    }
+
+    #[test]
+    fn test_min_left_boundary() {
+        let seg = SegSum::from(vec![1, 2, 3, 4, 5]);
+        // r == 0 は即 0 を返す
+        assert_eq!(seg.min_left(0, |&s| s < 100), 0);
+        // 全部 true なら 0 を返す
+        assert_eq!(seg.min_left(5, |&_s| true), 0);
+        // sum([4,5))=5, sum([3,5))=9 で 9>5 になるなら右端は 4
+        assert_eq!(seg.min_left(5, |&s| s <= 5), 4);
+    }
+
+    // -------------------------------------------------------------------------
+    // LazySeg の構築・get
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_lazyseg_from_vec() {
+        let mut seg = LazySegAddSum::from(vec![(1usize, 1usize), (2, 1), (3, 1)]);
+        assert_eq!(seg.get_range(0, 3).0, 6);
+        assert_eq!(seg.get(0).0, 1);
+        assert_eq!(seg.get(2).0, 3);
+        seg.apply_range(0, 3, 10);
+        assert_eq!(seg.get(1).0, 12);
+    }
+
+    #[test]
+    fn test_lazyseg_get_point() {
+        let mut seg = LazySegUpdateMin::new(4);
+        seg.apply_range(0, 4, Some(100));
+        seg.apply_range(1, 3, Some(5));
+        assert_eq!(seg.get(0), 100);
+        assert_eq!(seg.get(1), 5);
+        assert_eq!(seg.get(3), 100);
+    }
+
+    // -------------------------------------------------------------------------
+    // Update 系の追加モノイド
+    // -------------------------------------------------------------------------
+    #[test]
+    fn test_lazy_update_bitor() {
+        let n = 4;
+        let mut seg = LazySegUpdateBitOr::new(n);
+        seg.apply_range(0, 4, Some(0b1010)); // [10, 10, 10, 10]
+        assert_eq!(seg.get_range(0, 4), 0b1010);
+        seg.apply_range(1, 3, Some(0b0101)); // [10, 5, 5, 10]
+        assert_eq!(seg.get_range(0, 4), 0b1111); // 10 | 5 = 15
+        assert_eq!(seg.get_range(1, 3), 0b0101);
+    }
+
+    #[test]
+    fn test_lazy_update_bitand() {
+        let n = 4;
+        let mut seg = LazySegUpdateBitAnd::new(n);
+        seg.apply_range(0, 4, Some(0b1111));
+        assert_eq!(seg.get_range(0, 4), 0b1111);
+        seg.apply_range(1, 3, Some(0b0110)); // [15, 6, 6, 15]
+        assert_eq!(seg.get_range(0, 4), 0b0110); // 15 & 6 = 6
+        seg.apply_range(0, 4, None); // 変化なし
+        assert_eq!(seg.get_range(0, 4), 0b0110);
+    }
+
+    #[test]
+    fn test_lazy_update_gcd() {
+        let n = 3;
+        let mut seg = LazySegUpdateGcd::new(n);
+        seg.apply_range(0, 3, Some(12));
+        assert_eq!(seg.get_range(0, 3), 12); // gcd(12,12,12)=12
+        seg.apply_range(1, 3, Some(8)); // [12, 8, 8]
+        assert_eq!(seg.get_range(0, 3), 4); // gcd(12,8,8)=4
+        assert_eq!(seg.get_range(1, 3), 8);
+    }
+
+    // -------------------------------------------------------------------------
+    // ストレステスト: UpdateSumI (isize)
+    // -------------------------------------------------------------------------
+    #[test]
+    fn stress_test_update_sum_i() {
+        let n = 30;
+        let q = 1000;
+        let mut rng = Rng::new(77777);
+
+        let mut seg = LazySegUpdateSumI::from_values(vec![0; n]);
+        let mut vec = vec![0isize; n];
+
+        for _ in 0..q {
+            let ty = rng.gen_range(0..3);
+            if ty == 0 {
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+                let val = rng.gen_range(0..100) as isize - 50;
+                seg.apply_range(l, r, Some(val));
+                for item in vec.iter_mut().take(r).skip(l) {
+                    *item = val;
+                }
+            } else if ty == 1 {
+                let i = rng.gen_range(0..n);
+                let val = rng.gen_range(0..100) as isize - 50;
+                seg.set_value(i, val);
+                vec[i] = val;
+            } else {
+                let l = rng.gen_range(0..n);
+                let r = rng.gen_range(l..n + 1);
+                let seg_res = seg.get_range(l, r).0;
+                let vec_res: isize = vec[l..r].iter().sum();
+                assert_eq!(seg_res, vec_res, "UpdateSumI Mismatch at {}..{}", l, r);
+            }
+        }
+    }

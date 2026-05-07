@@ -72,12 +72,11 @@ impl UnionFind {
     /// 全グループの内容を取得 : O(N)
     pub fn get_groups(&mut self) -> Vec<Vec<usize>> {
         let n = self.parent_or_size.len();
-        let mut result = vec![Vec::new(); n];
+        let mut map = std::collections::HashMap::with_capacity(self.group_count);
         for i in 0..n {
-            result[self.root(i)].push(i);
+            map.entry(self.root(i)).or_insert_with(Vec::new).push(i);
         }
-        result.retain(|v| !v.is_empty());
-        result
+        map.into_values().collect()
     }
 
     /// 連結成分の個数を取得 : O(1)

@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::BinaryHeap};
+use std::{cmp::Reverse, collections::BinaryHeap, collections::VecDeque};
 
 // =====================================================
 // 定数定義
@@ -52,16 +52,32 @@ impl Graph {
 // アルゴリズム(最短系)
 // =====================================================
 impl Graph {
-    /// ダイクストラ法 : O(E log V)
-    /// 有向無向どちらも可,負の重みは不可
+    /// BFS: O(V + E)
+    /// 重みなし最短距離。到達不能な頂点は `INF`。
+    pub fn bfs(&self, start: usize) -> Vec<i64> {
+        let mut dist = vec![INF; self.n];
+        dist[start] = 0;
+        let mut queue = VecDeque::new();
+        queue.push_back(start);
+        while let Some(u) = queue.pop_front() {
+            for edge in &self.edges[u] {
+                if dist[edge.to] == INF {
+                    dist[edge.to] = dist[u] + 1;
+                    queue.push_back(edge.to);
+                }
+            }
+        }
+        dist
+    }
+
+    /// ダイクストラ法: O(E log V)
+    /// 有向無向どちらも可。負の重みは不可。
     pub fn dijkstra(&self, start: usize) -> (Vec<i64>, Vec<usize>) {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
         let mut heap: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
-
         dist[start] = 0;
         heap.push(Reverse((0, start)));
-
         while let Some(Reverse((d, u))) = heap.pop() {
             if d > dist[u] {
                 continue;
@@ -78,13 +94,12 @@ impl Graph {
         (dist, pre)
     }
 
-    /// ベルマンフォード法:O(V*E)
-    /// 負の重み対応。負の閉路あればNone
+    /// ベルマンフォード法: O(V * E)
+    /// 負の重み対応。負の閉路があれば `None`。
     pub fn bellman_ford(&self, start: usize) -> Option<(Vec<i64>, Vec<usize>)> {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
         dist[start] = 0;
-        // V-1回の緩和
         for _ in 0..self.n.saturating_sub(1) {
             let mut updated = false;
             for u in 0..self.n {
@@ -92,7 +107,6 @@ impl Graph {
                     continue;
                 }
                 for edge in &self.edges[u] {
-                    // 巨大な weight でのオーバーフローを回避
                     let Some(next_dist) = dist[u].checked_add(edge.weight) else {
                         continue;
                     };
@@ -107,13 +121,11 @@ impl Graph {
                 break;
             }
         }
-        // V回目の緩和
         for u in 0..self.n {
             if dist[u] == INF {
                 continue;
             }
             for edge in &self.edges[u] {
-                // checked_add: 巨大な weight でも検出時にオーバーフローを起こさない
                 if let Some(next_dist) = dist[u].checked_add(edge.weight)
                     && next_dist < dist[edge.to]
                 {
@@ -124,8 +136,8 @@ impl Graph {
         Some((dist, pre))
     }
 
-    /// ワーシャル・フロイド法 : O(V^3)
-    /// 全点最短経路。頂点数V<=500が目安
+    /// ワーシャル・フロイド法: O(V^3)
+    /// 全点間最短経路。頂点数 V <= 500 が目安。負の閉路があれば `None`。
     pub fn warshall_floyd(&self) -> Option<Vec<Vec<i64>>> {
         let mut dist = vec![vec![INF; self.n]; self.n];
         for (i, item) in dist.iter_mut().enumerate().take(self.n) {
@@ -160,8 +172,8 @@ impl Graph {
         Some(dist)
     }
 
-    /// プリム法:O(E log V)
-    /// 無向グラフ専用
+    /// プリム法: O(E log V)
+    /// 無向グラフ専用。最小全域木のコストを返す。非連結なら `None`。
     pub fn prim(&self) -> Option<i64> {
         assert!(
             !self.is_directed,
@@ -182,7 +194,6 @@ impl Graph {
             visited[u] = true;
             total_cost += cost;
             visited_count += 1;
-
             for edge in &self.edges[u] {
                 if !visited[edge.to] {
                     heap.push(Reverse((edge.weight, edge.to)));
@@ -201,27 +212,48 @@ impl Graph {
 // アルゴリズム(構造系)
 // =====================================================
 impl Graph {
-    /// 強連結成分分解(scc)タルヤン法:O(V+E)
-    /// 非再帰。戻り値:(成分数,各頂点のSCC_ID)
-    /// SCC_IDはトポロジカル逆順（ACLと同じ仕様）。辺はID大→ID小の向きになる
+    /// 二部グラフ判定: O(V + E)
+    /// 二部グラフなら `Some(各頂点の色 0/1)`、そうでなければ `None`。非連結対応。
+    pub fn is_bipartite(&self) -> Option<Vec<usize>> {
+        let mut color = vec![usize::MAX; self.n];
+        let mut queue = VecDeque::new();
+        for start in 0..self.n {
+            if color[start] != usize::MAX {
+                continue;
+            }
+            color[start] = 0;
+            queue.push_back(start);
+            while let Some(u) = queue.pop_front() {
+                for edge in &self.edges[u] {
+                    if color[edge.to] == usize::MAX {
+                        color[edge.to] = 1 - color[u];
+                        queue.push_back(edge.to);
+                    } else if color[edge.to] == color[u] {
+                        return None;
+                    }
+                }
+            }
+        }
+        Some(color)
+    }
+
+    /// 強連結成分分解(SCC) タルヤン法: O(V + E)
+    /// 非再帰。戻り値: `(成分数, 各頂点のSCC_ID)`。
+    /// SCC_ID はトポロジカル逆順（ACL と同じ仕様）。辺は ID大 → ID小 の向き。
     pub fn scc(&self) -> (usize, Vec<usize>) {
         let mut ord = vec![NONE; self.n];
         let mut low = vec![NONE; self.n];
         let mut in_stack = vec![false; self.n];
         let mut stack = Vec::new();
-
         let mut call_stack = Vec::new();
         let mut timestamp = 0;
-
         let mut group = vec![NONE; self.n];
         let mut count = 0;
-
         for i in 0..self.n {
             if ord[i] != NONE {
                 continue;
             }
             call_stack.push((i, 0));
-
             while let Some(&(u, edge_idx)) = call_stack.last() {
                 if edge_idx == 0 {
                     ord[u] = timestamp;
@@ -259,8 +291,8 @@ impl Graph {
         (count, group)
     }
 
-    /// トポロジカルソート:O(V+E)
-    /// 閉路があればNone
+    /// トポロジカルソート: O(V + E)
+    /// 閉路があれば `None`。
     pub fn topological_sort(&self) -> Option<Vec<usize>> {
         let mut ind = vec![0; self.n];
         for u in 0..self.n {
@@ -268,7 +300,7 @@ impl Graph {
                 ind[edge.to] += 1;
             }
         }
-        let mut queue = std::collections::VecDeque::new();
+        let mut queue = VecDeque::new();
         for (i, &d) in ind.iter().enumerate() {
             if d == 0 {
                 queue.push_back(i);
@@ -284,7 +316,6 @@ impl Graph {
                 }
             }
         }
-
         (result.len() == self.n).then_some(result)
     }
 }
@@ -292,7 +323,7 @@ impl Graph {
 // =====================================================
 // 経路復元
 // =====================================================
-/// `pre`配列を辿って`start`から`goal`へのパスを復元
+/// `pre` 配列を辿って `start` から `goal` へのパスを復元する。到達不能なら空 Vec。
 pub fn get_path(pre: &[usize], start: usize, goal: usize) -> Vec<usize> {
     if goal >= pre.len() || (goal != start && pre[goal] == NONE) {
         return vec![];

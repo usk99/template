@@ -38,7 +38,7 @@ impl<M: Monoid> Seg<M> {
     /// 単位元初期化
     pub fn new(n: usize) -> Seg<M> {
         assert!(n > 0, "Seg::new(0) は許可されていません");
-        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         Self {
             n,
@@ -71,10 +71,10 @@ impl<M: Monoid> Seg<M> {
     /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
     /// rangeで区間クエリ
     pub fn get_range(&self, mut l: usize, mut r: usize) -> M::S {
+        assert!(l <= r && r <= self.n);
         if l == 0 && r == self.n {
             return self.d[1];
         }
-        assert!(l <= r && r <= self.n);
         let mut sml = M::identity();
         let mut smr = M::identity();
         l += self.size;
@@ -172,7 +172,7 @@ impl<M: Monoid> From<Vec<M::S>> for Seg<M> {
     fn from(v: Vec<M::S>) -> Self {
         let n = v.len();
         assert!(n > 0, "Seg::from(vec) には1要素以上必要です");
-        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         let mut d = vec![M::identity(); 2 * size];
         d[size..][..n].clone_from_slice(&v);
@@ -219,7 +219,7 @@ impl<F: MapMonoid> LazySeg<F> {
     /// 代わりに `new_with_size` や `from_values` を使用してください。
     pub fn new(n: usize) -> Self {
         assert!(n > 0, "LazySeg::new(0) は許可されていません");
-        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         Self {
             n,
@@ -440,7 +440,7 @@ impl<F: MapMonoid> From<Vec<<F::M as Monoid>::S>> for LazySeg<F> {
     fn from(v: Vec<<F::M as Monoid>::S>) -> Self {
         let n = v.len();
         assert!(n > 0, "LazySeg::from(vec) には1要素以上必要です");
-        let log = 64 - n.saturating_sub(1).leading_zeros() as usize;
+        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
         let mut d = vec![F::M::identity(); 2 * size];
         let lz = vec![F::identity_map(); size];
@@ -647,7 +647,7 @@ macro_rules! impl_ivalue_methods {
             }
             /// サイズだけ指定して0初期化
             pub fn new_with_size(n: usize) -> Self {
-                Self::from(vec![(0isize, 1isize); n])
+                Self::from_values(vec![0; n])
             }
             /// 値のみで set（長さは自動で1）
             pub fn set_value(&mut self, p: usize, val: isize) {

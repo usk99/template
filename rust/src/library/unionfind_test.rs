@@ -157,3 +157,128 @@
         uf1.reset();
         assert_eq!(uf1.group_count(), 1);
     }
+
+    /// get_groups の内容を HashSet で正確に検証
+    #[test]
+    fn test_get_groups_exact() {
+        let n = 6;
+        let mut uf = UnionFind::new(n);
+        uf.unite(0, 1);
+        uf.unite(2, 3);
+        uf.unite(3, 4);
+
+        let groups = uf.get_groups();
+        let groups_as_sets: Vec<HashSet<usize>> =
+            groups.iter().map(|g| g.iter().cloned().collect()).collect();
+
+        assert!(groups_as_sets.contains(&HashSet::from([0, 1])));
+        assert!(groups_as_sets.contains(&HashSet::from([2, 3, 4])));
+        assert!(groups_as_sets.contains(&HashSet::from([5])));
+    }
+
+    /// チェーン状 unite（0-1-2-...-N-1）のテスト
+    #[test]
+    fn test_chain_unite() {
+        let n = 10;
+        let mut uf = UnionFind::new(n);
+
+        for i in 0..n - 1 {
+            uf.unite(i, i + 1);
+        }
+
+        assert_eq!(uf.group_count(), 1);
+        assert_eq!(uf.size(0), n);
+        for i in 0..n {
+            assert!(uf.is_same(0, i));
+        }
+    }
+
+    /// 経路圧縮後も is_same / size が正しいか
+    #[test]
+    fn test_path_compression_consistency() {
+        let n = 8;
+        let mut uf = UnionFind::new(n);
+
+        // チェーン状に結合して経路圧縮を発生させる
+        for i in 0..n - 1 {
+            uf.unite(i, i + 1);
+        }
+
+        // root を何度呼んでも結果が一致する
+        let root = uf.root(0);
+        for i in 0..n {
+            assert_eq!(uf.root(i), root);
+            assert_eq!(uf.size(i), n);
+        }
+    }
+
+    /// reset 後に再利用できるか
+    #[test]
+    fn test_reset_and_reuse() {
+        let n = 5;
+        let mut uf = UnionFind::new(n);
+
+        uf.unite(0, 1);
+        uf.unite(2, 3);
+        uf.unite(3, 4);
+        assert_eq!(uf.group_count(), 2);
+
+        uf.reset();
+
+        // 再利用: 別の組み合わせで結合
+        uf.unite(0, 2);
+        uf.unite(0, 4);
+        assert_eq!(uf.group_count(), 3); // {0,2,4}, {1}, {3}
+        assert!(uf.is_same(0, 2));
+        assert!(uf.is_same(0, 4));
+        assert!(!uf.is_same(0, 1));
+        assert!(!uf.is_same(0, 3));
+    }
+
+    /// ストレステスト（愚直解との比較）
+    #[test]
+    fn stress_test() {
+        struct Rng(u64);
+        impl Rng {
+            fn next(&mut self) -> u64 {
+                self.0 ^= self.0 << 13;
+                self.0 ^= self.0 >> 7;
+                self.0 ^= self.0 << 17;
+                self.0
+            }
+            fn gen_range(&mut self, n: usize) -> usize {
+                self.next() as usize % n
+            }
+        }
+
+        let n = 50;
+        let q = 500;
+        let mut rng = Rng(12345);
+
+        let mut uf = UnionFind::new(n);
+        // 愚直: ノードごとに「属するグループID」を管理
+        let mut group = (0..n).collect::<Vec<_>>();
+
+        for _ in 0..q {
+            let u = rng.gen_range(n);
+            let v = rng.gen_range(n);
+
+            let same_expected = group[u] == group[v];
+            assert_eq!(uf.is_same(u, v), same_expected);
+
+            if !same_expected {
+                let old = group[v];
+                let new = group[u];
+                for g in group.iter_mut() {
+                    if *g == old {
+                        *g = new;
+                    }
+                }
+                uf.unite(u, v);
+            }
+        }
+
+        // 最終的なグループ数の一致確認
+        let distinct: HashSet<usize> = group.iter().cloned().collect();
+        assert_eq!(uf.group_count(), distinct.len());
+    }
