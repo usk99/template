@@ -21,7 +21,7 @@ fn main() {
 // use library::grid::*;      // Grid (2次元配列) Coord必要
 
 // === セグ木系 ===
-// use library::seg::*;       // Seg, LazySeg, SegSum等のエイリアス, Monoid trait
+// use library::seg::*;       // Seg, LazySeg, SegSum等のエイリアス
 
 // === 単体 ===
 // use library::dp::*;        // dp

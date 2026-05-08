@@ -167,6 +167,18 @@ impl<M: Monoid> Index<usize> for Seg<M> {
         &self.d[index + self.size]
     }
 }
+impl<T: PrimInt + Default> From<&[T]> for Seg<MinMax<T>> {
+    fn from(v: &[T]) -> Self {
+        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, x)).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> FromIterator<T> for Seg<MinMax<T>> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, x)).collect();
+        Self::new(&mapped)
+    }
+}
 
 // =====================================================
 // 具象モノイド (ジェネリック)
@@ -191,8 +203,9 @@ impl_monoids!(@impl [PrimInt + Default], [
     (Xor,    T,      T::zero(),              |a, b| a ^ b),
     (BitOr,  T,      T::zero(),              |a, b| a | b),
     (BitAnd, T,      T::max_value(),         |a, b| a & b),
-    (SumLen, (T, T), (T::zero(), T::zero()), |a, b| (a.0 + b.0, a.1 + b.1)),
-    (XorLen, (T, T), (T::zero(), T::zero()), |a, b| (a.0 ^ b.0, a.1 + b.1)),
+    (SumLen, (T, T), (T::zero(), T::zero()),              |a, b| (a.0 + b.0, a.1 + b.1)),
+    (XorLen, (T, T), (T::zero(), T::zero()),              |a, b| (a.0 ^ b.0, a.1 + b.1)),
+    (MinMax, (T, T), (T::max_value(), T::min_value()),    |a, b| (a.0.min(b.0), a.1.max(b.1))),
 ]);
 impl_monoids!(@impl [Integer + PrimInt + Default], [
     (Gcd, T, T::zero(), |a, b| a.gcd(&b)),
@@ -216,6 +229,7 @@ monoid_struct!(BitOr, SegBitOr);
 monoid_struct!(BitAnd, SegBitAnd);
 monoid_struct!(SumLen);
 monoid_struct!(XorLen);
+monoid_struct!(MinMax, SegMinMax);
 monoid_struct!(Gcd, SegGcd);
 monoid_struct!(Lcm, SegLcm);
 

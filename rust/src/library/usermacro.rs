@@ -33,8 +33,9 @@ macro_rules! chmax {
 }
 
 /// 二次元vec宣言
+#[macro_export]
 macro_rules! vv {
-    ($e:expr; $n:expr, $m:expr) => {
+    ($e:expr, $n:expr, $m:expr) => {
         vec![vec![$e; $m]; $n]
     };
 }
