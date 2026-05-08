@@ -385,10 +385,10 @@ impl<F: MapMonoid> LazySeg<F> {
     /// 右端を含めたい場合は `prod(l..=r)` を使用してください。
     /// rangeで区間クエリ
     pub fn get_range(&mut self, mut l: usize, mut r: usize) -> <F::M as Monoid>::S {
+        assert!(l <= r && r <= self.n);
         if l == 0 && r == self.n {
             return self.d[1];
         }
-        assert!(l <= r && r <= self.n);
         if l == r {
             return F::M::identity();
         }
@@ -520,7 +520,7 @@ impl<F: MapMonoid> LazySeg<F> {
         let mut sm = F::M::identity();
         loop {
             r -= 1;
-            while r > 1 && r % 2 != 0 {
+            while r > 1 && r % 2 == 1 {
                 r >>= 1;
             }
             if !g(F::M::binary_operation(self.d[r], sm)) {
