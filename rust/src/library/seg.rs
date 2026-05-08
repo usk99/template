@@ -172,24 +172,25 @@ impl<M: Monoid> Index<usize> for Seg<M> {
 // 具象モノイド (ジェネリック)
 // =====================================================
 
-pub struct Max<T>(PhantomData<T>);
-pub type SegMax<T> = Seg<Max<T>>;
-pub struct Min<T>(PhantomData<T>);
-pub type SegMin<T> = Seg<Min<T>>;
-pub struct Sum<T>(PhantomData<T>);
-pub type SegSum<T> = Seg<Sum<T>>;
-pub struct Xor<T>(PhantomData<T>);
-pub type SegXor<T> = Seg<Xor<T>>;
-pub struct BitOr<T>(PhantomData<T>);
-pub type SegBitOr<T> = Seg<BitOr<T>>;
-pub struct BitAnd<T>(PhantomData<T>);
-pub type SegBitAnd<T> = Seg<BitAnd<T>>;
-pub struct Gcd<T>(PhantomData<T>);
-pub type SegGcd<T> = Seg<Gcd<T>>;
-pub struct Lcm<T>(PhantomData<T>);
-pub type SegLcm<T> = Seg<Lcm<T>>;
-pub struct SumLen<T>(PhantomData<T>);
-pub struct XorLen<T>(PhantomData<T>);
+macro_rules! monoid_struct {
+    ($name:ident, $alias:ident) => {
+        pub struct $name<T>(PhantomData<T>);
+        pub type $alias<T> = Seg<$name<T>>;
+    };
+    ($name:ident) => {
+        pub struct $name<T>(PhantomData<T>);
+    };
+}
+monoid_struct!(Max,    SegMax);
+monoid_struct!(Min,    SegMin);
+monoid_struct!(Sum,    SegSum);
+monoid_struct!(Xor,    SegXor);
+monoid_struct!(BitOr,  SegBitOr);
+monoid_struct!(BitAnd, SegBitAnd);
+monoid_struct!(Gcd,    SegGcd);
+monoid_struct!(Lcm,    SegLcm);
+monoid_struct!(SumLen);
+monoid_struct!(XorLen);
 
 impl<T: PrimInt + Bounded + Default> Monoid for Max<T> {
     type S = T;
@@ -571,26 +572,22 @@ impl<M: MapMonoid> Index<usize> for LazySeg<M> {
 // 具象 MapMonoid (ジェネリック)
 // =====================================================
 
-pub struct AddMax<T>(PhantomData<T>);
-pub type LazySegAddMax<T> = LazySeg<AddMax<T>>;
-pub struct AddMin<T>(PhantomData<T>);
-pub type LazySegAddMin<T> = LazySeg<AddMin<T>>;
-pub struct AddSum<T>(PhantomData<T>);
-pub type LazySegAddSum<T> = LazySeg<AddSum<T>>;
-pub struct UpdateMax<T>(PhantomData<T>);
-pub type LazySegUpdateMax<T> = LazySeg<UpdateMax<T>>;
-pub struct UpdateMin<T>(PhantomData<T>);
-pub type LazySegUpdateMin<T> = LazySeg<UpdateMin<T>>;
-pub struct UpdateBitOr<T>(PhantomData<T>);
-pub type LazySegUpdateBitOr<T> = LazySeg<UpdateBitOr<T>>;
-pub struct UpdateBitAnd<T>(PhantomData<T>);
-pub type LazySegUpdateBitAnd<T> = LazySeg<UpdateBitAnd<T>>;
-pub struct UpdateGcd<T>(PhantomData<T>);
-pub type LazySegUpdateGcd<T> = LazySeg<UpdateGcd<T>>;
-pub struct UpdateSum<T>(PhantomData<T>);
-pub type LazySegUpdateSum<T> = LazySeg<UpdateSum<T>>;
-pub struct UpdateXor<T>(PhantomData<T>);
-pub type LazySegUpdateXor<T> = LazySeg<UpdateXor<T>>;
+macro_rules! map_monoid_struct {
+    ($name:ident, $alias:ident) => {
+        pub struct $name<T>(PhantomData<T>);
+        pub type $alias<T> = LazySeg<$name<T>>;
+    };
+}
+map_monoid_struct!(AddMax,      LazySegAddMax);
+map_monoid_struct!(AddMin,      LazySegAddMin);
+map_monoid_struct!(AddSum,      LazySegAddSum);
+map_monoid_struct!(UpdateMax,   LazySegUpdateMax);
+map_monoid_struct!(UpdateMin,   LazySegUpdateMin);
+map_monoid_struct!(UpdateBitOr, LazySegUpdateBitOr);
+map_monoid_struct!(UpdateBitAnd,LazySegUpdateBitAnd);
+map_monoid_struct!(UpdateGcd,   LazySegUpdateGcd);
+map_monoid_struct!(UpdateSum,   LazySegUpdateSum);
+map_monoid_struct!(UpdateXor,   LazySegUpdateXor);
 
 impl<T: PrimInt + Bounded + Default> MapMonoid for AddMax<T> {
     type M = Max<T>;
