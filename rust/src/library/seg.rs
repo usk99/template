@@ -27,17 +27,18 @@ pub struct Seg<M: Monoid> {
     d: Vec<M::S>,
 }
 impl<M: Monoid> Seg<M> {
-    /// 単位元初期化
-    pub fn new(n: usize) -> Seg<M> {
-        assert!(n > 0, "Seg::new(0) は許可されていません");
+    pub fn new(v: &[M::S]) -> Seg<M> {
+        let n = v.len();
+        assert!(n > 0);
         let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
-        Self {
-            n,
-            size,
-            log,
-            d: vec![M::identity(); 2 * size],
+        let mut d = vec![M::identity(); 2 * size];
+        d[size..][..n].clone_from_slice(v);
+        let mut ret = Self { n, size, log, d };
+        for i in (1..size).rev() {
+            ret.update(i);
         }
+        ret
     }
 
     /// 葉から更新
@@ -160,27 +161,6 @@ impl<M: Monoid> Seg<M> {
         0
     }
 }
-impl<M: Monoid> From<Vec<M::S>> for Seg<M> {
-    fn from(v: Vec<M::S>) -> Self {
-        let n = v.len();
-        assert!(n > 0, "Seg::from(vec) には1要素以上必要です");
-        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
-        let size = 1 << log;
-        let mut d = vec![M::identity(); 2 * size];
-        d[size..][..n].clone_from_slice(&v);
-        let mut ret = Seg { n, size, log, d };
-        for i in (1..size).rev() {
-            ret.update(i);
-        }
-        ret
-    }
-}
-impl<M: Monoid> FromIterator<M::S> for Seg<M> {
-    fn from_iter<T: IntoIterator<Item = M::S>>(iter: T) -> Self {
-        let v = iter.into_iter().collect::<Vec<_>>();
-        v.into()
-    }
-}
 impl<M: Monoid> Index<usize> for Seg<M> {
     type Output = M::S;
     fn index(&self, index: usize) -> &Self::Output {
@@ -265,23 +245,25 @@ pub struct LazySeg<F: MapMonoid> {
     lz: Vec<F::F>,
 }
 impl<F: MapMonoid> LazySeg<F> {
-    /// 単位元初期化
-    ///
-    /// # 注意
-    /// SumLen (区間加算区間和) のように「長さ」が必要なモノイドの場合、
-    /// このメソッドで初期化すると長さが 0 になり、加算が反映されません。
-    /// 代わりに `new_with_size` や `from_values` を使用してください。
-    pub fn new(n: usize) -> Self {
-        assert!(n > 0, "LazySeg::new(0) は許可されていません");
+    pub fn new(v: &[<F::M as Monoid>::S]) -> Self {
+        let n = v.len();
+        assert!(n > 0);
         let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
         let size = 1 << log;
-        Self {
+        let mut d = vec![F::M::identity(); 2 * size];
+        let lz = vec![F::identity_map(); size];
+        d[size..(size + n)].clone_from_slice(v);
+        let mut ret = Self {
             n,
             size,
             log,
-            d: vec![F::M::identity(); 2 * size],
-            lz: vec![F::identity_map(); size],
+            d,
+            lz,
+        };
+        for i in (1..size).rev() {
+            ret.update(i);
         }
+        ret
     }
 
     /// 葉の更新
@@ -490,26 +472,10 @@ impl<F: MapMonoid> LazySeg<F> {
         }
     }
 }
-impl<F: MapMonoid> From<Vec<<F::M as Monoid>::S>> for LazySeg<F> {
-    fn from(v: Vec<<F::M as Monoid>::S>) -> Self {
-        let n = v.len();
-        assert!(n > 0, "LazySeg::from(vec) には1要素以上必要です");
-        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
-        let size = 1 << log;
-        let mut d = vec![F::M::identity(); 2 * size];
-        let lz = vec![F::identity_map(); size];
-        d[size..(size + n)].clone_from_slice(&v);
-        let mut ret = LazySeg {
-            n,
-            size,
-            log,
-            d,
-            lz,
-        };
-        for i in (1..size).rev() {
-            ret.update(i);
-        }
-        ret
+impl<M: MapMonoid> Index<usize> for LazySeg<M> {
+    type Output = <M::M as Monoid>::S;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.d[index + self.size]
     }
 }
 
@@ -554,119 +520,53 @@ define_map_monoid!(
     AddMinI, LazySegAddMinI, MinI, isize, 0, |f, g| f + g, |f, x| x + f;
     AddSumI, LazySegAddSumI, SumLenI, isize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
 );
-define_map_monoid!(
-    // -------------------------------------------------------
-    // 区間更新 (Update) 系
-    // -------------------------------------------------------
-    // 合成: 新しい値(f)がSomeなら上書き、Noneなら古い値(g)を維持
-    // 作用: 操作(f)がSomeならその値にする、Noneなら元の値(x)を維持
-
-    // 区間更新・区間最大値
-    UpdateMax, LazySegUpdateMax, Max, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // 区間更新・区間最小値
-    UpdateMin, LazySegUpdateMin, Min, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // 区間更新・区間BitOR (v | v = v なので長さ不要)
-    UpdateBitOr, LazySegUpdateBitOr, BitOr, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // 区間更新・区間BitAND (v & v = v なので長さ不要)
-    UpdateBitAnd, LazySegUpdateBitAnd, BitAnd, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // 区間更新・区間GCD (gcd(v, v) = v なので長さ不要)
-    UpdateGcd, LazySegUpdateGcd, Gcd, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // 区間更新 (Update) 系 (isize)
-    UpdateMaxI, LazySegUpdateMaxI, MaxI, Option<isize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    UpdateMinI, LazySegUpdateMinI, MinI, Option<isize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { *v } else { *x };
-
-    // -------------------------------------------------------
-    // 特殊形: 長さが計算に絡むもの (Sum, Xor)
-    // -------------------------------------------------------
-
-    // 区間更新・区間和
-    // 値を v に変えると、和は v * len になる
-    UpdateSum, LazySegUpdateSum, SumLen, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x };
-
-    // 区間更新・区間XOR
-    // 値を v に変えると、XOR和は「長さが偶数なら0、奇数ならv」になる
-    UpdateXor, LazySegUpdateXor, XorLen, Option<usize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { (if x.1 % 2 == 0 { 0 } else { *v }, x.1) } else { *x };
-
-    // 区間更新・区間和 (isize)
-    UpdateSumI, LazySegUpdateSumI, SumLenI, Option<isize>, None,
-    |f, g| if f.is_some() { *f } else { *g },
-    |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x };
+// 区間更新系: composition/mappingが全種類同一なのでまとめる
+// 合成: 新しい値(f)がSomeなら上書き、Noneなら古い値(g)を維持
+// 作用: 操作(f)がSomeならその値にする、Noneなら元の値(x)を維持
+macro_rules! define_update_monoid {
+    ($($name:ident, $alias:ident, $monoid:ty, $val_type:ty, |$fv:ident, $xv:ident| $mapping:expr);* $(;)?) => {
+        define_map_monoid!($(
+            $name, $alias, $monoid, Option<$val_type>, None,
+            |f, g| if f.is_some() { *f } else { *g },
+            |$fv, $xv| $mapping
+        );*);
+    };
+}
+define_update_monoid!(
+    UpdateMax,    LazySegUpdateMax,    Max,    usize, |f, x| if let Some(v) = f { *v } else { *x };
+    UpdateMin,    LazySegUpdateMin,    Min,    usize, |f, x| if let Some(v) = f { *v } else { *x };
+    UpdateBitOr,  LazySegUpdateBitOr,  BitOr,  usize, |f, x| if let Some(v) = f { *v } else { *x }; // v | v = v
+    UpdateBitAnd, LazySegUpdateBitAnd, BitAnd, usize, |f, x| if let Some(v) = f { *v } else { *x }; // v & v = v
+    UpdateGcd,    LazySegUpdateGcd,    Gcd,    usize, |f, x| if let Some(v) = f { *v } else { *x }; // gcd(v,v) = v
+    UpdateMaxI,   LazySegUpdateMaxI,   MaxI,   isize, |f, x| if let Some(v) = f { *v } else { *x };
+    UpdateMinI,   LazySegUpdateMinI,   MinI,   isize, |f, x| if let Some(v) = f { *v } else { *x };
+    UpdateSum,    LazySegUpdateSum,    SumLen, usize, |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x }; // 和はv*len
+    UpdateXor,    LazySegUpdateXor,    XorLen, usize, |f, x| if let Some(v) = f { (if x.1 % 2 == 0 { 0 } else { *v }, x.1) } else { *x }; // XOR和
+    UpdateSumI,   LazySegUpdateSumI,   SumLenI, isize, |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x }; // 和はv*len
 );
 
-// 長さ付きモノイド用の便利メソッド (usize)
+// 長さ付きモノイド用の便利メソッド
 macro_rules! impl_value_methods {
-    ($seg_type:ty) => {
+    ($seg_type:ty, $val_type:ty) => {
         impl $seg_type {
-            /// 値のみで初期化（長さは自動で1に設定）
-            pub fn from_values(values: Vec<usize>) -> Self {
-                Self::from(values.into_iter().map(|v| (v, 1)).collect::<Vec<_>>())
+            pub fn from_values(values: &[$val_type]) -> Self {
+                Self::new(&values.iter().map(|&v| (v, 1)).collect::<Vec<_>>())
             }
-            /// サイズだけ指定して0初期化
             pub fn new_with_size(n: usize) -> Self {
-                Self::from_values(vec![0; n])
+                Self::new(&vec![(0, 1); n])
             }
-            /// 値のみで set（長さは自動で1）
-            pub fn set_value(&mut self, p: usize, val: usize) {
+            pub fn set_value(&mut self, p: usize, val: $val_type) {
                 self.set(p, (val, 1));
             }
-            /// 値のみ取得
-            pub fn get_value(&mut self, p: usize) -> usize {
+            pub fn get_value(&mut self, p: usize) -> $val_type {
                 self.get(p).0
             }
         }
     };
 }
 
-// 長さ付きモノイド用の便利メソッド (isize)
-macro_rules! impl_ivalue_methods {
-    ($seg_type:ty) => {
-        impl $seg_type {
-            /// 値のみで初期化（長さは自動で1に設定）
-            pub fn from_values(values: Vec<isize>) -> Self {
-                Self::from(values.into_iter().map(|v| (v, 1)).collect::<Vec<_>>())
-            }
-            /// サイズだけ指定して0初期化
-            pub fn new_with_size(n: usize) -> Self {
-                Self::from_values(vec![0; n])
-            }
-            /// 値のみで set（長さは自動で1）
-            pub fn set_value(&mut self, p: usize, val: isize) {
-                self.set(p, (val, 1));
-            }
-            /// 値のみ取得
-            pub fn get_value(&mut self, p: usize) -> isize {
-                self.get(p).0
-            }
-        }
-    };
-}
-
-impl_value_methods!(LazySegAddSum);
-impl_value_methods!(LazySegUpdateSum);
-impl_value_methods!(LazySegUpdateXor);
-impl_ivalue_methods!(LazySegAddSumI);
-impl_ivalue_methods!(LazySegUpdateSumI);
+impl_value_methods!(LazySegAddSum, usize);
+impl_value_methods!(LazySegUpdateSum, usize);
+impl_value_methods!(LazySegUpdateXor, usize);
+impl_value_methods!(LazySegAddSumI, isize);
+impl_value_methods!(LazySegUpdateSumI, isize);
