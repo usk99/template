@@ -172,6 +172,33 @@ impl<M: Monoid> Index<usize> for Seg<M> {
 // 具象モノイド (ジェネリック)
 // =====================================================
 
+macro_rules! impl_monoids {
+    (@impl $bound:tt, [$( ($name:ident, $s:ty, $id:expr, |$a:ident, $b:ident| $op:expr) ),* $(,)?]) => {
+        $( impl_monoids!(@one $bound, $name, $s, $id, |$a, $b| $op); )*
+    };
+    (@one [$($b:tt)*], $name:ident, $s:ty, $id:expr, |$a:ident, $bv:ident| $op:expr) => {
+        impl<T: $($b)*> Monoid for $name<T> {
+            type S = $s;
+            #[inline] fn identity() -> Self::S { $id }
+            #[inline] fn binary_operation($a: Self::S, $bv: Self::S) -> Self::S { $op }
+        }
+    };
+}
+impl_monoids!(@impl [PrimInt + Default], [
+    (Max,    T,      T::min_value(),         |a, b| a.max(b)),
+    (Min,    T,      T::max_value(),         |a, b| a.min(b)),
+    (Sum,    T,      T::zero(),              |a, b| a + b),
+    (Xor,    T,      T::zero(),              |a, b| a ^ b),
+    (BitOr,  T,      T::zero(),              |a, b| a | b),
+    (BitAnd, T,      T::max_value(),         |a, b| a & b),
+    (SumLen, (T, T), (T::zero(), T::zero()), |a, b| (a.0 + b.0, a.1 + b.1)),
+    (XorLen, (T, T), (T::zero(), T::zero()), |a, b| (a.0 ^ b.0, a.1 + b.1)),
+]);
+impl_monoids!(@impl [Integer + PrimInt + Default], [
+    (Gcd, T, T::zero(), |a, b| a.gcd(&b)),
+    (Lcm, T, T::one(),  |a, b| a.lcm(&b)),
+]);
+
 macro_rules! monoid_struct {
     ($name:ident, $alias:ident) => {
         pub struct $name<T>(PhantomData<T>);
@@ -181,127 +208,16 @@ macro_rules! monoid_struct {
         pub struct $name<T>(PhantomData<T>);
     };
 }
-monoid_struct!(Max,    SegMax);
-monoid_struct!(Min,    SegMin);
-monoid_struct!(Sum,    SegSum);
-monoid_struct!(Xor,    SegXor);
-monoid_struct!(BitOr,  SegBitOr);
+monoid_struct!(Max, SegMax);
+monoid_struct!(Min, SegMin);
+monoid_struct!(Sum, SegSum);
+monoid_struct!(Xor, SegXor);
+monoid_struct!(BitOr, SegBitOr);
 monoid_struct!(BitAnd, SegBitAnd);
-monoid_struct!(Gcd,    SegGcd);
-monoid_struct!(Lcm,    SegLcm);
 monoid_struct!(SumLen);
 monoid_struct!(XorLen);
-
-impl<T: PrimInt + Bounded + Default> Monoid for Max<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::min_value()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a.max(b)
-    }
-}
-impl<T: PrimInt + Bounded + Default> Monoid for Min<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::max_value()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a.min(b)
-    }
-}
-impl<T: PrimInt + Default> Monoid for Sum<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a + b
-    }
-}
-impl<T: PrimInt + Default> Monoid for Xor<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a ^ b
-    }
-}
-impl<T: PrimInt + Default> Monoid for BitOr<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a | b
-    }
-}
-impl<T: PrimInt + Bounded + Default> Monoid for BitAnd<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::max_value()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a & b
-    }
-}
-impl<T: Integer + PrimInt + Default> Monoid for Gcd<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a.gcd(&b)
-    }
-}
-impl<T: Integer + PrimInt + Default> Monoid for Lcm<T> {
-    type S = T;
-    #[inline]
-    fn identity() -> T {
-        T::one()
-    }
-    #[inline]
-    fn binary_operation(a: T, b: T) -> T {
-        a.lcm(&b)
-    }
-}
-impl<T: PrimInt + Default> Monoid for SumLen<T> {
-    type S = (T, T);
-    #[inline]
-    fn identity() -> (T, T) {
-        (T::zero(), T::zero())
-    }
-    #[inline]
-    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
-        (a.0 + b.0, a.1 + b.1)
-    }
-}
-impl<T: PrimInt + Default> Monoid for XorLen<T> {
-    type S = (T, T);
-    #[inline]
-    fn identity() -> (T, T) {
-        (T::zero(), T::zero())
-    }
-    #[inline]
-    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
-        (a.0 ^ b.0, a.1 + b.1)
-    }
-}
+monoid_struct!(Gcd, SegGcd);
+monoid_struct!(Lcm, SegLcm);
 
 // =====================================================
 // LazySeg (遅延セグ木)
@@ -578,18 +494,18 @@ macro_rules! map_monoid_struct {
         pub type $alias<T> = LazySeg<$name<T>>;
     };
 }
-map_monoid_struct!(AddMax,      LazySegAddMax);
-map_monoid_struct!(AddMin,      LazySegAddMin);
-map_monoid_struct!(AddSum,      LazySegAddSum);
-map_monoid_struct!(UpdateMax,   LazySegUpdateMax);
-map_monoid_struct!(UpdateMin,   LazySegUpdateMin);
+map_monoid_struct!(AddMax, LazySegAddMax);
+map_monoid_struct!(AddMin, LazySegAddMin);
+map_monoid_struct!(AddSum, LazySegAddSum);
+map_monoid_struct!(UpdateMax, LazySegUpdateMax);
+map_monoid_struct!(UpdateMin, LazySegUpdateMin);
 map_monoid_struct!(UpdateBitOr, LazySegUpdateBitOr);
-map_monoid_struct!(UpdateBitAnd,LazySegUpdateBitAnd);
-map_monoid_struct!(UpdateGcd,   LazySegUpdateGcd);
-map_monoid_struct!(UpdateSum,   LazySegUpdateSum);
-map_monoid_struct!(UpdateXor,   LazySegUpdateXor);
+map_monoid_struct!(UpdateBitAnd, LazySegUpdateBitAnd);
+map_monoid_struct!(UpdateGcd, LazySegUpdateGcd);
+map_monoid_struct!(UpdateSum, LazySegUpdateSum);
+map_monoid_struct!(UpdateXor, LazySegUpdateXor);
 
-impl<T: PrimInt + Bounded + Default> MapMonoid for AddMax<T> {
+impl<T: PrimInt + Default> MapMonoid for AddMax<T> {
     type M = Max<T>;
     type F = T;
     #[inline]
@@ -605,7 +521,7 @@ impl<T: PrimInt + Bounded + Default> MapMonoid for AddMax<T> {
         *x + *f
     }
 }
-impl<T: PrimInt + Bounded + Default> MapMonoid for AddMin<T> {
+impl<T: PrimInt + Default> MapMonoid for AddMin<T> {
     type M = Min<T>;
     type F = T;
     #[inline]
@@ -637,7 +553,7 @@ impl<T: PrimInt + Default> MapMonoid for AddSum<T> {
         (x.0 + *f * x.1, x.1)
     }
 }
-impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateMax<T> {
+impl<T: PrimInt + Default> MapMonoid for UpdateMax<T> {
     type M = Max<T>;
     type F = Option<T>;
     #[inline]
@@ -653,7 +569,7 @@ impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateMax<T> {
         if let Some(v) = f { *v } else { *x }
     }
 }
-impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateMin<T> {
+impl<T: PrimInt + Default> MapMonoid for UpdateMin<T> {
     type M = Min<T>;
     type F = Option<T>;
     #[inline]
@@ -685,7 +601,7 @@ impl<T: PrimInt + Default> MapMonoid for UpdateBitOr<T> {
         if let Some(v) = f { *v } else { *x }
     }
 }
-impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateBitAnd<T> {
+impl<T: PrimInt + Default> MapMonoid for UpdateBitAnd<T> {
     type M = BitAnd<T>;
     type F = Option<T>;
     #[inline]
