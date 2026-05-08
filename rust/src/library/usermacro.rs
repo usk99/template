@@ -19,12 +19,7 @@ macro_rules! max {
 macro_rules! chmin {
     ($base:expr, $($cmps:expr),+ $(,)*) => {{
         let cmp_min = min!($($cmps),+);
-        if $base > cmp_min {
-            $base = cmp_min;
-            true
-        } else {
-            false
-        }
+        ($base > cmp_min).then(|| $base = cmp_min).is_some()
     }};
 }
 
@@ -33,11 +28,13 @@ macro_rules! chmin {
 macro_rules! chmax {
     ($base:expr, $($cmps:expr),+ $(,)*) => {{
         let cmp_max = max!($($cmps),+);
-        if $base < cmp_max {
-            $base = cmp_max;
-            true
-        } else {
-            false
-        }
+        ($base < cmp_max).then(|| $base = cmp_max).is_some()
     }};
+}
+
+/// 二次元vec宣言
+macro_rules! vv {
+    ($e:expr; $n:expr, $m:expr) => {
+        vec![vec![$e; $m]; $n]
+    };
 }

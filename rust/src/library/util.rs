@@ -1,5 +1,8 @@
 // 便利
 
+pub const MOD1: usize = 1_000_000_007;
+pub const MOD9: usize = 998_244_353;
+
 pub const ABC: &[char; 52] = &[
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
     'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
