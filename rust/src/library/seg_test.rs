@@ -28,13 +28,13 @@ fn test_min_max() {
 fn test_bitwise() {
     let data = [1usize, 2, 4, 7]; // [001, 010, 100, 111]
     let seg_xor = SegXor::new(&data);
-    let seg_or  = SegBitOr::new(&data);
+    let seg_or = SegBitOr::new(&data);
     let seg_and = SegBitAnd::new(&data);
-    assert_eq!(seg_xor.get_range(0, 4), 0);  // 1^2^4^7=0
-    assert_eq!(seg_xor.get_range(0, 2), 3);  // 1^2=3
-    assert_eq!(seg_or.get_range(0, 4), 7);   // 1|2|4|7=7
-    assert_eq!(seg_and.get_range(0, 4), 0);  // 1&2&4&7=0
-    assert_eq!(seg_and.get_range(2, 4), 4);  // 4&7=4
+    assert_eq!(seg_xor.get_range(0, 4), 0); // 1^2^4^7=0
+    assert_eq!(seg_xor.get_range(0, 2), 3); // 1^2=3
+    assert_eq!(seg_or.get_range(0, 4), 7); // 1|2|4|7=7
+    assert_eq!(seg_and.get_range(0, 4), 0); // 1&2&4&7=0
+    assert_eq!(seg_and.get_range(2, 4), 4); // 4&7=4
     assert_eq!(seg_and.get_range(0, 0), usize::MAX); // 単位元
 }
 #[test]
@@ -42,12 +42,12 @@ fn test_gcd_lcm() {
     let data = [12usize, 18, 6];
     let seg_gcd = SegGcd::new(&data);
     let seg_lcm = SegLcm::new(&data);
-    assert_eq!(seg_gcd.get_range(0, 2), 6);  // gcd(12,18)=6
-    assert_eq!(seg_gcd.get_range(0, 3), 6);  // gcd(12,18,6)=6
+    assert_eq!(seg_gcd.get_range(0, 2), 6); // gcd(12,18)=6
+    assert_eq!(seg_gcd.get_range(0, 3), 6); // gcd(12,18,6)=6
     assert_eq!(seg_lcm.get_range(0, 2), 36); // lcm(12,18)=36
     assert_eq!(seg_lcm.get_range(1, 3), 18); // lcm(18,6)=18
-    assert_eq!(seg_gcd.get_range(0, 0), 0);  // 単位元
-    assert_eq!(seg_lcm.get_range(0, 0), 1);  // 単位元
+    assert_eq!(seg_gcd.get_range(0, 0), 0); // 単位元
+    assert_eq!(seg_lcm.get_range(0, 0), 1); // 単位元
 }
 
 // -------------------------------------------------------------------------
@@ -115,7 +115,7 @@ fn stress_test() {
 // -------------------------------------------------------------------------
 #[test]
 fn test_lazy_add_sum() {
-    let mut seg = LazySegAddSum::new(&vec![(0usize, 1usize); 10]);
+    let mut seg = LazySegAddSum::new(&[(0usize, 1usize); 10]);
     seg.apply_range(0, 5, 10);
     assert_eq!(seg.get_range(0, 10).0, 50);
     seg.apply_range(2, 6, 5);
@@ -125,7 +125,7 @@ fn test_lazy_add_sum() {
 }
 #[test]
 fn test_lazy_add_max() {
-    let mut seg = LazySegAddMax::new(&vec![0usize; 5]);
+    let mut seg = LazySegAddMax::new(&[0usize; 5]);
     seg.apply_range(0, 3, 10); // [10, 10, 10, 0, 0]
     seg.apply_range(2, 5, 20); // [10, 10, 30, 20, 20]
     assert_eq!(seg.get_range(0, 5), 30);
@@ -140,7 +140,7 @@ fn test_lazy_add_max() {
 // -------------------------------------------------------------------------
 #[test]
 fn test_lazy_update_min() {
-    let mut seg = LazySegUpdateMin::new(&vec![usize::MAX; 5]);
+    let mut seg = LazySegUpdateMin::new(&[usize::MAX; 5]);
     seg.apply_range(0, 5, Some(100));
     assert_eq!(seg.get_range(0, 5), 100);
     seg.apply_range(1, 4, Some(10));
@@ -151,7 +151,7 @@ fn test_lazy_update_min() {
 }
 #[test]
 fn test_lazy_update_sum() {
-    let mut seg = LazySegUpdateSum::new(&vec![(0usize, 1usize); 5]);
+    let mut seg = LazySegUpdateSum::new(&[(0usize, 1usize); 5]);
     seg.apply_range(0, 5, Some(10));
     assert_eq!(seg.get_range(0, 5).0, 50);
     seg.apply_range(0, 3, Some(5)); // [5,5,5,10,10]
@@ -159,7 +159,7 @@ fn test_lazy_update_sum() {
 }
 #[test]
 fn test_lazy_update_xor() {
-    let mut seg = LazySegUpdateXor::new(&vec![(0usize, 1usize); 5]);
+    let mut seg = LazySegUpdateXor::new(&[(0usize, 1usize); 5]);
     seg.apply_range(0, 5, Some(3));
     assert_eq!(seg.get_range(0, 5).0, 3); // 長さ5(奇数) -> 3
     assert_eq!(seg.get_range(0, 4).0, 0); // 長さ4(偶数) -> 0
@@ -170,7 +170,7 @@ fn test_lazy_update_xor() {
 // -------------------------------------------------------------------------
 #[test]
 fn test_lazy_binary_search() {
-    let mut seg = LazySegAddSum::new(&vec![(0usize, 1usize); 10]);
+    let mut seg = LazySegAddSum::new(&[(0usize, 1usize); 10]);
     seg.apply_range(0, 10, 1); // [1, 1, ..., 1]
     assert_eq!(seg.max_right(0, |s| s.0 < 5), 4);
     assert_eq!(seg.min_left(10, |s| s.0 <= 3), 7);
@@ -240,7 +240,11 @@ fn stress_test_update_min() {
             let l = rng.gen_range(0..n);
             let r = rng.gen_range(l..n + 1);
             let seg_res = seg.get_range(l, r);
-            let vec_res = if l == r { usize::MAX } else { *vec[l..r].iter().min().unwrap() };
+            let vec_res = if l == r {
+                usize::MAX
+            } else {
+                *vec[l..r].iter().min().unwrap()
+            };
             assert_eq!(seg_res, vec_res, "UpdateMin Mismatch at query {}..{}", l, r);
         }
     }
@@ -256,114 +260,6 @@ fn test_edge_cases() {
     let seg = SegMin::new(&[usize::MAX]);
     assert_eq!(seg.get_range(0, 1), usize::MAX);
 }
-#[test]
-fn test_value_methods() {
-    // LazySegAddSum
-    let mut seg = LazySegAddSum::from_values(&[1usize, 2, 3, 4, 5]);
-    assert_eq!(seg.get_range(0, 5).0, 15);
-    seg.set_value(0, 10);
-    assert_eq!(seg.get_range(0, 5).0, 24);
-    assert_eq!(seg.get_value(0), 10);
-    assert_eq!(seg.get_value(1), 2);
-    seg.apply_range(1, 4, 5);
-    assert_eq!(seg.get_range(0, 5).0, 39);
-
-    let mut seg2 = LazySegAddSum::new_with_size(3);
-    assert_eq!(seg2.get_range(0, 3).0, 0);
-    seg2.apply_range(0, 3, 10);
-    assert_eq!(seg2.get_range(0, 3).0, 30);
-
-    // LazySegUpdateSum
-    let mut seg = LazySegUpdateSum::from_values(&[1usize, 2, 3, 4, 5]);
-    assert_eq!(seg.get_range(0, 5).0, 15);
-    seg.apply_range(1, 4, Some(10));
-    assert_eq!(seg.get_range(0, 5).0, 36); // 1+10+10+10+5
-    seg.set_value(0, 100);
-    assert_eq!(seg.get_value(0), 100);
-    assert_eq!(seg.get_range(0, 5).0, 135);
-
-    // LazySegUpdateXor
-    let mut seg = LazySegUpdateXor::from_values(&[1usize, 2, 4, 8, 16]);
-    assert_eq!(seg.get_range(0, 5).0, 31); // 1^2^4^8^16
-    seg.apply_range(0, 5, Some(7));
-    assert_eq!(seg.get_range(0, 5).0, 7);  // 奇数個 -> 7
-    assert_eq!(seg.get_range(0, 4).0, 0);  // 偶数個 -> 0
-    seg.set_value(0, 3);
-    assert_eq!(seg.get_value(0), 3);
-    assert_eq!(seg.get_range(0, 5).0, 3);
-}
-#[test]
-fn test_value_methods_stress() {
-    let n = 30;
-    let q = 1000;
-    let mut rng = Rng::new(54321);
-
-    let mut seg = LazySegAddSum::new_with_size(n);
-    let mut vec = vec![0usize; n];
-
-    for _ in 0..q {
-        let ty = rng.gen_range(0..3);
-        if ty == 0 {
-            let l = rng.gen_range(0..n);
-            let r = rng.gen_range(l..n + 1);
-            let val = rng.gen_range(0..100);
-            seg.apply_range(l, r, val);
-            for item in vec.iter_mut().take(r).skip(l) {
-                *item += val;
-            }
-        } else if ty == 1 {
-            let i = rng.gen_range(0..n);
-            let val = rng.gen_range(0..100);
-            seg.set_value(i, val);
-            vec[i] = val;
-        } else {
-            let l = rng.gen_range(0..n);
-            let r = rng.gen_range(l..n + 1);
-            let seg_res = seg.get_range(l, r);
-            let vec_res = vec[l..r].iter().sum::<usize>();
-            assert_eq!(seg_res.0, vec_res, "ValueMethod Mismatch at {}..{}", l, r);
-        }
-    }
-}
-#[test]
-fn test_value_methods_edge_cases() {
-    let mut seg = LazySegAddSum::from_values(&[42usize]);
-    assert_eq!(seg.get_value(0), 42);
-    seg.set_value(0, 100);
-    assert_eq!(seg.get_value(0), 100);
-    seg.apply_range(0, 1, 50);
-    assert_eq!(seg.get_range(0, 1).0, 150);
-
-    let mut seg = LazySegAddSum::new_with_size(5);
-    assert_eq!(seg.get_range(0, 5).0, 0);
-
-    let mut seg = LazySegUpdateSum::from_values(&[10usize, 20, 30, 40, 50]);
-    seg.apply_range(1, 3, Some(100)); // [10, 100, 100, 40, 50]
-    assert_eq!(seg.get_range(0, 5).0, 300);
-    assert_eq!(seg.get_range(1, 3).0, 200);
-    assert_eq!(seg.get_range(0, 1).0, 10);
-    assert_eq!(seg.get_range(4, 5).0, 50);
-}
-#[test]
-fn test_value_methods_xor_logic() {
-    let mut seg = LazySegUpdateXor::new_with_size(6);
-    seg.apply_range(0, 6, Some(5));
-    assert_eq!(seg.get_range(0, 2).0, 0); // 偶数個 -> 0
-    assert_eq!(seg.get_range(0, 4).0, 0);
-    assert_eq!(seg.get_range(0, 6).0, 0);
-    assert_eq!(seg.get_range(0, 1).0, 5); // 奇数個 -> 5
-    assert_eq!(seg.get_range(0, 3).0, 5);
-    assert_eq!(seg.get_range(0, 5).0, 5);
-
-    let mut seg = LazySegUpdateXor::from_values(&[1usize, 2, 3, 4]);
-    seg.apply_range(0, 2, Some(7));  // [7, 7, 3, 4]
-    seg.apply_range(2, 4, Some(15)); // [7, 7, 15, 15]
-    assert_eq!(seg.get_range(0, 2).0, 0);  // 7^7
-    assert_eq!(seg.get_range(2, 4).0, 0);  // 15^15
-    assert_eq!(seg.get_range(0, 4).0, 0);  // 7^7^15^15
-    assert_eq!(seg.get_range(0, 3).0, 15); // 7^7^15=15
-    assert_eq!(seg.get_range(1, 4).0, 7);  // 7^15^15=7
-}
 
 // -------------------------------------------------------------------------
 // isize 版のテスト
@@ -371,33 +267,34 @@ fn test_value_methods_xor_logic() {
 #[test]
 fn test_isize_basic() {
     let data: &[isize] = &[-3, 1, -5, 4, -2];
-    let seg = SegMaxI::new(data);
+    let seg = SegMax::<isize>::new(data);
     assert_eq!(seg.get_range(0, 5), 4);
     assert_eq!(seg.get_range(0, 3), 1);
     assert_eq!(seg.get_range(0, 0), isize::MIN); // 単位元
 
-    let seg = SegMinI::new(data);
+    let seg = SegMin::<isize>::new(data);
     assert_eq!(seg.get_range(0, 5), -5);
     assert_eq!(seg.get_range(3, 5), -2);
     assert_eq!(seg.get_range(0, 0), isize::MAX); // 単位元
 
-    let seg = SegSumI::new(data);
+    let seg = SegSum::<isize>::new(data);
     assert_eq!(seg.get_range(0, 5), -5); // -3+1-5+4-2
-    assert_eq!(seg.get_range(1, 4), 0);  // 1-5+4
+    assert_eq!(seg.get_range(1, 4), 0); // 1-5+4
 }
 
 #[test]
 fn test_isize_lazy_add() {
     let data: &[isize] = &[3, -1, 4, -1, 5];
-    let mut seg = LazySegAddMaxI::new(data);
+    let mut seg = LazySegAddMax::<isize>::new(data);
     seg.apply_range(0, 5, -10);
     assert_eq!(seg.get_range(0, 5), -5); // 5-10
 
-    let mut seg = LazySegAddMinI::new(data);
+    let mut seg = LazySegAddMin::<isize>::new(data);
     seg.apply_range(0, 5, -10);
     assert_eq!(seg.get_range(0, 5), -11); // -1-10
 
-    let mut seg = LazySegAddSumI::from_values(&[1isize, -2, 3, -4, 5]);
+    let init: Vec<(isize, isize)> = [1isize, -2, 3, -4, 5].iter().map(|&v| (v, 1)).collect();
+    let mut seg = LazySegAddSum::<isize>::new(&init);
     assert_eq!(seg.get_range(0, 5).0, 3); // 1-2+3-4+5
     seg.apply_range(0, 5, -1);
     assert_eq!(seg.get_range(0, 5).0, -2); // 3-5
@@ -407,14 +304,14 @@ fn test_isize_lazy_add() {
 
 #[test]
 fn test_isize_lazy_update() {
-    let mut seg = LazySegUpdateMaxI::new(&vec![isize::MIN; 5]);
+    let mut seg = LazySegUpdateMax::<isize>::new(&[isize::MIN; 5]);
     seg.apply_range(0, 5, Some(-100));
     assert_eq!(seg.get_range(0, 5), -100);
     seg.apply_range(2, 4, Some(50));
     assert_eq!(seg.get_range(0, 5), 50);
     assert_eq!(seg.get_range(0, 2), -100);
 
-    let mut seg = LazySegUpdateMinI::new(&vec![isize::MAX; 5]);
+    let mut seg = LazySegUpdateMin::<isize>::new(&[isize::MAX; 5]);
     seg.apply_range(0, 5, Some(100));
     assert_eq!(seg.get_range(0, 5), 100);
     seg.apply_range(1, 4, Some(-50));
@@ -423,36 +320,13 @@ fn test_isize_lazy_update() {
     seg.apply_range(0, 5, None); // 変化なし
     assert_eq!(seg.get_range(0, 5), -50);
 
-    let mut seg = LazySegUpdateSumI::from_values(&[1isize, 2, 3, 4, 5]);
+    let init: Vec<(isize, isize)> = [1isize, 2, 3, 4, 5].iter().map(|&v| (v, 1)).collect();
+    let mut seg = LazySegUpdateSum::<isize>::new(&init);
     assert_eq!(seg.get_range(0, 5).0, 15);
     seg.apply_range(0, 5, Some(-3));
     assert_eq!(seg.get_range(0, 5).0, -15);
     seg.apply_range(1, 3, Some(10));
     assert_eq!(seg.get_range(0, 5).0, -3 + 10 + 10 + (-3) + (-3)); // = 11
-}
-
-#[test]
-fn test_isize_value_methods() {
-    let mut seg = LazySegAddSumI::from_values(&[-5isize, 0, 5, -10, 10]);
-    assert_eq!(seg.get_range(0, 5).0, 0);
-    assert_eq!(seg.get_value(0), -5);
-    seg.set_value(0, -100);
-    assert_eq!(seg.get_value(0), -100);
-    assert_eq!(seg.get_range(0, 5).0, -95);
-    seg.apply_range(0, 3, 1);
-    assert_eq!(seg.get_range(0, 5).0, -92); // -95+3
-
-    let mut seg = LazySegAddSumI::new_with_size(3);
-    assert_eq!(seg.get_range(0, 3).0, 0);
-    seg.apply_range(0, 3, -7);
-    assert_eq!(seg.get_range(0, 3).0, -21);
-
-    let mut seg = LazySegUpdateSumI::from_values(&[10isize, 20, 30]);
-    seg.apply_range(0, 3, Some(-1));
-    assert_eq!(seg.get_range(0, 3).0, -3);
-    seg.set_value(1, 100);
-    assert_eq!(seg.get_value(1), 100);
-    assert_eq!(seg.get_range(0, 3).0, 98); // -1+100+(-1)
 }
 
 // -------------------------------------------------------------------------
@@ -483,16 +357,16 @@ fn test_seg_index() {
 fn test_max_right_boundary() {
     let seg = SegSum::new(&[1usize, 2, 3, 4, 5]);
     assert_eq!(seg.max_right(5, |&s| s < 100), 5); // l==n -> n
-    assert_eq!(seg.max_right(0, |&_s| true), 5);   // 全true -> n
-    assert_eq!(seg.max_right(0, |&s| s == 0), 0);  // 即false -> 0
+    assert_eq!(seg.max_right(0, |&_s| true), 5); // 全true -> n
+    assert_eq!(seg.max_right(0, |&s| s == 0), 0); // 即false -> 0
 }
 
 #[test]
 fn test_min_left_boundary() {
     let seg = SegSum::new(&[1usize, 2, 3, 4, 5]);
     assert_eq!(seg.min_left(0, |&s| s < 100), 0); // r==0 -> 0
-    assert_eq!(seg.min_left(5, |&_s| true), 0);   // 全true -> 0
-    assert_eq!(seg.min_left(5, |&s| s <= 5), 4);  // sum([4,5))=5 OK, sum([3,5))=9 NG -> 4
+    assert_eq!(seg.min_left(5, |&_s| true), 0); // 全true -> 0
+    assert_eq!(seg.min_left(5, |&s| s <= 5), 4); // sum([4,5))=5 OK, sum([3,5))=9 NG -> 4
 }
 
 // -------------------------------------------------------------------------
@@ -553,25 +427,6 @@ fn test_lazy_update_gcd() {
 }
 
 // -------------------------------------------------------------------------
-// SegSumLen / SegXorLen (Seg側の長さ付きモノイド)
-// -------------------------------------------------------------------------
-#[test]
-fn test_seg_sumlen() {
-    let seg = SegSumLen::new(&[(10usize, 1usize), (20, 1), (30, 1), (40, 1)]);
-    assert_eq!(seg.get_range(0, 4), (100, 4));
-    assert_eq!(seg.get_range(1, 3), (50, 2));
-    assert_eq!(seg.get_range(0, 0), (0, 0)); // 単位元
-}
-
-#[test]
-fn test_seg_xorlen() {
-    let seg = SegXorLen::new(&[(1usize, 1usize), (2, 1), (4, 1), (8, 1)]);
-    assert_eq!(seg.get_range(0, 4), (15, 4)); // 1^2^4^8=15
-    assert_eq!(seg.get_range(0, 2), (3, 2));  // 1^2=3
-    assert_eq!(seg.get_range(0, 0), (0, 0));  // 単位元
-}
-
-// -------------------------------------------------------------------------
 // ストレステスト: LazySegAddMin (区間加算・区間最小値)
 // -------------------------------------------------------------------------
 #[test]
@@ -603,7 +458,11 @@ fn stress_test_add_min() {
             let l = rng.gen_range(0..n);
             let r = rng.gen_range(l..n + 1);
             let seg_res = seg.get_range(l, r);
-            let vec_res = if l == r { usize::MAX } else { *vec[l..r].iter().min().unwrap() };
+            let vec_res = if l == r {
+                usize::MAX
+            } else {
+                *vec[l..r].iter().min().unwrap()
+            };
             assert_eq!(seg_res, vec_res, "AddMin Mismatch at {}..{}", l, r);
         }
     }
@@ -640,7 +499,11 @@ fn stress_test_update_max() {
             let l = rng.gen_range(0..n);
             let r = rng.gen_range(l..n + 1);
             let seg_res = seg.get_range(l, r);
-            let vec_res = if l == r { 0 } else { *vec[l..r].iter().max().unwrap() };
+            let vec_res = if l == r {
+                0
+            } else {
+                *vec[l..r].iter().max().unwrap()
+            };
             assert_eq!(seg_res, vec_res, "UpdateMax Mismatch at {}..{}", l, r);
         }
     }
@@ -655,7 +518,7 @@ fn stress_test_lazy_binary_search() {
     let q = 200;
     let mut rng = Rng::new(33333);
 
-    let mut seg = LazySegAddSum::new_with_size(n);
+    let mut seg = LazySegAddSum::new(&vec![(0usize, 1usize); n]);
     let mut vec = vec![0usize; n];
 
     for _ in 0..50 {
@@ -676,37 +539,47 @@ fn stress_test_lazy_binary_search() {
         let expected_mr = {
             let mut sum = 0;
             let mut ans = n;
-            for i in l..n {
-                sum += vec[i];
-                if sum > threshold { ans = i; break; }
+            for (i, &value) in vec.iter().enumerate().skip(l) {
+                sum += value;
+                if sum > threshold {
+                    ans = i;
+                    break;
+                }
             }
             ans
         };
         assert_eq!(
             seg.max_right(l, |s| s.0 <= threshold),
             expected_mr,
-            "max_right Mismatch: l={} threshold={}", l, threshold
+            "max_right Mismatch: l={} threshold={}",
+            l,
+            threshold
         );
 
         let expected_ml = {
             let mut sum = 0;
             let mut ans = 0;
-            for i in (0..r).rev() {
-                sum += vec[i];
-                if sum > threshold { ans = i + 1; break; }
+            for (i, &value) in vec.iter().enumerate().take(r).rev() {
+                sum += value;
+                if sum > threshold {
+                    ans = i + 1;
+                    break;
+                }
             }
             ans
         };
         assert_eq!(
             seg.min_left(r, |s| s.0 <= threshold),
             expected_ml,
-            "min_left Mismatch: r={} threshold={}", r, threshold
+            "min_left Mismatch: r={} threshold={}",
+            r,
+            threshold
         );
     }
 }
 
 // -------------------------------------------------------------------------
-// ストレステスト: UpdateSumI (isize)
+// ストレステスト: UpdateSum<isize> (isize 区間更新・区間和)
 // -------------------------------------------------------------------------
 #[test]
 fn stress_test_update_sum_i() {
@@ -714,7 +587,7 @@ fn stress_test_update_sum_i() {
     let q = 1000;
     let mut rng = Rng::new(77777);
 
-    let mut seg = LazySegUpdateSumI::from_values(&vec![0isize; n]);
+    let mut seg = LazySegUpdateSum::<isize>::new(&vec![(0isize, 1isize); n]);
     let mut vec = vec![0isize; n];
 
     for _ in 0..q {
@@ -730,7 +603,7 @@ fn stress_test_update_sum_i() {
         } else if ty == 1 {
             let i = rng.gen_range(0..n);
             let val = rng.gen_range(0..100) as isize - 50;
-            seg.set_value(i, val);
+            seg.set(i, (val, 1));
             vec[i] = val;
         } else {
             let l = rng.gen_range(0..n);

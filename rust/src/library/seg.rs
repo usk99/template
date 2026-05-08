@@ -1,5 +1,5 @@
-use num::Integer;
-use std::ops::*;
+use num::{Bounded, Integer, PrimInt};
+use std::{marker::PhantomData, ops::*};
 
 // =====================================================
 // Seg (通常セグ木)
@@ -168,51 +168,140 @@ impl<M: Monoid> Index<usize> for Seg<M> {
     }
 }
 
-macro_rules! define_monoid {
-    ($(
-            $name:ident,       // 構造体名
-            $alias:ident,      // エイリアス名
-            $type:ty,          // 扱う型
-            $id:expr,          // 単位元
-            |$a:ident, $b:ident| $op:expr // 二項演算の処理
-        );* $(;)?) => {
-    $(
-        #[derive(Clone)]
-        pub struct $name;
-        impl Monoid for $name {
-            type S = $type;
-            #[inline] // セグ木では頻繁に呼ばれるのでインライン化推奨
-            fn identity() -> Self::S {
-                $id
-            }
-            #[inline]
-            fn binary_operation($a: Self::S, $b: Self::S) -> Self::S {
-                $op
-            }
-        }
-        pub type $alias = Seg<$name>;
-    )*};
+// =====================================================
+// 具象モノイド (ジェネリック)
+// =====================================================
+
+pub struct Max<T>(PhantomData<T>);
+pub struct Min<T>(PhantomData<T>);
+pub struct Sum<T>(PhantomData<T>);
+pub struct Xor<T>(PhantomData<T>);
+pub struct BitOr<T>(PhantomData<T>);
+pub struct BitAnd<T>(PhantomData<T>);
+pub struct SumLen<T>(PhantomData<T>);
+pub struct XorLen<T>(PhantomData<T>);
+pub struct Gcd<T>(PhantomData<T>);
+pub struct Lcm<T>(PhantomData<T>);
+
+impl<T: PrimInt + Bounded + Default> Monoid for Max<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::min_value()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a.max(b)
+    }
 }
-define_monoid!(
-    // 基本演算 (usize)
-    Max,    SegMax,    usize,          0, |a, b| a.max(b);
-    Min,    SegMin,    usize, usize::MAX, |a, b| a.min(b);
-    Sum,    SegSum,    usize,          0, |a, b| a + b;
-    SumLen, SegSumLen, (usize, usize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
-    XorLen, SegXorLen, (usize, usize), (0, 0), |a, b| (a.0 ^ b.0, a.1 + b.1); // 区間更新区間XOR用
-    // ビット演算
-    Xor,    SegXor,    usize,          0, |a, b| a ^ b;
-    BitOr,  SegBitOr,  usize,          0, |a, b| a | b;
-    BitAnd, SegBitAnd, usize, usize::MAX, |a, b| a & b;
-    // 数論
-    Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(&b);
-    Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(&b);
-    // 基本演算 (isize)
-    MaxI,    SegMaxI,    isize, isize::MIN, |a, b| a.max(b);
-    MinI,    SegMinI,    isize, isize::MAX, |a, b| a.min(b);
-    SumI,    SegSumI,    isize,          0, |a, b| a + b;
-    SumLenI, SegSumLenI, (isize, isize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
-);
+impl<T: PrimInt + Bounded + Default> Monoid for Min<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::max_value()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a.min(b)
+    }
+}
+impl<T: PrimInt + Default> Monoid for Sum<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a + b
+    }
+}
+impl<T: PrimInt + Default> Monoid for Xor<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a ^ b
+    }
+}
+impl<T: PrimInt + Default> Monoid for BitOr<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a | b
+    }
+}
+impl<T: PrimInt + Bounded + Default> Monoid for BitAnd<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::max_value()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a & b
+    }
+}
+impl<T: PrimInt + Default> Monoid for SumLen<T> {
+    type S = (T, T);
+    #[inline]
+    fn identity() -> (T, T) {
+        (T::zero(), T::zero())
+    }
+    #[inline]
+    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
+        (a.0 + b.0, a.1 + b.1)
+    }
+}
+impl<T: PrimInt + Default> Monoid for XorLen<T> {
+    type S = (T, T);
+    #[inline]
+    fn identity() -> (T, T) {
+        (T::zero(), T::zero())
+    }
+    #[inline]
+    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
+        (a.0 ^ b.0, a.1 + b.1)
+    }
+}
+impl<T: Integer + PrimInt + Default> Monoid for Gcd<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a.gcd(&b)
+    }
+}
+impl<T: Integer + PrimInt + Default> Monoid for Lcm<T> {
+    type S = T;
+    #[inline]
+    fn identity() -> T {
+        T::one()
+    }
+    #[inline]
+    fn binary_operation(a: T, b: T) -> T {
+        a.lcm(&b)
+    }
+}
+
+pub type SegMax<T> = Seg<Max<T>>;
+pub type SegMin<T> = Seg<Min<T>>;
+pub type SegSum<T> = Seg<Sum<T>>;
+pub type SegXor<T> = Seg<Xor<T>>;
+pub type SegBitOr<T> = Seg<BitOr<T>>;
+pub type SegBitAnd<T> = Seg<BitAnd<T>>;
+pub type SegGcd<T> = Seg<Gcd<T>>;
+pub type SegLcm<T> = Seg<Lcm<T>>;
 
 // =====================================================
 // LazySeg (遅延セグ木)
@@ -479,94 +568,201 @@ impl<M: MapMonoid> Index<usize> for LazySeg<M> {
     }
 }
 
-macro_rules! define_map_monoid {
-    (
-        $(
-            $name:ident,        // 構造体名
-            $alias:ident,       // エイリアス名
-            $monoid:ty,         // 継承するMonoid
-            $op_type:ty,        // 操作の型
-            $id_map:expr,       // 操作の単位元
-            |$f1:ident, $g1:ident| $composition:expr, // composition(new, old)
-            |$f2:ident, $x2:ident| $mapping:expr      // mapping(op, data)
-        );* $(;)?
-    ) => {
-        $(
-            #[derive(Clone)]
-            pub struct $name;
-            impl MapMonoid for $name {
-                type M = $monoid;
-                type F = $op_type;
-                #[inline]
-                fn identity_map() -> Self::F { $id_map }
-                #[inline]
-                fn composition($f1: &Self::F, $g1: &Self::F) -> Self::F { $composition }
-                #[inline]
-                fn mapping($f2: &Self::F, $x2: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S { $mapping }
-            }
-            pub type $alias = LazySeg<$name>;
-        )*
-    };
-}
-define_map_monoid!(
-    // -------------------------------------------------------
-    // 区間加算 (Add) 系 (usize)
-    // -------------------------------------------------------
-    AddMax, LazySegAddMax, Max, usize, 0, |f, g| f + g, |f, x| x + f;
-    AddMin, LazySegAddMin, Min, usize, 0, |f, g| f + g, |f, x| x + f;
-    AddSum, LazySegAddSum, SumLen, usize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
-    // 区間加算 (Add) 系 (isize)
-    AddMaxI, LazySegAddMaxI, MaxI, isize, 0, |f, g| f + g, |f, x| x + f;
-    AddMinI, LazySegAddMinI, MinI, isize, 0, |f, g| f + g, |f, x| x + f;
-    AddSumI, LazySegAddSumI, SumLenI, isize, 0, |f, g| f + g, |f, x| (x.0 + f * x.1, x.1);
-);
-// 区間更新系: composition/mappingが全種類同一なのでまとめる
-// 合成: 新しい値(f)がSomeなら上書き、Noneなら古い値(g)を維持
-// 作用: 操作(f)がSomeならその値にする、Noneなら元の値(x)を維持
-macro_rules! define_update_monoid {
-    ($($name:ident, $alias:ident, $monoid:ty, $val_type:ty, |$fv:ident, $xv:ident| $mapping:expr);* $(;)?) => {
-        define_map_monoid!($(
-            $name, $alias, $monoid, Option<$val_type>, None,
-            |f, g| if f.is_some() { *f } else { *g },
-            |$fv, $xv| $mapping
-        );*);
-    };
-}
-define_update_monoid!(
-    UpdateMax,    LazySegUpdateMax,    Max,    usize, |f, x| if let Some(v) = f { *v } else { *x };
-    UpdateMin,    LazySegUpdateMin,    Min,    usize, |f, x| if let Some(v) = f { *v } else { *x };
-    UpdateBitOr,  LazySegUpdateBitOr,  BitOr,  usize, |f, x| if let Some(v) = f { *v } else { *x }; // v | v = v
-    UpdateBitAnd, LazySegUpdateBitAnd, BitAnd, usize, |f, x| if let Some(v) = f { *v } else { *x }; // v & v = v
-    UpdateGcd,    LazySegUpdateGcd,    Gcd,    usize, |f, x| if let Some(v) = f { *v } else { *x }; // gcd(v,v) = v
-    UpdateMaxI,   LazySegUpdateMaxI,   MaxI,   isize, |f, x| if let Some(v) = f { *v } else { *x };
-    UpdateMinI,   LazySegUpdateMinI,   MinI,   isize, |f, x| if let Some(v) = f { *v } else { *x };
-    UpdateSum,    LazySegUpdateSum,    SumLen, usize, |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x }; // 和はv*len
-    UpdateXor,    LazySegUpdateXor,    XorLen, usize, |f, x| if let Some(v) = f { (if x.1 % 2 == 0 { 0 } else { *v }, x.1) } else { *x }; // XOR和
-    UpdateSumI,   LazySegUpdateSumI,   SumLenI, isize, |f, x| if let Some(v) = f { (v * x.1, x.1) } else { *x }; // 和はv*len
-);
+// =====================================================
+// 具象 MapMonoid (ジェネリック)
+// =====================================================
 
-// 長さ付きモノイド用の便利メソッド
-macro_rules! impl_value_methods {
-    ($seg_type:ty, $val_type:ty) => {
-        impl $seg_type {
-            pub fn from_values(values: &[$val_type]) -> Self {
-                Self::new(&values.iter().map(|&v| (v, 1)).collect::<Vec<_>>())
-            }
-            pub fn new_with_size(n: usize) -> Self {
-                Self::new(&vec![(0, 1); n])
-            }
-            pub fn set_value(&mut self, p: usize, val: $val_type) {
-                self.set(p, (val, 1));
-            }
-            pub fn get_value(&mut self, p: usize) -> $val_type {
-                self.get(p).0
-            }
+pub struct AddMax<T>(PhantomData<T>);
+pub struct AddMin<T>(PhantomData<T>);
+pub struct AddSum<T>(PhantomData<T>);
+pub struct UpdateMax<T>(PhantomData<T>);
+pub struct UpdateMin<T>(PhantomData<T>);
+pub struct UpdateBitOr<T>(PhantomData<T>);
+pub struct UpdateBitAnd<T>(PhantomData<T>);
+pub struct UpdateGcd<T>(PhantomData<T>);
+pub struct UpdateSum<T>(PhantomData<T>);
+pub struct UpdateXor<T>(PhantomData<T>);
+
+impl<T: PrimInt + Bounded + Default> MapMonoid for AddMax<T> {
+    type M = Max<T>;
+    type F = T;
+    #[inline]
+    fn identity_map() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn composition(f: &T, g: &T) -> T {
+        *f + *g
+    }
+    #[inline]
+    fn mapping(f: &T, x: &T) -> T {
+        *x + *f
+    }
+}
+impl<T: PrimInt + Bounded + Default> MapMonoid for AddMin<T> {
+    type M = Min<T>;
+    type F = T;
+    #[inline]
+    fn identity_map() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn composition(f: &T, g: &T) -> T {
+        *f + *g
+    }
+    #[inline]
+    fn mapping(f: &T, x: &T) -> T {
+        *x + *f
+    }
+}
+impl<T: PrimInt + Default> MapMonoid for AddSum<T> {
+    type M = SumLen<T>;
+    type F = T;
+    #[inline]
+    fn identity_map() -> T {
+        T::zero()
+    }
+    #[inline]
+    fn composition(f: &T, g: &T) -> T {
+        *f + *g
+    }
+    #[inline]
+    fn mapping(f: &T, x: &(T, T)) -> (T, T) {
+        (x.0 + *f * x.1, x.1)
+    }
+}
+impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateMax<T> {
+    type M = Max<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &T) -> T {
+        if let Some(v) = f { *v } else { *x }
+    }
+}
+impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateMin<T> {
+    type M = Min<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &T) -> T {
+        if let Some(v) = f { *v } else { *x }
+    }
+}
+impl<T: PrimInt + Default> MapMonoid for UpdateBitOr<T> {
+    type M = BitOr<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &T) -> T {
+        if let Some(v) = f { *v } else { *x }
+    }
+}
+impl<T: PrimInt + Bounded + Default> MapMonoid for UpdateBitAnd<T> {
+    type M = BitAnd<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &T) -> T {
+        if let Some(v) = f { *v } else { *x }
+    }
+}
+impl<T: Integer + PrimInt + Default> MapMonoid for UpdateGcd<T> {
+    type M = Gcd<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &T) -> T {
+        if let Some(v) = f { *v } else { *x }
+    }
+}
+impl<T: PrimInt + Default> MapMonoid for UpdateSum<T> {
+    type M = SumLen<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &(T, T)) -> (T, T) {
+        if let Some(v) = f { (*v * x.1, x.1) } else { *x }
+    }
+}
+impl<T: PrimInt + Default> MapMonoid for UpdateXor<T> {
+    type M = XorLen<T>;
+    type F = Option<T>;
+    #[inline]
+    fn identity_map() -> Option<T> {
+        None
+    }
+    #[inline]
+    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
+        if f.is_some() { *f } else { *g }
+    }
+    #[inline]
+    fn mapping(f: &Option<T>, x: &(T, T)) -> (T, T) {
+        // 値をvに変えると、XOR和は長さが奇数ならv、偶数なら0
+        if let Some(v) = f {
+            (
+                if x.1 % T::from(2).unwrap() == T::zero() {
+                    T::zero()
+                } else {
+                    *v
+                },
+                x.1,
+            )
+        } else {
+            *x
         }
-    };
+    }
 }
 
-impl_value_methods!(LazySegAddSum, usize);
-impl_value_methods!(LazySegUpdateSum, usize);
-impl_value_methods!(LazySegUpdateXor, usize);
-impl_value_methods!(LazySegAddSumI, isize);
-impl_value_methods!(LazySegUpdateSumI, isize);
+pub type LazySegAddMax<T> = LazySeg<AddMax<T>>;
+pub type LazySegAddMin<T> = LazySeg<AddMin<T>>;
+pub type LazySegAddSum<T> = LazySeg<AddSum<T>>;
+pub type LazySegUpdateMax<T> = LazySeg<UpdateMax<T>>;
+pub type LazySegUpdateMin<T> = LazySeg<UpdateMin<T>>;
+pub type LazySegUpdateBitOr<T> = LazySeg<UpdateBitOr<T>>;
+pub type LazySegUpdateBitAnd<T> = LazySeg<UpdateBitAnd<T>>;
+pub type LazySegUpdateGcd<T> = LazySeg<UpdateGcd<T>>;
+pub type LazySegUpdateSum<T> = LazySeg<UpdateSum<T>>;
+pub type LazySegUpdateXor<T> = LazySeg<UpdateXor<T>>;
