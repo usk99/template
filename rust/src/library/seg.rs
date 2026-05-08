@@ -483,6 +483,42 @@ impl<M: MapMonoid> Index<usize> for LazySeg<M> {
         &self.d[index + self.size]
     }
 }
+impl<T: PrimInt + Default> From<&[T]> for LazySeg<AddSum<T>> {
+    fn from(v: &[T]) -> Self {
+        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> FromIterator<T> for LazySeg<AddSum<T>> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> From<&[T]> for LazySeg<UpdateSum<T>> {
+    fn from(v: &[T]) -> Self {
+        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> FromIterator<T> for LazySeg<UpdateSum<T>> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> From<&[T]> for LazySeg<UpdateXor<T>> {
+    fn from(v: &[T]) -> Self {
+        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
+impl<T: PrimInt + Default> FromIterator<T> for LazySeg<UpdateXor<T>> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
+        Self::new(&mapped)
+    }
+}
 
 // =====================================================
 // 具象 MapMonoid (ジェネリック)
