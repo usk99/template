@@ -1,6 +1,10 @@
 use num::Integer;
 use std::ops::*;
 
+// =====================================================
+// Seg (通常セグ木)
+// =====================================================
+
 /// モノイド
 pub trait Monoid {
     type S: Clone + Copy + Default;
@@ -8,18 +12,6 @@ pub trait Monoid {
     fn identity() -> Self::S;
     /// 演算
     fn binary_operation(a: Self::S, b: Self::S) -> Self::S;
-}
-
-/// 遅延セグ木用のモノイド
-pub trait MapMonoid {
-    type M: Monoid;
-    type F: Clone;
-    /// 操作モノイド
-    fn identity_map() -> Self::F;
-    /// 操作fを操作gの後に適用する
-    fn composition(f: &Self::F, g: &Self::F) -> Self::F;
-    /// 操作fをデータxに適用する
-    fn mapping(f: &Self::F, x: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S;
 }
 
 /// セグ木
@@ -194,6 +186,68 @@ impl<M: Monoid> Index<usize> for Seg<M> {
     fn index(&self, index: usize) -> &Self::Output {
         &self.d[index + self.size]
     }
+}
+
+macro_rules! define_monoid {
+    ($(
+            $name:ident,       // 構造体名
+            $alias:ident,      // エイリアス名
+            $type:ty,          // 扱う型
+            $id:expr,          // 単位元
+            |$a:ident, $b:ident| $op:expr // 二項演算の処理
+        );* $(;)?) => {
+    $(
+        #[derive(Clone)]
+        pub struct $name;
+        impl Monoid for $name {
+            type S = $type;
+            #[inline] // セグ木では頻繁に呼ばれるのでインライン化推奨
+            fn identity() -> Self::S {
+                $id
+            }
+            #[inline]
+            fn binary_operation($a: Self::S, $b: Self::S) -> Self::S {
+                $op
+            }
+        }
+        pub type $alias = Seg<$name>;
+    )*};
+}
+define_monoid!(
+    // 基本演算 (usize)
+    Max,    SegMax,    usize,          0, |a, b| a.max(b);
+    Min,    SegMin,    usize, usize::MAX, |a, b| a.min(b);
+    Sum,    SegSum,    usize,          0, |a, b| a + b;
+    SumLen, SegSumLen, (usize, usize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
+    XorLen, SegXorLen, (usize, usize), (0, 0), |a, b| (a.0 ^ b.0, a.1 + b.1); // 区間更新区間XOR用
+    // ビット演算
+    Xor,    SegXor,    usize,          0, |a, b| a ^ b;
+    BitOr,  SegBitOr,  usize,          0, |a, b| a | b;
+    BitAnd, SegBitAnd, usize, usize::MAX, |a, b| a & b;
+    // 数論
+    Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(&b);
+    Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(&b);
+    // 基本演算 (isize)
+    MaxI,    SegMaxI,    isize, isize::MIN, |a, b| a.max(b);
+    MinI,    SegMinI,    isize, isize::MAX, |a, b| a.min(b);
+    SumI,    SegSumI,    isize,          0, |a, b| a + b;
+    SumLenI, SegSumLenI, (isize, isize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
+);
+
+// =====================================================
+// LazySeg (遅延セグ木)
+// =====================================================
+
+/// 遅延セグ木用のモノイド
+pub trait MapMonoid {
+    type M: Monoid;
+    type F: Clone;
+    /// 操作モノイド
+    fn identity_map() -> Self::F;
+    /// 操作fを操作gの後に適用する
+    fn composition(f: &Self::F, g: &Self::F) -> Self::F;
+    /// 操作fをデータxに適用する
+    fn mapping(f: &Self::F, x: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S;
 }
 
 /// 遅延セグ木
@@ -458,56 +512,6 @@ impl<F: MapMonoid> From<Vec<<F::M as Monoid>::S>> for LazySeg<F> {
         ret
     }
 }
-
-// =====================================================
-// 具象モノイド定義
-// =====================================================
-macro_rules! define_monoid {
-    ($(
-            $name:ident,       // 構造体名
-            $alias:ident,      // エイリアス名
-            $type:ty,          // 扱う型
-            $id:expr,          // 単位元
-            |$a:ident, $b:ident| $op:expr // 二項演算の処理
-        );* $(;)?) => {
-    $(
-        #[derive(Clone)]
-        pub struct $name;
-        impl Monoid for $name {
-            type S = $type;
-            #[inline] // セグ木では頻繁に呼ばれるのでインライン化推奨
-            fn identity() -> Self::S {
-                $id
-            }
-            #[inline]
-            fn binary_operation($a: Self::S, $b: Self::S) -> Self::S {
-                $op
-            }
-        }
-        pub type $alias = Seg<$name>;
-    )*};
-}
-
-define_monoid!(
-    // 基本演算 (usize)
-    Max,    SegMax,    usize,          0, |a, b| a.max(b);
-    Min,    SegMin,    usize, usize::MAX, |a, b| a.min(b);
-    Sum,    SegSum,    usize,          0, |a, b| a + b;
-    SumLen, SegSumLen, (usize, usize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
-    XorLen, SegXorLen, (usize, usize), (0, 0), |a, b| (a.0 ^ b.0, a.1 + b.1); // 区間更新区間XOR用
-    // ビット演算
-    Xor,    SegXor,    usize,          0, |a, b| a ^ b;
-    BitOr,  SegBitOr,  usize,          0, |a, b| a | b;
-    BitAnd, SegBitAnd, usize, usize::MAX, |a, b| a & b;
-    // 数論
-    Gcd,    SegGcd,    usize,          0, |a, b| a.gcd(&b);
-    Lcm,    SegLcm,    usize,          1, |a, b| a.lcm(&b);
-    // 基本演算 (isize)
-    MaxI,    SegMaxI,    isize, isize::MIN, |a, b| a.max(b);
-    MinI,    SegMinI,    isize, isize::MAX, |a, b| a.min(b);
-    SumI,    SegSumI,    isize,          0, |a, b| a + b;
-    SumLenI, SegSumLenI, (isize, isize), (0, 0), |a, b| (a.0 + b.0, a.1 + b.1); // 区間加算区間和用
-);
 
 macro_rules! define_map_monoid {
     (
