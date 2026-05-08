@@ -173,15 +173,23 @@ impl<M: Monoid> Index<usize> for Seg<M> {
 // =====================================================
 
 pub struct Max<T>(PhantomData<T>);
+pub type SegMax<T> = Seg<Max<T>>;
 pub struct Min<T>(PhantomData<T>);
+pub type SegMin<T> = Seg<Min<T>>;
 pub struct Sum<T>(PhantomData<T>);
+pub type SegSum<T> = Seg<Sum<T>>;
 pub struct Xor<T>(PhantomData<T>);
+pub type SegXor<T> = Seg<Xor<T>>;
 pub struct BitOr<T>(PhantomData<T>);
+pub type SegBitOr<T> = Seg<BitOr<T>>;
 pub struct BitAnd<T>(PhantomData<T>);
+pub type SegBitAnd<T> = Seg<BitAnd<T>>;
+pub struct Gcd<T>(PhantomData<T>);
+pub type SegGcd<T> = Seg<Gcd<T>>;
+pub struct Lcm<T>(PhantomData<T>);
+pub type SegLcm<T> = Seg<Lcm<T>>;
 pub struct SumLen<T>(PhantomData<T>);
 pub struct XorLen<T>(PhantomData<T>);
-pub struct Gcd<T>(PhantomData<T>);
-pub struct Lcm<T>(PhantomData<T>);
 
 impl<T: PrimInt + Bounded + Default> Monoid for Max<T> {
     type S = T;
@@ -249,28 +257,6 @@ impl<T: PrimInt + Bounded + Default> Monoid for BitAnd<T> {
         a & b
     }
 }
-impl<T: PrimInt + Default> Monoid for SumLen<T> {
-    type S = (T, T);
-    #[inline]
-    fn identity() -> (T, T) {
-        (T::zero(), T::zero())
-    }
-    #[inline]
-    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
-        (a.0 + b.0, a.1 + b.1)
-    }
-}
-impl<T: PrimInt + Default> Monoid for XorLen<T> {
-    type S = (T, T);
-    #[inline]
-    fn identity() -> (T, T) {
-        (T::zero(), T::zero())
-    }
-    #[inline]
-    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
-        (a.0 ^ b.0, a.1 + b.1)
-    }
-}
 impl<T: Integer + PrimInt + Default> Monoid for Gcd<T> {
     type S = T;
     #[inline]
@@ -293,15 +279,28 @@ impl<T: Integer + PrimInt + Default> Monoid for Lcm<T> {
         a.lcm(&b)
     }
 }
-
-pub type SegMax<T> = Seg<Max<T>>;
-pub type SegMin<T> = Seg<Min<T>>;
-pub type SegSum<T> = Seg<Sum<T>>;
-pub type SegXor<T> = Seg<Xor<T>>;
-pub type SegBitOr<T> = Seg<BitOr<T>>;
-pub type SegBitAnd<T> = Seg<BitAnd<T>>;
-pub type SegGcd<T> = Seg<Gcd<T>>;
-pub type SegLcm<T> = Seg<Lcm<T>>;
+impl<T: PrimInt + Default> Monoid for SumLen<T> {
+    type S = (T, T);
+    #[inline]
+    fn identity() -> (T, T) {
+        (T::zero(), T::zero())
+    }
+    #[inline]
+    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
+        (a.0 + b.0, a.1 + b.1)
+    }
+}
+impl<T: PrimInt + Default> Monoid for XorLen<T> {
+    type S = (T, T);
+    #[inline]
+    fn identity() -> (T, T) {
+        (T::zero(), T::zero())
+    }
+    #[inline]
+    fn binary_operation(a: (T, T), b: (T, T)) -> (T, T) {
+        (a.0 ^ b.0, a.1 + b.1)
+    }
+}
 
 // =====================================================
 // LazySeg (遅延セグ木)
@@ -573,15 +572,25 @@ impl<M: MapMonoid> Index<usize> for LazySeg<M> {
 // =====================================================
 
 pub struct AddMax<T>(PhantomData<T>);
+pub type LazySegAddMax<T> = LazySeg<AddMax<T>>;
 pub struct AddMin<T>(PhantomData<T>);
+pub type LazySegAddMin<T> = LazySeg<AddMin<T>>;
 pub struct AddSum<T>(PhantomData<T>);
+pub type LazySegAddSum<T> = LazySeg<AddSum<T>>;
 pub struct UpdateMax<T>(PhantomData<T>);
+pub type LazySegUpdateMax<T> = LazySeg<UpdateMax<T>>;
 pub struct UpdateMin<T>(PhantomData<T>);
+pub type LazySegUpdateMin<T> = LazySeg<UpdateMin<T>>;
 pub struct UpdateBitOr<T>(PhantomData<T>);
+pub type LazySegUpdateBitOr<T> = LazySeg<UpdateBitOr<T>>;
 pub struct UpdateBitAnd<T>(PhantomData<T>);
+pub type LazySegUpdateBitAnd<T> = LazySeg<UpdateBitAnd<T>>;
 pub struct UpdateGcd<T>(PhantomData<T>);
+pub type LazySegUpdateGcd<T> = LazySeg<UpdateGcd<T>>;
 pub struct UpdateSum<T>(PhantomData<T>);
+pub type LazySegUpdateSum<T> = LazySeg<UpdateSum<T>>;
 pub struct UpdateXor<T>(PhantomData<T>);
+pub type LazySegUpdateXor<T> = LazySeg<UpdateXor<T>>;
 
 impl<T: PrimInt + Bounded + Default> MapMonoid for AddMax<T> {
     type M = Max<T>;
@@ -755,14 +764,3 @@ impl<T: PrimInt + Default> MapMonoid for UpdateXor<T> {
         }
     }
 }
-
-pub type LazySegAddMax<T> = LazySeg<AddMax<T>>;
-pub type LazySegAddMin<T> = LazySeg<AddMin<T>>;
-pub type LazySegAddSum<T> = LazySeg<AddSum<T>>;
-pub type LazySegUpdateMax<T> = LazySeg<UpdateMax<T>>;
-pub type LazySegUpdateMin<T> = LazySeg<UpdateMin<T>>;
-pub type LazySegUpdateBitOr<T> = LazySeg<UpdateBitOr<T>>;
-pub type LazySegUpdateBitAnd<T> = LazySeg<UpdateBitAnd<T>>;
-pub type LazySegUpdateGcd<T> = LazySeg<UpdateGcd<T>>;
-pub type LazySegUpdateSum<T> = LazySeg<UpdateSum<T>>;
-pub type LazySegUpdateXor<T> = LazySeg<UpdateXor<T>>;
