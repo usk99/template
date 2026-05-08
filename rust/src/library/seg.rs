@@ -1,4 +1,4 @@
-use num::{Bounded, Integer, PrimInt};
+use num::{Integer, PrimInt};
 use std::{marker::PhantomData, ops::*};
 
 // =====================================================
@@ -501,179 +501,38 @@ map_monoid_struct!(UpdateMax, LazySegUpdateMax);
 map_monoid_struct!(UpdateMin, LazySegUpdateMin);
 map_monoid_struct!(UpdateBitOr, LazySegUpdateBitOr);
 map_monoid_struct!(UpdateBitAnd, LazySegUpdateBitAnd);
-map_monoid_struct!(UpdateGcd, LazySegUpdateGcd);
 map_monoid_struct!(UpdateSum, LazySegUpdateSum);
 map_monoid_struct!(UpdateXor, LazySegUpdateXor);
+map_monoid_struct!(UpdateGcd, LazySegUpdateGcd);
+map_monoid_struct!(UpdateLcm, LazySegUpdateLcm);
 
-impl<T: PrimInt + Default> MapMonoid for AddMax<T> {
-    type M = Max<T>;
-    type F = T;
-    #[inline]
-    fn identity_map() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn composition(f: &T, g: &T) -> T {
-        *f + *g
-    }
-    #[inline]
-    fn mapping(f: &T, x: &T) -> T {
-        *x + *f
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for AddMin<T> {
-    type M = Min<T>;
-    type F = T;
-    #[inline]
-    fn identity_map() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn composition(f: &T, g: &T) -> T {
-        *f + *g
-    }
-    #[inline]
-    fn mapping(f: &T, x: &T) -> T {
-        *x + *f
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for AddSum<T> {
-    type M = SumLen<T>;
-    type F = T;
-    #[inline]
-    fn identity_map() -> T {
-        T::zero()
-    }
-    #[inline]
-    fn composition(f: &T, g: &T) -> T {
-        *f + *g
-    }
-    #[inline]
-    fn mapping(f: &T, x: &(T, T)) -> (T, T) {
-        (x.0 + *f * x.1, x.1)
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateMax<T> {
-    type M = Max<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &T) -> T {
-        if let Some(v) = f { *v } else { *x }
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateMin<T> {
-    type M = Min<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &T) -> T {
-        if let Some(v) = f { *v } else { *x }
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateBitOr<T> {
-    type M = BitOr<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &T) -> T {
-        if let Some(v) = f { *v } else { *x }
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateBitAnd<T> {
-    type M = BitAnd<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &T) -> T {
-        if let Some(v) = f { *v } else { *x }
-    }
-}
-impl<T: Integer + PrimInt + Default> MapMonoid for UpdateGcd<T> {
-    type M = Gcd<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &T) -> T {
-        if let Some(v) = f { *v } else { *x }
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateSum<T> {
-    type M = SumLen<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &(T, T)) -> (T, T) {
-        if let Some(v) = f { (*v * x.1, x.1) } else { *x }
-    }
-}
-impl<T: PrimInt + Default> MapMonoid for UpdateXor<T> {
-    type M = XorLen<T>;
-    type F = Option<T>;
-    #[inline]
-    fn identity_map() -> Option<T> {
-        None
-    }
-    #[inline]
-    fn composition(f: &Option<T>, g: &Option<T>) -> Option<T> {
-        if f.is_some() { *f } else { *g }
-    }
-    #[inline]
-    fn mapping(f: &Option<T>, x: &(T, T)) -> (T, T) {
-        // 値をvに変えると、XOR和は長さが奇数ならv、偶数なら0
-        if let Some(v) = f {
-            (
-                if x.1 % T::from(2).unwrap() == T::zero() {
-                    T::zero()
-                } else {
-                    *v
-                },
-                x.1,
-            )
-        } else {
-            *x
+macro_rules! impl_map_monoid {
+    (@impl $bound:tt, [$( ($name:ident, $m:ty, $f:ty, $id:expr, |$fc:ident, $gc:ident| $comp:expr, |$fm:ident, $xm:ident| $map:expr) ),* $(,)?]) => {
+        $( impl_map_monoid!(@one $bound, $name, $m, $f, $id, |$fc, $gc| $comp, |$fm, $xm| $map); )*
+    };
+    (@one [$($b:tt)*], $name:ident, $m:ty, $f:ty, $id:expr, |$fc:ident, $gc:ident| $comp:expr, |$fm:ident, $xm:ident| $map:expr) => {
+        impl<T: $($b)*> MapMonoid for $name<T> {
+            type M = $m;
+            type F = $f;
+            #[inline] fn identity_map() -> Self::F { $id }
+            #[inline] fn composition($fc: &Self::F, $gc: &Self::F) -> Self::F { $comp }
+            #[inline] fn mapping($fm: &Self::F, $xm: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S { $map }
         }
-    }
+    };
 }
+impl_map_monoid!(@impl [PrimInt + Default], [
+    (AddMax,       Max<T>,    T,   T::zero(), |f, g| *f + *g,                          |f,x|*x+ *f),
+    (AddMin,       Min<T>,    T,   T::zero(), |f, g| *f + *g,                          |f,x|*x+ *f),
+    (AddSum,       SumLen<T>, T,   T::zero(), |f, g| *f + *g,                          |f,x|(x.0+ *f * x.1,x.1)),
+    (UpdateMax,    Max<T>,    Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateMin,    Min<T>,    Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateBitOr,  BitOr<T>,  Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateBitAnd, BitAnd<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateSum,    SumLen<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).map(|v|(v*x.1,x.1)).unwrap_or(*x)),
+    // 値をvに変えると、XOR和は長さが奇数ならv、偶数なら0
+    (UpdateXor,    XorLen<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).map(|v|(if x.1&T::one()==T::zero(){T::zero()}else{v},x.1)).unwrap_or(*x)),
+]);
+impl_map_monoid!(@impl [Integer + PrimInt + Default], [
+    (UpdateGcd,Gcd<T>,Option<T>,None,|f,g|if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateLcm,Lcm<T>,Option<T>,None,|f,g|if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+]);

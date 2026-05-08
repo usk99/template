@@ -579,6 +579,136 @@ fn stress_test_lazy_binary_search() {
 }
 
 // -------------------------------------------------------------------------
+// UpdateLcm の基本テスト
+// -------------------------------------------------------------------------
+#[test]
+fn test_lazy_update_lcm() {
+    let mut seg = LazySegUpdateLcm::new(&[0usize; 3]);
+    seg.apply_range(0, 3, Some(6));
+    assert_eq!(seg.get_range(0, 3), 6); // lcm(6,6,6)=6
+    seg.apply_range(1, 3, Some(4)); // [6, 4, 4]
+    assert_eq!(seg.get_range(0, 3), 12); // lcm(6,4,4)=12
+    assert_eq!(seg.get_range(1, 3), 4);
+    seg.apply_range(0, 3, None); // 変化なし
+    assert_eq!(seg.get_range(0, 3), 12);
+}
+
+// -------------------------------------------------------------------------
+// ストレステスト: LazySegUpdateXor (区間更新・XOR和)
+// -------------------------------------------------------------------------
+#[test]
+fn stress_test_update_xor() {
+    let n = 30;
+    let q = 1000;
+    let mut rng = Rng::new(44444);
+
+    let mut seg = LazySegUpdateXor::new(&vec![(0usize, 1usize); n]);
+    let mut vec = vec![0usize; n];
+
+    for _ in 0..q {
+        let ty = rng.gen_range(0..3);
+        if ty == 0 {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let val = rng.gen_range(0..256);
+            seg.apply_range(l, r, Some(val));
+            for item in vec.iter_mut().take(r).skip(l) {
+                *item = val;
+            }
+        } else if ty == 1 {
+            let i = rng.gen_range(0..n);
+            let val = rng.gen_range(0..256);
+            seg.set(i, (val, 1));
+            vec[i] = val;
+        } else {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let seg_res = seg.get_range(l, r).0;
+            let vec_res = vec[l..r].iter().fold(0, |acc, &x| acc ^ x);
+            assert_eq!(seg_res, vec_res, "UpdateXor Mismatch at {}..{}", l, r);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// ストレステスト: LazySegUpdateBitOr (区間更新・区間OR)
+// -------------------------------------------------------------------------
+#[test]
+fn stress_test_update_bitor() {
+    let n = 30;
+    let q = 1000;
+    let mut rng = Rng::new(55555);
+
+    let mut vec = vec![0usize; n];
+    let mut seg = LazySegUpdateBitOr::new(&vec);
+
+    for _ in 0..q {
+        let ty = rng.gen_range(0..3);
+        if ty == 0 {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let val = rng.gen_range(0..256);
+            seg.apply_range(l, r, Some(val));
+            for item in vec.iter_mut().take(r).skip(l) {
+                *item = val;
+            }
+        } else if ty == 1 {
+            let i = rng.gen_range(0..n);
+            let val = rng.gen_range(0..256);
+            seg.set(i, val);
+            vec[i] = val;
+        } else {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let seg_res = seg.get_range(l, r);
+            let vec_res = if l == r {
+                0
+            } else {
+                vec[l..r].iter().fold(0, |acc, &x| acc | x)
+            };
+            assert_eq!(seg_res, vec_res, "UpdateBitOr Mismatch at {}..{}", l, r);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// ストレステスト: LazySegUpdateSum<usize> (区間更新・区間和)
+// -------------------------------------------------------------------------
+#[test]
+fn stress_test_update_sum_u() {
+    let n = 30;
+    let q = 1000;
+    let mut rng = Rng::new(66666);
+
+    let mut seg = LazySegUpdateSum::new(&vec![(0usize, 1usize); n]);
+    let mut vec = vec![0usize; n];
+
+    for _ in 0..q {
+        let ty = rng.gen_range(0..3);
+        if ty == 0 {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let val = rng.gen_range(0..100);
+            seg.apply_range(l, r, Some(val));
+            for item in vec.iter_mut().take(r).skip(l) {
+                *item = val;
+            }
+        } else if ty == 1 {
+            let i = rng.gen_range(0..n);
+            let val = rng.gen_range(0..100);
+            seg.set(i, (val, 1));
+            vec[i] = val;
+        } else {
+            let l = rng.gen_range(0..n);
+            let r = rng.gen_range(l..n + 1);
+            let seg_res = seg.get_range(l, r).0;
+            let vec_res: usize = vec[l..r].iter().sum();
+            assert_eq!(seg_res, vec_res, "UpdateSumU Mismatch at {}..{}", l, r);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
 // ストレステスト: UpdateSum<isize> (isize 区間更新・区間和)
 // -------------------------------------------------------------------------
 #[test]
