@@ -1,4 +1,5 @@
 #![allow(unused, non_snake_case)]
+use {itertools::*, std::collections::*};
 
 fn algorithm(answer: &mut Answer) {
     answer.push("algo");
@@ -32,8 +33,6 @@ fn main() {
 
 mod library;
 // === 常用 ===
-use itertools::Itertools;
-use std::collections::*;
 
 use library::ext::*; // SliceExt, NumExt 等の拡張トレイト
 use library::fmt::*; // ToComma (数値のカンマ区切り表示)
