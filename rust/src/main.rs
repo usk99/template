@@ -39,3 +39,22 @@ use library::fmt::*; // ToComma (数値のカンマ区切り表示)
 use library::io::*; // InputNum, Output, Answer 等の入出力
 use library::usermacro::*; // min!, max!, chmin!, chmax!
 use library::util::*; // ABC, Set, Map
+
+// === 尺取り法 ===
+// let (mut l, mut r) = (0, 0);
+// let mut state = 0;   // ← 差分更新できる状態 (sum等)。セグ木外持ちなら不要
+// while r < n {
+//     // ここで a[r] を state に追加
+//     state += a[r];
+//     r += 1;
+//     while NG条件 {
+//         // ここで a[l] を state から除去
+//         state -= a[l];
+//         l += 1;
+//         // ※ l < r のガードは原則不要（入れるとWAになることがある）
+//         // ※ a[r] 単体が必ずOK か、問題の制約から確認する
+//     }
+//     // ここで [l, r) は OK な最大区間 → ans の更新等
+//     // 長さの最低条件とか if l+k<r{}みたいに
+//     ans = max!(ans, r - l);  // 長さなら r - l、値なら state 等
+// }
