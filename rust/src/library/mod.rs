@@ -1,6 +1,6 @@
 pub mod config;
-pub mod dp;
 pub mod coord;
+pub mod dp;
 pub mod ext;
 pub mod fmt;
 pub mod graph;
@@ -23,11 +23,11 @@ mod dp_tests;
 #[path = "graph_test.rs"]
 mod graph_tests;
 #[cfg(test)]
-#[path = "unionfind_test.rs"]
-mod unionfind_tests;
-#[cfg(test)]
 #[path = "grid_test.rs"]
 mod grid_tests;
 #[cfg(test)]
 #[path = "seg_test.rs"]
 mod seg_tests;
+#[cfg(test)]
+#[path = "unionfind_test.rs"]
+mod unionfind_tests;
