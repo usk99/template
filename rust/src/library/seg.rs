@@ -30,10 +30,10 @@ impl<M: Monoid> Seg<M> {
     pub fn new(v: &[M::S]) -> Seg<M> {
         let n = v.len();
         assert!(n > 0);
-        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
-        let size = 1 << log;
+        let size = n.next_power_of_two();
+        let log = size.trailing_zeros() as usize;
         let mut d = vec![M::identity(); 2 * size];
-        d[size..][..n].clone_from_slice(v);
+        d[size..size + n].clone_from_slice(v);
         let mut ret = Self { n, size, log, d };
         for i in (1..size).rev() {
             ret.update(i);
@@ -169,8 +169,7 @@ impl<M: Monoid> Index<usize> for Seg<M> {
 }
 impl<T: PrimInt + Default> From<&[T]> for Seg<MinMax<T>> {
     fn from(v: &[T]) -> Self {
-        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, x)).collect();
-        Self::new(&mapped)
+        v.iter().copied().collect()
     }
 }
 impl<T: PrimInt + Default> FromIterator<T> for Seg<MinMax<T>> {
@@ -267,8 +266,8 @@ impl<F: MapMonoid> LazySeg<F> {
     pub fn new(v: &[<F::M as Monoid>::S]) -> Self {
         let n = v.len();
         assert!(n > 0);
-        let log = usize::BITS as usize - n.saturating_sub(1).leading_zeros() as usize;
-        let size = 1 << log;
+        let size = n.next_power_of_two();
+        let log = size.trailing_zeros() as usize;
         let mut d = vec![F::M::identity(); 2 * size];
         let lz = vec![F::identity_map(); size];
         d[size..(size + n)].clone_from_slice(v);
@@ -365,8 +364,7 @@ impl<F: MapMonoid> LazySeg<F> {
                 self.push((r - 1) >> i);
             }
         }
-        let l2 = l;
-        let r2 = r;
+        let (l0, r0) = (l, r);
         while l < r {
             if l & 1 != 0 {
                 self.all_apply(l, f.clone());
@@ -379,14 +377,12 @@ impl<F: MapMonoid> LazySeg<F> {
             l >>= 1;
             r >>= 1;
         }
-        l = l2;
-        r = r2;
         for i in 1..=self.log {
-            if ((l >> i) << i) != l {
-                self.update(l >> i);
+            if ((l0 >> i) << i) != l0 {
+                self.update(l0 >> i);
             }
-            if ((r >> i) << i) != r {
-                self.update((r - 1) >> i);
+            if ((r0 >> i) << i) != r0 {
+                self.update((r0 - 1) >> i);
             }
         }
     }
@@ -497,42 +493,21 @@ impl<M: MapMonoid> Index<usize> for LazySeg<M> {
         &self.d[index + self.size]
     }
 }
-impl<T: PrimInt + Default> From<&[T]> for LazySeg<AddSum<T>> {
-    fn from(v: &[T]) -> Self {
-        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
+macro_rules! impl_lazy_seg_from_prim {
+    ($($name:ident),* $(,)?) => {$(
+        impl<T: PrimInt + Default> From<&[T]> for LazySeg<$name<T>> {
+            fn from(v: &[T]) -> Self {
+                v.iter().copied().collect()
+            }
+        }
+        impl<T: PrimInt + Default> FromIterator<T> for LazySeg<$name<T>> {
+            fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+                Self::new(&iter.into_iter().map(|x| (x, T::one())).collect::<Vec<_>>())
+            }
+        }
+    )*};
 }
-impl<T: PrimInt + Default> FromIterator<T> for LazySeg<AddSum<T>> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
-}
-impl<T: PrimInt + Default> From<&[T]> for LazySeg<UpdateSum<T>> {
-    fn from(v: &[T]) -> Self {
-        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
-}
-impl<T: PrimInt + Default> FromIterator<T> for LazySeg<UpdateSum<T>> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
-}
-impl<T: PrimInt + Default> From<&[T]> for LazySeg<UpdateXor<T>> {
-    fn from(v: &[T]) -> Self {
-        let mapped: Vec<(T, T)> = v.iter().map(|&x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
-}
-impl<T: PrimInt + Default> FromIterator<T> for LazySeg<UpdateXor<T>> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mapped: Vec<(T, T)> = iter.into_iter().map(|x| (x, T::one())).collect();
-        Self::new(&mapped)
-    }
-}
+impl_lazy_seg_from_prim!(AddSum, UpdateSum, UpdateXor);
 
 // =====================================================
 // 具象 MapMonoid (ジェネリック)
@@ -574,15 +549,15 @@ impl_map_monoid!(@impl [PrimInt + Default], [
     (AddMax,       Max<T>,    T,   T::zero(), |f, g| *f + *g,                          |f,x|*x+ *f),
     (AddMin,       Min<T>,    T,   T::zero(), |f, g| *f + *g,                          |f,x|*x+ *f),
     (AddSum,       SumLen<T>, T,   T::zero(), |f, g| *f + *g,                          |f,x|(x.0+ *f * x.1,x.1)),
-    (UpdateMax,    Max<T>,    Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
-    (UpdateMin,    Min<T>,    Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
-    (UpdateBitOr,  BitOr<T>,  Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
-    (UpdateBitAnd, BitAnd<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
-    (UpdateSum,    SumLen<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).map(|v|(v*x.1,x.1)).unwrap_or(*x)),
+    (UpdateMax,    Max<T>,    Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
+    (UpdateMin,    Min<T>,    Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
+    (UpdateBitOr,  BitOr<T>,  Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
+    (UpdateBitAnd, BitAnd<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
+    (UpdateSum,    SumLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map(|v|(v*x.1,x.1)).unwrap_or(*x)),
     // 値をvに変えると、XOR和は長さが奇数ならv、偶数なら0
-    (UpdateXor,    XorLen<T>, Option<T>, None,|f, g| if f.is_some(){*f}else{*g},|f,x|(*f).map(|v|(if x.1&T::one()==T::zero(){T::zero()}else{v},x.1)).unwrap_or(*x)),
+    (UpdateXor,    XorLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map(|v|(if x.1&T::one()==T::zero(){T::zero()}else{v},x.1)).unwrap_or(*x)),
 ]);
 impl_map_monoid!(@impl [Integer + PrimInt + Default], [
-    (UpdateGcd,Gcd<T>,Option<T>,None,|f,g|if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
-    (UpdateLcm,Lcm<T>,Option<T>,None,|f,g|if f.is_some(){*f}else{*g},|f,x|(*f).unwrap_or(*x)),
+    (UpdateGcd,Gcd<T>,Option<T>,None,|f,g|(*f).or(*g),|f,x|(*f).unwrap_or(*x)),
+    (UpdateLcm,Lcm<T>,Option<T>,None,|f,g|(*f).or(*g),|f,x|(*f).unwrap_or(*x)),
 ]);
