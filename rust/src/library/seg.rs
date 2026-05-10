@@ -46,15 +46,19 @@ impl<M: Monoid> Seg<M> {
     fn update(&mut self, k: usize) {
         self.d[k] = M::binary_operation(self.d[2 * k], self.d[2 * k + 1]);
     }
+    #[inline]
+    fn update_from(&mut self, p: usize) {
+        for i in 1..=self.log {
+            self.update(p >> i);
+        }
+    }
 
     /// 葉の更新
     pub fn set(&mut self, mut p: usize, x: M::S) {
         assert!(p < self.n);
         p += self.size;
         self.d[p] = x;
-        for i in 1..=self.log {
-            self.update(p >> i);
-        }
+        self.update_from(p);
     }
 
     /// 区間クエリ（半開区間 `[l, r)` を取得）
@@ -290,9 +294,7 @@ impl<F: MapMonoid> LazySeg<F> {
         p += self.size;
         self.push_to(p);
         self.d[p] = x;
-        for i in 1..=self.log {
-            self.update(p >> i);
-        }
+        self.update_from(p);
     }
 
     /// 葉の取得
@@ -363,12 +365,12 @@ impl<F: MapMonoid> LazySeg<F> {
         let (l0, r0) = (l, r);
         while l < r {
             if l & 1 != 0 {
-                self.all_apply(l, f.clone());
+                self.all_apply(l, &f);
                 l += 1;
             }
             if r & 1 != 0 {
                 r -= 1;
-                self.all_apply(r, f.clone());
+                self.all_apply(r, &f);
             }
             l >>= 1;
             r >>= 1;
@@ -470,27 +472,27 @@ impl<F: MapMonoid> LazySeg<F> {
         }
     }
     #[inline]
+    fn update_from(&mut self, p: usize) {
+        for i in 1..=self.log {
+            self.update(p >> i);
+        }
+    }
+    #[inline]
     fn push(&mut self, k: usize) {
         let f = std::mem::replace(&mut self.lz[k], F::identity_map());
-        self.all_apply(2 * k, f.clone());
-        self.all_apply(2 * k + 1, f);
+        self.all_apply(2 * k, &f);
+        self.all_apply(2 * k + 1, &f);
     }
     #[inline]
     fn update(&mut self, k: usize) {
         self.d[k] = F::M::binary_operation(self.d[2 * k], self.d[2 * k + 1]);
     }
     #[inline]
-    fn all_apply(&mut self, k: usize, f: F::F) {
-        self.d[k] = F::mapping(&f, &self.d[k]);
+    fn all_apply(&mut self, k: usize, f: &F::F) {
+        self.d[k] = F::mapping(f, &self.d[k]);
         if k < self.size {
-            self.lz[k] = F::composition(&f, &self.lz[k]);
+            self.lz[k] = F::composition(f, &self.lz[k]);
         }
-    }
-}
-impl<M: MapMonoid> Index<usize> for LazySeg<M> {
-    type Output = <M::M as Monoid>::S;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.d[index + self.size]
     }
 }
 macro_rules! impl_lazy_seg_from_prim {
