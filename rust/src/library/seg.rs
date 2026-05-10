@@ -7,7 +7,7 @@ use std::{marker::PhantomData, ops::*};
 
 /// モノイド
 pub trait Monoid {
-    type S: Clone + Copy + Default;
+    type S: Copy;
     /// 単位元
     fn identity() -> Self::S;
     /// 演算
@@ -288,9 +288,7 @@ impl<F: MapMonoid> LazySeg<F> {
     pub fn set(&mut self, mut p: usize, x: <F::M as Monoid>::S) {
         assert!(p < self.n);
         p += self.size;
-        for i in (1..=self.log).rev() {
-            self.push(p >> i);
-        }
+        self.push_to(p);
         self.d[p] = x;
         for i in 1..=self.log {
             self.update(p >> i);
@@ -301,9 +299,7 @@ impl<F: MapMonoid> LazySeg<F> {
     pub fn get(&mut self, mut p: usize) -> <F::M as Monoid>::S {
         assert!(p < self.n);
         p += self.size;
-        for i in (1..=self.log).rev() {
-            self.push(p >> i);
-        }
+        self.push_to(p);
         self.d[p]
     }
 
@@ -399,9 +395,7 @@ impl<F: MapMonoid> LazySeg<F> {
             return self.n;
         }
         l += self.size;
-        for i in (1..=self.log).rev() {
-            self.push(l >> i);
-        }
+        self.push_to(l);
         let mut sm = F::M::identity();
         loop {
             while l % 2 == 0 {
@@ -470,10 +464,16 @@ impl<F: MapMonoid> LazySeg<F> {
     }
 
     #[inline]
+    fn push_to(&mut self, p: usize) {
+        for i in (1..=self.log).rev() {
+            self.push(p >> i);
+        }
+    }
+    #[inline]
     fn push(&mut self, k: usize) {
-        self.all_apply(2 * k, self.lz[k].clone());
-        self.all_apply(2 * k + 1, self.lz[k].clone());
-        self.lz[k] = F::identity_map();
+        let f = std::mem::replace(&mut self.lz[k], F::identity_map());
+        self.all_apply(2 * k, f.clone());
+        self.all_apply(2 * k + 1, f);
     }
     #[inline]
     fn update(&mut self, k: usize) {
