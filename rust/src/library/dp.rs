@@ -63,9 +63,7 @@ pub fn dp_subset_sum(items: &[usize], target: usize) -> bool {
     dp[0] = true;
     for &item in items {
         for w in (item..=target).rev() {
-            if dp[w - item] {
-                dp[w] = true;
-            }
+            dp[w] |= dp[w - item];
         }
     }
     dp[target]
@@ -178,11 +176,11 @@ pub fn dp_lcs_len(s: &[isize], t: &[isize]) -> usize {
 pub fn dp_edit_distance(s: &[isize], t: &[isize]) -> usize {
     let (n, m) = (s.len(), t.len());
     let mut dp = vec![vec![0usize; m + 1]; n + 1];
-    for (i, row) in dp.iter_mut().enumerate().take(n + 1) {
+    for (i, row) in dp.iter_mut().enumerate() {
         row[0] = i;
     }
-    for (j, cell) in dp[0].iter_mut().enumerate().take(m + 1) {
-        *cell = j;
+    for (j, val) in dp[0].iter_mut().enumerate() {
+        *val = j;
     }
     for i in 1..=n {
         for j in 1..=m {
@@ -291,18 +289,17 @@ pub fn dp_tsp(dist: &[Vec<isize>]) -> Option<isize> {
     let inf = isize::MAX / 2;
     let mut dp = vec![vec![inf; n]; 1 << n];
     dp[1][0] = 0;
-    #[allow(clippy::needless_range_loop)]
     for s in 1..1usize << n {
-        for v in 0..n {
+        for (v, row) in dist.iter().enumerate() {
             if dp[s][v] == inf || s >> v & 1 == 0 {
                 continue;
             }
-            for u in 0..n {
+            for (u, &cost) in row.iter().enumerate() {
                 if s >> u & 1 == 1 {
                     continue;
                 }
                 let ns = s | 1 << u;
-                let nc = dp[s][v] + dist[v][u];
+                let nc = dp[s][v] + cost;
                 if nc < dp[ns][u] {
                     dp[ns][u] = nc;
                 }
@@ -310,8 +307,10 @@ pub fn dp_tsp(dist: &[Vec<isize>]) -> Option<isize> {
         }
     }
     let full = (1 << n) - 1;
-    let ans = (0..n)
-        .filter(|&v| dp[full][v] < inf)
+    if n == 1 {
+        return Some(0);
+    }
+    let ans = (1..n)
         .map(|v| dp[full][v] + dist[v][0])
         .min()
         .unwrap_or(inf);
