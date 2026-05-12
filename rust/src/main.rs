@@ -66,9 +66,10 @@ use library::util::*; // ABC, Set, Map
 // while ok.abs_diff(ng) > 1 {
 //     let mid = (ok + ng) / 2;
 //     if check(mid) {
-//         ok = mid; // 成功したので境界を mid まで詰める
+//         ok = mid; // 条件を満たすので ok 側に寄せる
 //     } else {
-//         ng = mid; // 失敗したので境界を mid まで詰める
+//         ng = mid; // 条件を満たさないので ng 側に除外する
 //     }
 // }
-// // 終了後、ok が条件を満たす「最小」または「最大」の値になる
+// // 終了後: ok=小・ng=大 なら ok が条件を満たす最大値
+// //         ok=大・ng=小 なら ok が条件を満たす最小値
