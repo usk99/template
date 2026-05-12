@@ -3,7 +3,7 @@ use std::{cmp::Reverse, collections::BinaryHeap, collections::VecDeque};
 // =====================================================
 // 定数定義
 // =====================================================
-pub const INF: i64 = 1_000_000_000_000_000_000; // オーバーフローしないでかい値
+pub const INF: isize = 1_000_000_000_000_000_000; // オーバーフローしないでかい値
 pub const NONE: usize = usize::MAX;
 
 // =====================================================
@@ -12,7 +12,7 @@ pub const NONE: usize = usize::MAX;
 #[derive(Debug, Clone, Copy)]
 pub struct Edge {
     pub to: usize,
-    pub weight: i64,
+    pub weight: isize,
 }
 
 // =====================================================
@@ -35,7 +35,7 @@ impl Graph {
     }
 
     /// 辺の追加(重み有)
-    pub fn add_edge(&mut self, from: usize, to: usize, weight: i64) {
+    pub fn add_edge(&mut self, from: usize, to: usize, weight: isize) {
         self.edges[from].push(Edge { to, weight });
         if !self.is_directed && from != to {
             self.edges[to].push(Edge { to: from, weight });
@@ -54,7 +54,7 @@ impl Graph {
 impl Graph {
     /// BFS: O(V + E)
     /// 重みなし最短距離。到達不能な頂点は `INF`。
-    pub fn bfs(&self, start: usize) -> Vec<i64> {
+    pub fn bfs(&self, start: usize) -> Vec<isize> {
         let mut dist = vec![INF; self.n];
         dist[start] = 0;
         let mut queue = VecDeque::new();
@@ -72,10 +72,10 @@ impl Graph {
 
     /// ダイクストラ法: O(E log V)
     /// 有向無向どちらも可。負の重みは不可。
-    pub fn dijkstra(&self, start: usize) -> (Vec<i64>, Vec<usize>) {
+    pub fn dijkstra(&self, start: usize) -> (Vec<isize>, Vec<usize>) {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
-        let mut heap: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
+        let mut heap: BinaryHeap<Reverse<(isize, usize)>> = BinaryHeap::new();
         dist[start] = 0;
         heap.push(Reverse((0, start)));
         while let Some(Reverse((d, u))) = heap.pop() {
@@ -96,7 +96,7 @@ impl Graph {
 
     /// ベルマンフォード法: O(V * E)
     /// 負の重み対応。負の閉路があれば `None`。
-    pub fn bellman_ford(&self, start: usize) -> Option<(Vec<i64>, Vec<usize>)> {
+    pub fn bellman_ford(&self, start: usize) -> Option<(Vec<isize>, Vec<usize>)> {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
         dist[start] = 0;
@@ -138,7 +138,7 @@ impl Graph {
 
     /// ワーシャル・フロイド法: O(V^3)
     /// 全点間最短経路。頂点数 V <= 500 が目安。負の閉路があれば `None`。
-    pub fn warshall_floyd(&self) -> Option<Vec<Vec<i64>>> {
+    pub fn warshall_floyd(&self) -> Option<Vec<Vec<isize>>> {
         let mut dist = vec![vec![INF; self.n]; self.n];
         for (i, item) in dist.iter_mut().enumerate().take(self.n) {
             item[i] = 0;
@@ -174,7 +174,7 @@ impl Graph {
 
     /// プリム法: O(E log V)
     /// 無向グラフ専用。最小全域木のコストを返す。非連結なら `None`。
-    pub fn prim(&self) -> Option<i64> {
+    pub fn prim(&self) -> Option<isize> {
         assert!(
             !self.is_directed,
             "Prim's algorithm requires an undirected graph"
@@ -183,7 +183,7 @@ impl Graph {
             return Some(0);
         }
         let mut visited = vec![false; self.n];
-        let mut heap: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
+        let mut heap: BinaryHeap<Reverse<(isize, usize)>> = BinaryHeap::new();
         let mut total_cost = 0;
         let mut visited_count = 0;
         heap.push(Reverse((0, 0)));

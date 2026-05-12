@@ -196,10 +196,10 @@ fn test_prim_dense_graph() {
     let mut g = Graph::new(n, false);
     for i in 0..n {
         for j in i + 1..n {
-            g.add_edge(i, j, (j - i) as i64);
+            g.add_edge(i, j, (j - i) as isize);
         }
     }
-    assert_eq!(g.prim(), Some((n - 1) as i64));
+    assert_eq!(g.prim(), Some((n - 1) as isize));
 }
 
 // =========================================================================
