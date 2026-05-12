@@ -56,6 +56,54 @@ pub fn dp_knapsack_bounded(
     dp[capacity]
 }
 
+/// 0/1ナップサック（最小コスト版）。各アイテムは最大1個まで選び、価値の合計が `target` 以上になる最小コストを返す。
+/// 達成不可能な場合は `None` を返す。
+/// 時間: O(n * target)、空間: O(target)
+pub fn dp_knapsack_01_min_cost(costs: &[usize], values: &[usize], target: usize) -> Option<usize> {
+    let mut dp = vec![usize::MAX; target + 1];
+    dp[0] = 0;
+    for i in 0..costs.len() {
+        for v in (0..target).rev() {
+            if dp[v] == usize::MAX {
+                continue;
+            }
+            let nv = (v + values[i]).min(target);
+            dp[nv] = dp[nv].min(dp[v] + costs[i]);
+        }
+    }
+    if dp[target] == usize::MAX {
+        None
+    } else {
+        Some(dp[target])
+    }
+}
+
+/// 非有界ナップサック（最小コスト版）。各アイテムは何個でも選び、価値の合計が `target` 以上になる最小コストを返す。
+/// 達成不可能な場合は `None` を返す。
+/// 時間: O(n * target)、空間: O(target)
+pub fn dp_knapsack_unbounded_min_cost(
+    costs: &[usize],
+    values: &[usize],
+    target: usize,
+) -> Option<usize> {
+    let mut dp = vec![usize::MAX; target + 1];
+    dp[0] = 0;
+    for v in 0..target {
+        if dp[v] == usize::MAX {
+            continue;
+        }
+        for i in 0..costs.len() {
+            let nv = (v + values[i]).min(target);
+            dp[nv] = dp[nv].min(dp[v] + costs[i]);
+        }
+    }
+    if dp[target] == usize::MAX {
+        None
+    } else {
+        Some(dp[target])
+    }
+}
+
 /// 部分和判定。`items` の中からいくつか選んで合計がちょうど `target` になるか判定する。
 /// 時間: O(n * target)、空間: O(target)
 pub fn dp_subset_sum(items: &[usize], target: usize) -> bool {
@@ -87,6 +135,19 @@ pub fn dp_coin_min(coins: &[usize], amount: usize) -> Option<usize> {
     } else {
         Some(dp[amount])
     }
+}
+
+/// コイン問題。`coins` の額面を何枚でも使って合計 `amount` にする組み合わせ数を `modulo` で割った余りで返す。
+/// 時間: O(|coins| * amount)、空間: O(amount)
+pub fn dp_coin_count(coins: &[usize], amount: usize, modulo: usize) -> usize {
+    let mut dp = vec![0usize; amount + 1];
+    dp[0] = 1;
+    for &c in coins {
+        for a in c..=amount {
+            dp[a] = (dp[a] + dp[a - c]) % modulo;
+        }
+    }
+    dp[amount]
 }
 
 // 列系
@@ -213,6 +274,28 @@ pub fn dp_grid_max_path(grid: &[Vec<isize>]) -> isize {
     for i in 1..h {
         for j in 1..w {
             dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]) + grid[i][j];
+        }
+    }
+    dp[h - 1][w - 1]
+}
+
+/// グリッドの左上(0,0)から右下(h-1,w-1)へ、右か下にのみ移動したときの最小スコアを返す。
+/// `grid` は h×w の行列。
+/// 時間: O(h * w)、空間: O(h * w)
+pub fn dp_grid_min_path(grid: &[Vec<isize>]) -> isize {
+    let h = grid.len();
+    let w = grid[0].len();
+    let mut dp = vec![vec![isize::MAX; w]; h];
+    dp[0][0] = grid[0][0];
+    for j in 1..w {
+        dp[0][j] = dp[0][j - 1] + grid[0][j];
+    }
+    for i in 1..h {
+        dp[i][0] = dp[i - 1][0] + grid[i][0];
+    }
+    for i in 1..h {
+        for j in 1..w {
+            dp[i][j] = dp[i - 1][j].min(dp[i][j - 1]) + grid[i][j];
         }
     }
     dp[h - 1][w - 1]

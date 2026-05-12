@@ -73,6 +73,60 @@ fn knapsack_bounded_count_zero() {
     assert_eq!(dp_knapsack_bounded(&[1], &[100], &[0], 5), 0);
 }
 
+// --- dp_knapsack_01_min_cost ---
+#[test]
+fn knapsack_01_min_cost_basic() {
+    // cost=[3,5,2], value=[4,6,3], target=7
+    // 4+3=7(cost=5), 4+6>=7(cost=8), 6+3>=7(cost=7) -> 最小cost=5
+    assert_eq!(dp_knapsack_01_min_cost(&[3, 5, 2], &[4, 6, 3], 7), Some(5));
+}
+#[test]
+fn knapsack_01_min_cost_exact_target() {
+    assert_eq!(dp_knapsack_01_min_cost(&[1, 2], &[3, 4], 3), Some(1));
+}
+#[test]
+fn knapsack_01_min_cost_impossible() {
+    assert_eq!(dp_knapsack_01_min_cost(&[], &[], 5), None);
+}
+#[test]
+fn knapsack_01_min_cost_single() {
+    assert_eq!(dp_knapsack_01_min_cost(&[10], &[5], 5), Some(10));
+}
+#[test]
+fn knapsack_01_min_cost_target_zero() {
+    assert_eq!(dp_knapsack_01_min_cost(&[1, 2], &[3, 4], 0), Some(0));
+}
+#[test]
+fn knapsack_01_min_cost_each_item_once() {
+    // 同じアイテムは1個まで: value=5単体でtarget=10は届かない
+    assert_eq!(dp_knapsack_01_min_cost(&[1], &[5], 10), None);
+}
+
+// --- dp_knapsack_unbounded_min_cost ---
+#[test]
+fn knapsack_unbounded_min_cost_basic() {
+    // cost=2, value=3 を何個でも: target=7 -> 3個(value=9>=7, cost=6)
+    assert_eq!(dp_knapsack_unbounded_min_cost(&[2], &[3], 7), Some(6));
+}
+#[test]
+fn knapsack_unbounded_min_cost_multiple_items() {
+    // cost=[1,3], value=[2,7], target=7 -> value=7を1個(cost=3) が最小
+    assert_eq!(dp_knapsack_unbounded_min_cost(&[1, 3], &[2, 7], 7), Some(3));
+}
+#[test]
+fn knapsack_unbounded_min_cost_impossible() {
+    assert_eq!(dp_knapsack_unbounded_min_cost(&[], &[], 5), None);
+}
+#[test]
+fn knapsack_unbounded_min_cost_target_zero() {
+    assert_eq!(dp_knapsack_unbounded_min_cost(&[1], &[3], 0), Some(0));
+}
+#[test]
+fn knapsack_unbounded_min_cost_repeat() {
+    // 01版と違い同じアイテムを複数使える
+    assert_eq!(dp_knapsack_unbounded_min_cost(&[1], &[5], 10), Some(2));
+}
+
 // --- dp_subset_sum ---
 #[test]
 fn subset_sum_basic_true() {
@@ -117,6 +171,30 @@ fn coin_min_exact() {
 fn coin_min_greedy_fails() {
     // 貪欲法では6=4+1+1(3枚)だが最適は6=3+3(2枚)
     assert_eq!(dp_coin_min(&[1, 3, 4], 6), Some(2));
+}
+
+// --- dp_coin_count ---
+#[test]
+fn coin_count_basic() {
+    // 1,2,5円で10円: 10通り
+    assert_eq!(dp_coin_count(&[1, 2, 5], 10, 1_000_000_007), 10);
+}
+#[test]
+fn coin_count_zero() {
+    assert_eq!(dp_coin_count(&[1, 2, 5], 0, 1_000_000_007), 1);
+}
+#[test]
+fn coin_count_impossible() {
+    assert_eq!(dp_coin_count(&[3, 5], 1, 1_000_000_007), 0);
+}
+#[test]
+fn coin_count_single() {
+    assert_eq!(dp_coin_count(&[2], 6, 1_000_000_007), 1);
+}
+#[test]
+fn coin_count_modulo() {
+    // modulo が効くか確認
+    assert_eq!(dp_coin_count(&[1], 3, 2), 1); // 1通りを2で割った余り=1
 }
 
 // --- dp_lis_len ---
@@ -249,6 +327,26 @@ fn grid_max_path_negative() {
 #[test]
 fn grid_max_path_1xn() {
     assert_eq!(dp_grid_max_path(&[vec![1, 2, 3, 4]]), 10);
+}
+
+// --- dp_grid_min_path ---
+#[test]
+fn grid_min_path_basic() {
+    let grid = vec![vec![1, 3, 1], vec![1, 5, 1], vec![4, 2, 1]];
+    assert_eq!(dp_grid_min_path(&grid), 7); // 1->1->1->1->1->2->1... 1->3->1->1->1=7
+}
+#[test]
+fn grid_min_path_1x1() {
+    assert_eq!(dp_grid_min_path(&[vec![42]]), 42);
+}
+#[test]
+fn grid_min_path_negative() {
+    let grid = vec![vec![-1, -2], vec![-3, -4]];
+    assert_eq!(dp_grid_min_path(&grid), -8);
+}
+#[test]
+fn grid_min_path_1xn() {
+    assert_eq!(dp_grid_min_path(&[vec![1, 2, 3, 4]]), 10);
 }
 
 // --- dp_grid_path_count ---
