@@ -58,3 +58,17 @@ use library::util::*; // ABC, Set, Map
 //     // 長さの最低条件とか if l+k<r{}みたいに
 //     ans = max!(ans, r - l);  // 長さなら r - l、値なら state 等
 // }
+
+// // === 二分探索テンプレート (abs_diff版) ===
+// let mut ok = ...; // 境界内の値 (答えになり得る)
+// let mut ng = ...; // 境界外の値 (絶対答えにならない)
+
+// while ok.abs_diff(ng) > 1 {
+//     let mid = (ok + ng) / 2;
+//     if check(mid) {
+//         ok = mid; // 成功したので境界を mid まで詰める
+//     } else {
+//         ng = mid; // 失敗したので境界を mid まで詰める
+//     }
+// }
+// // 終了後、ok が条件を満たす「最小」または「最大」の値になる
