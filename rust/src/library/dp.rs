@@ -186,9 +186,9 @@ pub fn dp_coin_count(coins: &[usize], amount: usize, modulo: usize) -> usize {
 /// LIS（最長増加部分列）の長さを返す。
 /// `strict = true` で狭義単調増加（重複を含まない）、`false` で広義単調増加（重複を含む）。
 /// 時間: O(n log n)、空間: O(n)
-pub fn dp_lis_len(seq: &[isize], strict: bool) -> usize {
-    let mut tails: Vec<isize> = Vec::new();
-    for &x in seq {
+pub fn dp_lis_len<T: Ord>(seq: &[T], strict: bool) -> usize {
+    let mut tails: Vec<&T> = Vec::new();
+    for x in seq {
         let pos = if strict {
             tails.partition_point(|&t| t < x)
         } else {
@@ -206,16 +206,16 @@ pub fn dp_lis_len(seq: &[isize], strict: bool) -> usize {
 /// LIS（最長増加部分列）の実際の列を返す。狭義単調増加。
 /// 複数存在する場合は辞書順最小のものを返す。
 /// 時間: O(n^2)、空間: O(n)  ※復元のprev探索がO(n)のため
-pub fn dp_lis_seq(seq: &[isize]) -> Vec<isize> {
+pub fn dp_lis_seq<T: Ord + Clone>(seq: &[T]) -> Vec<T> {
     let n = seq.len();
     if n == 0 {
         return vec![];
     }
-    let mut tails: Vec<isize> = Vec::new();
+    let mut tails: Vec<&T> = Vec::new();
     let mut pos = vec![0usize; n];
     let mut prev = vec![usize::MAX; n];
     for i in 0..n {
-        let x = seq[i];
+        let x = &seq[i];
         let p = tails.partition_point(|&t| t < x);
         if p == tails.len() {
             tails.push(x);
@@ -226,7 +226,7 @@ pub fn dp_lis_seq(seq: &[isize]) -> Vec<isize> {
         if p > 0 {
             prev[i] = (0..i)
                 .rev()
-                .find(|&j| pos[j] == p - 1 && seq[j] < x)
+                .find(|&j| pos[j] == p - 1 && &seq[j] < x)
                 .unwrap_or(usize::MAX);
         }
     }
@@ -234,7 +234,7 @@ pub fn dp_lis_seq(seq: &[isize]) -> Vec<isize> {
     let mut cur = (0..n).rev().find(|&i| pos[i] == lis_len - 1).unwrap();
     let mut result = Vec::with_capacity(lis_len);
     loop {
-        result.push(seq[cur]);
+        result.push(seq[cur].clone());
         if prev[cur] == usize::MAX {
             break;
         }
@@ -248,7 +248,7 @@ pub fn dp_lis_seq(seq: &[isize]) -> Vec<isize> {
 
 /// LCS（最長共通部分列）の長さを返す。
 /// 時間: O(|s| * |t|)、空間: O(|s| * |t|)
-pub fn dp_lcs_len(s: &[isize], t: &[isize]) -> usize {
+pub fn dp_lcs_len<T: PartialEq>(s: &[T], t: &[T]) -> usize {
     let (n, m) = (s.len(), t.len());
     let mut dp = vec![vec![0usize; m + 1]; n + 1];
     for i in 1..=n {
@@ -263,9 +263,40 @@ pub fn dp_lcs_len(s: &[isize], t: &[isize]) -> usize {
     dp[n][m]
 }
 
+/// LCS（最長共通部分列）の実際の列を返す。
+/// 時間: O(|s| * |t|)、空間: O(|s| * |t|)
+pub fn dp_lcs_seq<T: PartialEq + Clone>(s: &[T], t: &[T]) -> Vec<T> {
+    let (n, m) = (s.len(), t.len());
+    let mut dp = vec![vec![0usize; m + 1]; n + 1];
+    for i in 1..=n {
+        for j in 1..=m {
+            dp[i][j] = if s[i - 1] == t[j - 1] {
+                dp[i - 1][j - 1] + 1
+            } else {
+                dp[i - 1][j].max(dp[i][j - 1])
+            };
+        }
+    }
+    let mut result = Vec::new();
+    let (mut i, mut j) = (n, m);
+    while i > 0 && j > 0 {
+        if s[i - 1] == t[j - 1] {
+            result.push(s[i - 1].clone());
+            i -= 1;
+            j -= 1;
+        } else if dp[i - 1][j] >= dp[i][j - 1] {
+            i -= 1;
+        } else {
+            j -= 1;
+        }
+    }
+    result.reverse();
+    result
+}
+
 /// 編集距離（Levenshtein距離）を返す。挿入・削除・置換の最小操作数。
 /// 時間: O(|s| * |t|)、空間: O(|s| * |t|)
-pub fn dp_edit_distance(s: &[isize], t: &[isize]) -> usize {
+pub fn dp_edit_distance<T: PartialEq>(s: &[T], t: &[T]) -> usize {
     let (n, m) = (s.len(), t.len());
     let mut dp = vec![vec![0usize; m + 1]; n + 1];
     for (i, row) in dp.iter_mut().enumerate() {

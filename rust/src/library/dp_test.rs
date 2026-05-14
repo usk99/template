@@ -245,7 +245,7 @@ fn lis_len_ascending() {
 }
 #[test]
 fn lis_len_empty() {
-    assert_eq!(dp_lis_len(&[], true), 0);
+    assert_eq!(dp_lis_len::<i32>(&[], true), 0);
 }
 #[test]
 fn lis_len_single() {
@@ -264,7 +264,7 @@ fn lis_len_strict_vs_nonstrict() {
 }
 #[test]
 fn lis_len_nonstrict_empty() {
-    assert_eq!(dp_lis_len(&[], false), 0);
+    assert_eq!(dp_lis_len::<i32>(&[], false), 0);
 }
 
 // --- dp_lis_seq ---
@@ -276,7 +276,7 @@ fn lis_seq_basic() {
 }
 #[test]
 fn lis_seq_empty() {
-    assert_eq!(dp_lis_seq(&[]), vec![]);
+    assert_eq!(dp_lis_seq::<i32>(&[]), vec![]);
 }
 #[test]
 fn lis_seq_single() {
@@ -294,25 +294,57 @@ fn lis_seq_len_matches_lis_len() {
 
 // --- dp_lcs_len ---
 #[test]
-fn lcs_basic() {
+fn lcs_len_basic() {
     assert_eq!(dp_lcs_len(&[1, 2, 3, 4, 5], &[2, 4, 5]), 3);
 }
 #[test]
-fn lcs_no_common() {
+fn lcs_len_no_common() {
     assert_eq!(dp_lcs_len(&[1, 2], &[3, 4]), 0);
 }
 #[test]
-fn lcs_empty() {
+fn lcs_len_empty() {
     assert_eq!(dp_lcs_len(&[], &[1, 2, 3]), 0);
     assert_eq!(dp_lcs_len(&[1, 2, 3], &[]), 0);
 }
 #[test]
-fn lcs_identical() {
+fn lcs_len_identical() {
     assert_eq!(dp_lcs_len(&[1, 2, 3], &[1, 2, 3]), 3);
 }
 #[test]
-fn lcs_duplicates() {
+fn lcs_len_duplicates() {
     assert_eq!(dp_lcs_len(&[1, 1, 2], &[1, 2]), 2);
+}
+
+// --- dp_lcs_seq ---
+#[test]
+fn lcs_seq_basic() {
+    let result = dp_lcs_seq(&[1, 2, 3, 4, 5], &[2, 4, 5]);
+    assert_eq!(result, vec![2, 4, 5]);
+}
+#[test]
+fn lcs_seq_no_common() {
+    assert_eq!(dp_lcs_seq(&[1, 2], &[3, 4]), vec![]);
+}
+#[test]
+fn lcs_seq_empty() {
+    assert_eq!(dp_lcs_seq::<i32>(&[], &[1, 2, 3]), vec![]);
+    assert_eq!(dp_lcs_seq(&[1, 2, 3], &[]), vec![]);
+}
+#[test]
+fn lcs_seq_identical() {
+    assert_eq!(dp_lcs_seq(&[1, 2, 3], &[1, 2, 3]), vec![1, 2, 3]);
+}
+#[test]
+fn lcs_seq_len_matches_lcs_len() {
+    let s = &[1, 2, 3, 4, 5];
+    let t = &[2, 4, 5, 3];
+    assert_eq!(dp_lcs_seq(s, t).len(), dp_lcs_len(s, t));
+}
+#[test]
+fn lcs_seq_chars() {
+    let s: Vec<char> = "abcde".chars().collect();
+    let t: Vec<char> = "ace".chars().collect();
+    assert_eq!(dp_lcs_seq(&s, &t), vec!['a', 'c', 'e']);
 }
 
 // --- dp_edit_distance ---
