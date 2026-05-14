@@ -1,7 +1,7 @@
 use {
     itertools::Itertools,
     num::{Integer, ToPrimitive},
-    std::{cmp::*, collections::*, hash::*, iter::*, ops::*},
+    std::{cmp::*, collections::*, fmt::Display, hash::*, iter::*, ops::*},
 };
 
 // ==========================================================
@@ -23,6 +23,12 @@ pub trait SliceExt<T> {
     fn counter(&self)       -> HashMap<T, usize> where T: Hash + Eq;
     /// 回文かどうかを返す。空スライスは `true`。
     fn is_palindrome(&self) ->              bool where T: PartialEq;
+    /// 要素を区切りなしで結合した文字列を返す。
+    fn joine(&self)         ->            String where T: Display;
+    /// 要素を改行区切りで結合した文字列を返す。
+    fn joinl(&self)         ->            String where T: Display;
+    /// 要素を空白区切りで結合した文字列を返す。
+    fn joins(&self)         ->            String where T: Display;
 }
 impl<T: Clone> SliceExt<T> for [T] {
     fn sum_all(&self) -> T
@@ -83,6 +89,24 @@ impl<T: Clone> SliceExt<T> for [T] {
             .zip(self.iter().rev())
             .take(self.len() / 2)
             .all(|(a, b)| a == b)
+    }
+    fn joine(&self) -> String
+    where
+        T: Display,
+    {
+        self.iter().join("")
+    }
+    fn joinl(&self) -> String
+    where
+        T: Display,
+    {
+        self.iter().join("\n")
+    }
+    fn joins(&self) -> String
+    where
+        T: Display,
+    {
+        self.iter().join(" ")
     }
 }
 
