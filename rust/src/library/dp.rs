@@ -16,6 +16,37 @@ pub fn dp_knapsack_01(weights: &[usize], values: &[isize], capacity: usize) -> i
     dp[capacity]
 }
 
+/// 0/1ナップサック（価値基準版）。各アイテムは最大1個まで選び、
+/// 重さの合計が `capacity` 以下となる範囲で価値の合計を最大化した値を返す。
+/// `capacity` が大きく、価値の総和が小さい場合に有効。
+/// 時間: O(n * sum(values))、空間: O(sum(values))
+pub fn dp_knapsack_01_value(weights: &[usize], values: &[usize], capacity: usize) -> usize {
+    let sum_value: usize = values.iter().sum();
+    let inf = usize::MAX / 4;
+    let mut dp = vec![inf; sum_value + 1];
+    dp[0] = 0;
+
+    for i in 0..weights.len() {
+        let weight = weights[i];
+        let value = values[i];
+        for total_value in (0..=sum_value - value).rev() {
+            if dp[total_value] == inf {
+                continue;
+            }
+            let next_value = total_value + value;
+            let next_weight = dp[total_value].saturating_add(weight);
+            if next_weight < dp[next_value] {
+                dp[next_value] = next_weight;
+            }
+        }
+    }
+
+    (0..=sum_value)
+        .rev()
+        .find(|&total_value| dp[total_value] <= capacity)
+        .unwrap_or(0)
+}
+
 /// 非有界ナップサック問題を解く。各アイテムは何個でも選べる。
 /// `capacity` 以下の重さで価値の合計を最大化した値を返す。
 /// 時間: O(n * capacity)、空間: O(capacity)

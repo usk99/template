@@ -27,6 +27,35 @@ fn knapsack_01_each_item_once() {
     assert_eq!(dp_knapsack_01(&[3, 3], &[10, 10], 5), 10);
 }
 
+// --- dp_knapsack_01_value ---
+#[test]
+fn knapsack_01_value_basic() {
+    assert_eq!(dp_knapsack_01_value(&[1, 2, 3, 5], &[1, 6, 5, 9], 5), 11);
+}
+#[test]
+fn knapsack_01_value_empty() {
+    assert_eq!(dp_knapsack_01_value(&[], &[], 10), 0);
+}
+#[test]
+fn knapsack_01_value_capacity_zero() {
+    assert_eq!(dp_knapsack_01_value(&[1, 2], &[10, 20], 0), 0);
+}
+#[test]
+fn knapsack_01_value_all_too_heavy() {
+    assert_eq!(dp_knapsack_01_value(&[5, 6], &[100, 200], 4), 0);
+}
+#[test]
+fn knapsack_01_value_agrees_with_01() {
+    let w = &[2, 3, 4, 5];
+    let v = &[3usize, 4, 5, 6];
+    let v_isize: Vec<isize> = v.iter().map(|&x| x as isize).collect();
+    let cap = 8;
+    assert_eq!(
+        dp_knapsack_01_value(w, v, cap),
+        dp_knapsack_01(w, &v_isize, cap) as usize
+    );
+}
+
 // --- dp_knapsack_unbounded ---
 #[test]
 fn knapsack_unbounded_basic() {
