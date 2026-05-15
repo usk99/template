@@ -56,29 +56,28 @@ macro_rules! define_input_functions {
 }
 
 define_input_functions! {
+    // 非負整数
     InputNum         ()                ->          usize   = get_word().parse().unwrap();
     InputNums        (n:usize)         ->      Vec<usize>  = (0..n).map(|_|InputNum()).collect();
     InputNumsSelf    ()                ->      Vec<usize>  =  InputNums(InputNum());
     InputsNums       (h:usize,w:usize) ->  Vec<Vec<usize>> = (0..h).map(|_|InputNums(w)).collect();
     InputsNumsSelf   ()                ->  Vec<Vec<usize>> = InputsNums(InputNum(),InputNum());
+    // 整数
     InputInt         ()                ->          isize   = get_word().parse().unwrap();
     InputInts        (n:usize)         ->      Vec<isize>  = (0..n).map(|_|InputInt()).collect();
     InputIntsSelf    ()                ->      Vec<isize>  =  InputInts(InputNum());
     InputsInts       (h:usize,w:usize) ->  Vec<Vec<isize>> = (0..h).map(|_|InputInts(w)).collect();
     InputsIntsSelf   ()                ->  Vec<Vec<isize>> = InputsInts(InputNum(),InputNum());
-    InputChars       ()                ->       Vec<char>  = InputString().chars().collect();
-    InputsChars      (n:usize)         ->   Vec<Vec<char>> = (0..n).map(|_|InputChars()).collect();
-    InputsCharsSelf  ()                ->   Vec<Vec<char>> = InputsChars(InputNum());
+    // 小数
     InputFloat       ()                ->            f64   = get_word().parse().unwrap();
     InputFloats      (n:usize)         ->        Vec<f64>  = (0..n).map(|_|InputFloat()).collect();
     InputFloatsSelf  ()                ->        Vec<f64>  =  InputFloats(InputNum());
     InputsFloats     (h:usize,w:usize) ->    Vec<Vec<f64>> = (0..h).map(|_|InputFloats(w)).collect();
     InputsFloatsSelf ()                ->    Vec<Vec<f64>> = InputsFloats(InputNum(),InputNum());
-    InputString      ()                ->         String   = get_word();
-    InputStrings     (n:usize)         ->     Vec<String>  = (0..n).map(|_|InputString()).collect();
-    InputStringsSelf ()                ->     Vec<String>  = InputStrings(InputNum());
-    InputsStrings    (h:usize,w:usize) -> Vec<Vec<String>> = (0..h).map(|_|InputStrings(w)).collect();
-    InputsStringsSelf()                -> Vec<Vec<String>> = InputsStrings(InputNum(),InputNum());
+    // 文字vec
+    InputChars       ()                ->       Vec<char>  = get_word().chars().collect();
+    InputsChars      (n:usize)         ->   Vec<Vec<char>> = (0..n).map(|_|InputChars()).collect();
+    InputsCharsSelf  ()                ->   Vec<Vec<char>> = InputsChars(InputNum());
 }
 
 #[derive(Default)]
