@@ -321,6 +321,76 @@ impl Graph {
 }
 
 // =====================================================
+// アルゴリズム(マッチング系)
+// =====================================================
+impl Graph {
+    /// 二部グラフ最大マッチング ホップクロフト・カープ法: O(E√V)
+    /// `left`: 左側の頂点集合, `right`: 右側の頂点集合。
+    /// 最大マッチング数を返す。
+    pub fn hopcroft_karp(&self, left: &[usize], right: &[usize]) -> usize {
+        let mut match_l = vec![NONE; self.n]; // 左頂点のマッチ先
+        let mut match_r = vec![NONE; self.n]; // 右頂点のマッチ先
+        let mut result = 0;
+        loop {
+            // BFS で層グラフを構築
+            let mut dist = vec![NONE; self.n];
+            let mut queue = VecDeque::new();
+            for &u in left {
+                if match_l[u] == NONE {
+                    dist[u] = 0;
+                    queue.push_back(u);
+                }
+            }
+            let mut found = false;
+            while let Some(u) = queue.pop_front() {
+                for edge in &self.edges[u] {
+                    let v = edge.to;
+                    let w = match_r[v];
+                    if w == NONE {
+                        found = true;
+                    } else if dist[w] == NONE {
+                        dist[w] = dist[u] + 1;
+                        queue.push_back(w);
+                    }
+                }
+            }
+            if !found {
+                break;
+            }
+            // DFS で増加路を探す
+            for &u in left {
+                if match_l[u] == NONE && Self::dfs_hk(u, &self.edges, &mut dist, &mut match_l, &mut match_r) {
+                    result += 1;
+                }
+            }
+        }
+        // 右側のみの頂点にも対応（右→左の辺がある場合）
+        let _ = right; // 右側は match_r で管理済み
+        result
+    }
+
+    fn dfs_hk(
+        u: usize,
+        edges: &[Vec<Edge>],
+        dist: &mut Vec<usize>,
+        match_l: &mut Vec<usize>,
+        match_r: &mut Vec<usize>,
+    ) -> bool {
+        for edge in &edges[u] {
+            let v = edge.to;
+            let w = match_r[v];
+            if w == NONE || (dist[w] == dist[u] + 1 && Self::dfs_hk(w, edges, dist, match_l, match_r)) {
+                match_l[u] = v;
+                match_r[v] = u;
+                return true;
+            }
+        }
+        dist[u] = NONE;
+        false
+    }
+}
+
+// =====================================================
 // 経路復元
 // =====================================================
 /// `pre` 配列を辿って `start` から `goal` へのパスを復元する。到達不能なら空 Vec。

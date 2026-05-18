@@ -303,6 +303,72 @@ fn test_single_vertex() {
 }
 
 // =========================================================================
+// hopcroft_karp
+// =========================================================================
+
+#[test]
+fn test_hopcroft_karp_basic() {
+    // 左: 0,1,2  右: 3,4,5
+    // 0-3, 0-4, 1-3, 2-5 -> 最大マッチング = 3
+    let mut g = Graph::new(6, true);
+    g.add_unweighted_edge(0, 3);
+    g.add_unweighted_edge(0, 4);
+    g.add_unweighted_edge(1, 3);
+    g.add_unweighted_edge(2, 5);
+    assert_eq!(g.hopcroft_karp(&[0, 1, 2], &[3, 4, 5]), 3);
+}
+
+#[test]
+fn test_hopcroft_karp_no_edges() {
+    let g = Graph::new(4, true);
+    assert_eq!(g.hopcroft_karp(&[0, 1], &[2, 3]), 0);
+}
+
+#[test]
+fn test_hopcroft_karp_complete_bipartite() {
+    // K_{3,3}: 左0,1,2 右3,4,5 全辺あり -> 最大マッチング = 3
+    let mut g = Graph::new(6, true);
+    for l in 0..3 {
+        for r in 3..6 {
+            g.add_unweighted_edge(l, r);
+        }
+    }
+    assert_eq!(g.hopcroft_karp(&[0, 1, 2], &[3, 4, 5]), 3);
+}
+
+#[test]
+fn test_hopcroft_karp_unbalanced() {
+    // 左: 0,1,2,3  右: 4,5  -> 最大マッチング = 2
+    let mut g = Graph::new(6, true);
+    g.add_unweighted_edge(0, 4);
+    g.add_unweighted_edge(1, 4);
+    g.add_unweighted_edge(2, 5);
+    g.add_unweighted_edge(3, 5);
+    assert_eq!(g.hopcroft_karp(&[0, 1, 2, 3], &[4, 5]), 2);
+}
+
+#[test]
+fn test_hopcroft_karp_single_pair() {
+    let mut g = Graph::new(2, true);
+    g.add_unweighted_edge(0, 1);
+    assert_eq!(g.hopcroft_karp(&[0], &[1]), 1);
+}
+
+#[test]
+fn test_hopcroft_karp_augment_required() {
+    // 増加路の付け替えが必要なケース
+    // 左: 0,1,2  右: 3,4,5
+    // 0-3, 1-3, 1-4, 2-4, 2-5 -> 最大マッチング = 3
+    let mut g = Graph::new(6, true);
+    g.add_unweighted_edge(0, 3);
+    g.add_unweighted_edge(1, 3);
+    g.add_unweighted_edge(1, 4);
+    g.add_unweighted_edge(2, 4);
+    g.add_unweighted_edge(2, 5);
+    assert_eq!(g.hopcroft_karp(&[0, 1, 2], &[3, 4, 5]), 3);
+}
+
+// =========================================================================
 // get_path
 // =========================================================================
 
