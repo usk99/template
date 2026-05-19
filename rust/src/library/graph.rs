@@ -4,7 +4,7 @@ use std::{cmp::Reverse, collections::BinaryHeap, collections::VecDeque};
 // 定数定義
 // =====================================================
 pub const INF: isize = 1_000_000_000_000_000_000; // オーバーフローしないでかい値
-pub const NONE: usize = usize::MAX;
+pub const NONE: usize = usize::MAX; // 前頂点なし・未訪問を表すセンチネル
 
 // =====================================================
 // Edge構造体
@@ -52,8 +52,9 @@ impl Graph {
 // アルゴリズム(最短系)
 // =====================================================
 impl Graph {
-    /// BFS: O(V + E)
-    /// 重みなし最短距離。到達不能な頂点は `INF`。
+    /// BFS（幅優先探索）: O(V + E)
+    /// `start` から全頂点への最短距離を返す。辺の重みは全て1扱い。
+    /// 到達不能な頂点の距離は `INF`。
     pub fn bfs(&self, start: usize) -> Vec<isize> {
         let mut dist = vec![INF; self.n];
         dist[start] = 0;
@@ -71,7 +72,9 @@ impl Graph {
     }
 
     /// ダイクストラ法: O(E log V)
-    /// 有向無向どちらも可。負の重みは不可。
+    /// `start` から全頂点への最短距離と、経路復元用の前頂点配列 `pre` を返す。
+    /// 有向・無向どちらも可。負の重みがある場合は使用不可。
+    /// 経路復元は `get_path(&pre, start, goal)` で行う。
     pub fn dijkstra(&self, start: usize) -> (Vec<isize>, Vec<usize>) {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
@@ -95,7 +98,9 @@ impl Graph {
     }
 
     /// ベルマンフォード法: O(V * E)
-    /// 負の重み対応。負の閉路があれば `None`。
+    /// `start` から全頂点への最短距離と前頂点配列を返す。
+    /// 負の重みの辺があっても正しく動作する。
+    /// 負の閉路が存在する場合は `None` を返す。
     pub fn bellman_ford(&self, start: usize) -> Option<(Vec<isize>, Vec<usize>)> {
         let mut dist = vec![INF; self.n];
         let mut pre = vec![NONE; self.n];
@@ -137,7 +142,8 @@ impl Graph {
     }
 
     /// ワーシャル・フロイド法: O(V^3)
-    /// 全点間最短経路。頂点数 V <= 500 が目安。負の閉路があれば `None`。
+    /// 全頂点ペア間の最短経路を求める。`dist[i][j]` が頂点 `i` から `j` への最短距離。
+    /// 頂点数 V <= 500 が実用上の目安。負の閉路が存在する場合は `None` を返す。
     pub fn warshall_floyd(&self) -> Option<Vec<Vec<isize>>> {
         let mut dist = vec![vec![INF; self.n]; self.n];
         for (i, item) in dist.iter_mut().enumerate().take(self.n) {
@@ -173,7 +179,9 @@ impl Graph {
     }
 
     /// プリム法: O(E log V)
-    /// 無向グラフ専用。最小全域木のコストを返す。非連結なら `None`。
+    /// 無向グラフの最小全域木（MST）のコスト合計を返す。
+    /// 非連結グラフで全頂点を繋げられない場合は `None` を返す。
+    /// 有向グラフには使用不可（panicする）。
     pub fn prim(&self) -> Option<isize> {
         assert!(
             !self.is_directed,
@@ -213,7 +221,9 @@ impl Graph {
 // =====================================================
 impl Graph {
     /// 二部グラフ判定: O(V + E)
-    /// 二部グラフなら `Some(各頂点の色 0/1)`、そうでなければ `None`。非連結対応。
+    /// グラフを2色（0/1）で塗り分けできるか判定する（BFS着色）。
+    /// 二部グラフなら `Some(各頂点の色 0/1)` を返す。同じ色の頂点間に辺があれば `None`。
+    /// 非連結グラフにも対応（全連結成分を個別に判定）。
     pub fn is_bipartite(&self) -> Option<Vec<usize>> {
         let mut color = vec![usize::MAX; self.n];
         let mut queue = VecDeque::new();
@@ -237,9 +247,10 @@ impl Graph {
         Some(color)
     }
 
-    /// 強連結成分分解(SCC) タルヤン法: O(V + E)
-    /// 非再帰。戻り値: `(成分数, 各頂点のSCC_ID)`。
-    /// SCC_ID はトポロジカル逆順（ACL と同じ仕様）。辺は ID大 → ID小 の向き。
+    /// 強連結成分分解（SCC）タルヤン法: O(V + E)
+    /// 有向グラフを「互いに行き来できる頂点のグループ」に分解する。非再帰実装。
+    /// 戻り値: `(成分数, 各頂点のSCC_ID)`。
+    /// SCC_ID はトポロジカル逆順（ACL と同じ仕様）。辺は ID大 → ID小 の方向に張られる。
     pub fn scc(&self) -> (usize, Vec<usize>) {
         let mut ord = vec![NONE; self.n];
         let mut low = vec![NONE; self.n];
@@ -291,8 +302,9 @@ impl Graph {
         (count, group)
     }
 
-    /// トポロジカルソート: O(V + E)
-    /// 閉路があれば `None`。
+    /// トポロジカルソート（カーンのアルゴリズム）: O(V + E)
+    /// DAG（有向非巡回グラフ）の頂点を依存関係順に並べた列を返す。
+    /// 閉路が存在する場合は `None` を返す。
     pub fn topological_sort(&self) -> Option<Vec<usize>> {
         let mut ind = vec![0; self.n];
         for u in 0..self.n {
@@ -325,8 +337,9 @@ impl Graph {
 // =====================================================
 impl Graph {
     /// 二部グラフ最大マッチング ホップクロフト・カープ法: O(E√V)
-    /// `left`: 左側の頂点集合, `right`: 右側の頂点集合。
-    /// 最大マッチング数を返す。
+    /// 二部グラフで同時に選べる辺の最大数（最大マッチング数）を返す。
+    /// `left`: 左側の頂点集合。辺は左→右に張る。`right` は現在未使用（`match_r` で管理）。
+    /// BFS で層グラフを構築し、DFS で増加路を繰り返し見つけることで効率的に解く。
     pub fn hopcroft_karp(&self, left: &[usize], right: &[usize]) -> usize {
         let mut match_l = vec![NONE; self.n]; // 左頂点のマッチ先
         let mut match_r = vec![NONE; self.n]; // 右頂点のマッチ先
@@ -393,7 +406,9 @@ impl Graph {
 // =====================================================
 // 経路復元
 // =====================================================
-/// `pre` 配列を辿って `start` から `goal` へのパスを復元する。到達不能なら空 Vec。
+/// `pre` 配列（ダイクストラ・ベルマンフォード等が返す前頂点配列）を辿り、
+/// `start` から `goal` への経路を `[start, ..., goal]` の形で返す。
+/// 到達不能な場合は空 Vec を返す。
 pub fn get_path(pre: &[usize], start: usize, goal: usize) -> Vec<usize> {
     if goal >= pre.len() || (goal != start && pre[goal] == NONE) {
         return vec![];
