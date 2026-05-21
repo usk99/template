@@ -41,35 +41,53 @@ use library::usermacro::*; // min!, max!, chmin!, chmax!
 use library::util::*; // ABC, Set, Map
 
 // === 尺取り法 ===
+// // 前提: a[i] 単体は必ず OK 条件を満たすこと
+// // [l, r) の半開区間。r は「次に追加するインデックス」
 // let (mut l, mut r) = (0, 0);
-// let mut state = 0;   // ← 差分更新できる状態 (sum等)。セグ木外持ちなら不要
+// let mut state = 0; // 差分管理できる値 (和・積・個数 等)
+// let mut ans = 0;
 // while r < n {
-//     // ここで a[r] を state に追加
-//     state += a[r];
+//     state += a[r]; // a[r] を区間に追加してから r を進める
 //     r += 1;
-//     while NG条件 {
-//         // ここで a[l] を state から除去
-//         state -= a[l];
+//     while /* NG条件 例: state > limit */ {
+//         state -= a[l]; // a[l] を区間から除いてから l を進める
 //         l += 1;
-//         // ※ l < r のガードは原則不要（入れるとWAになることがある）
-//         // ※ a[r] 単体が必ずOK か、問題の制約から確認する
+//         // ※ l < r のガードは原則不要（入れると WA になることがある）
 //     }
-//     // ここで [l, r) は OK な最大区間 → ans の更新等
-//     // 長さの最低条件とか if l+k<r{}みたいに
-//     ans = max!(ans, r - l);  // 長さなら r - l、値なら state 等
+//     // ここで [l, r) は条件を満たす最大の右端をもつ区間
+//     ans = max!(ans, r - l); // 【最大区間長】を求める場合
 // }
+//
+// // 【最小区間長】を求める場合: 内側ループの中で更新する
+// // while r < n {
+// //     state += a[r]; r += 1;
+// //     while /* OK条件 例: state >= target */ {
+// //         ans = min!(ans, r - l); // ← OK なうちに更新
+// //         state -= a[l]; l += 1;
+// //     }
+// // }
 
-// // === 二分探索テンプレート (abs_diff版) ===
-// let mut ok = ...; // 境界内の値 (答えになり得る)
-// let mut ng = ...; // 境界外の値 (絶対答えにならない)
-
+// === 二分探索 (abs_diff 版) ===
+// // ok: 条件を満たすことが確定している値
+// // ng: 条件を満たさないことが確定している値
+// // → ok と ng の大小関係は問わない（abs_diff が吸収する）
+//
+// // 【条件を満たす最大値】を求める場合
+// // let mut ok = 0;   // 0 は必ず OK (問題に応じて調整)
+// // let mut ng = n+1; // n+1 は必ず NG
+//
+// // 【条件を満たす最小値】を求める場合
+// // let mut ok = n;   // n は必ず OK
+// // let mut ng = 0;   // 0 は必ず NG (問題に応じて調整)
+//
+// let mut ok: usize = ...; // isize にする場合はそのまま使える
+// let mut ng: usize = ...;
 // while ok.abs_diff(ng) > 1 {
 //     let mid = (ok + ng) / 2;
 //     if check(mid) {
-//         ok = mid; // 条件を満たすので ok 側に寄せる
+//         ok = mid;
 //     } else {
-//         ng = mid; // 条件を満たさないので ng 側に除外する
+//         ng = mid;
 //     }
 // }
-// // 終了後: ok=小・ng=大 なら ok が条件を満たす最大値
-// //         ok=大・ng=小 なら ok が条件を満たす最小値
+// // ok が答え
