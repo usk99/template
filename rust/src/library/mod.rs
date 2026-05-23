@@ -8,6 +8,7 @@ pub mod grid;
 pub mod heap;
 pub mod heuristic;
 pub mod io;
+pub mod modint;
 pub mod prime;
 pub mod rng;
 pub mod seg;
