@@ -372,7 +372,7 @@ pub fn dp_grid_path_count(
     obstacles: &[(usize, usize)],
     modulo: usize,
 ) -> usize {
-    let blocked: Set<(usize, usize)> = obstacles.iter().cloned().collect();
+    let blocked: Set<(usize, usize)> = obstacles.iter().copied().collect();
     let mut dp = vec![vec![0usize; w]; h];
     if blocked.contains(&(0, 0)) {
         return 0;

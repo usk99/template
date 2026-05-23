@@ -49,7 +49,7 @@ impl Timer {
     /// 再起動
     #[inline]
     pub fn reset(&mut self) {
-        self.start_time = Instant::now()
+        self.start_time = Instant::now();
     }
 
     /// 制限時間セット

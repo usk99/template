@@ -555,9 +555,9 @@ impl_map_monoid!(@impl [PrimInt + Default], [
     (UpdateMin,    Min<T>,    Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
     (UpdateBitOr,  BitOr<T>,  Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
     (UpdateBitAnd, BitAnd<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).unwrap_or(*x)),
-    (UpdateSum,    SumLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map(|v|(v*x.1,x.1)).unwrap_or(*x)),
+    (UpdateSum,    SumLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map_or(*x,|v|(v*x.1,x.1))),
     // 値をvに変えると、XOR和は長さが奇数ならv、偶数なら0
-    (UpdateXor,    XorLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map(|v|(if x.1&T::one()==T::zero(){T::zero()}else{v},x.1)).unwrap_or(*x)),
+    (UpdateXor,    XorLen<T>, Option<T>, None,|f, g| (*f).or(*g),|f,x|(*f).map_or(*x,|v|(if x.1&T::one()==T::zero(){T::zero()}else{v},x.1))),
 ]);
 impl_map_monoid!(@impl [Integer + PrimInt + Default], [
     (UpdateGcd,Gcd<T>,Option<T>,None,|f,g|(*f).or(*g),|f,x|(*f).unwrap_or(*x)),

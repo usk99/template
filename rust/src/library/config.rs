@@ -3,7 +3,7 @@
 /// 実行時間
 pub const TIME_LIMIT: f64 = 0000.0;
 /// 乱数生成用のシード
-pub const RNG_SEED: u64 = 123456789;
+pub const RNG_SEED: u64 = 123_456_789;
 /// アルゴリズム
 pub const ENABLE_ALGORITHM: bool = true;
 /// 貪欲

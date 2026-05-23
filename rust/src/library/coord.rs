@@ -105,7 +105,7 @@ impl Direction {
 
 impl std::fmt::Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -142,20 +142,20 @@ impl Coord {
 
     /// 行インデックス（r フィールド）を usize で返す。
     #[inline(always)]
-    pub const fn row(&self) -> usize {
+    pub const fn row(self) -> usize {
         self.r as usize
     }
 
     /// 列インデックス（c フィールド）を usize で返す。
     #[inline(always)]
-    pub const fn col(&self) -> usize {
+    pub const fn col(self) -> usize {
         self.c as usize
     }
 
     /// `rows × cols` のグリッド内に座標が収まっているか判定する。
     /// wrapping 演算で範囲外に出た座標（大きな値になる）も正しく弾く。
     #[inline(always)]
-    pub const fn within(&self, rows: usize, cols: usize) -> bool {
+    pub const fn within(self, rows: usize, cols: usize) -> bool {
         // 負の値は来ないようになっている
         self.row() < rows && self.col() < cols
     }
@@ -182,7 +182,7 @@ impl Coord {
     /// 2座標間の行・列の絶対差分を `Coord` として返す（符号なし）。
     /// 距離計算の内部処理に使う。
     #[inline]
-    pub const fn diff(&self, other: &Self) -> Self {
+    pub const fn diff(self, other: Self) -> Self {
         Self {
             r: self.r.abs_diff(other.r),
             c: self.c.abs_diff(other.c),
@@ -191,7 +191,7 @@ impl Coord {
 
     /// 2座標を対角とする長方形の面積（|dr| * |dc|）を返す。
     #[inline]
-    pub const fn rect_area(&self, other: &Self) -> usize {
+    pub const fn rect_area(self, other: Self) -> usize {
         let d = self.diff(other);
         (d.r as usize) * (d.c as usize)
     }
@@ -199,7 +199,7 @@ impl Coord {
     /// ユークリッド距離の **2乗** を返す（`sqrt` なし）。
     /// 距離の大小比較には2乗のまま使えるため、浮動小数点誤差を避けられる。
     #[inline]
-    pub const fn dist_euclidean2(&self, other: &Self) -> usize {
+    pub const fn dist_euclidean2(self, other: Self) -> usize {
         let d = self.diff(other);
         let r = d.row();
         let c = d.col();
@@ -209,7 +209,7 @@ impl Coord {
     /// マンハッタン距離（|dr| + |dc|）を返す。
     /// 上下左右のみ移動できるグリッドでの最短手数に相当する。
     #[inline]
-    pub const fn dist_manhattan(&self, other: &Self) -> usize {
+    pub const fn dist_manhattan(self, other: Self) -> usize {
         let d = self.diff(other);
         d.row() + d.col()
     }
@@ -217,7 +217,7 @@ impl Coord {
     /// チェビシェフ距離（max(|dr|, |dc|)）を返す。
     /// 8方向移動できるグリッドでの最短手数に相当する。
     #[inline]
-    pub const fn dist_chebyshev(&self, other: &Self) -> usize {
+    pub const fn dist_chebyshev(self, other: Self) -> usize {
         let d = self.diff(other);
         if d.row() > d.col() { d.row() } else { d.col() }
     }
@@ -265,7 +265,7 @@ impl Coord {
     /// `self` から `other` への方向を返す。
     /// 隣接していない場合や斜め方向の場合は `None`。
     #[inline]
-    pub const fn direction_to(&self, other: &Self) -> Option<Direction> {
+    pub const fn direction_to(self, other: Self) -> Option<Direction> {
         let row_diff = other.r as isize - self.r as isize;
         let col_diff = other.c as isize - self.c as isize;
         match (row_diff.signum(), col_diff.signum()) {

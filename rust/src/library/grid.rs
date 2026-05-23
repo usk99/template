@@ -133,7 +133,7 @@ impl<T: Clone> From<Vec<Vec<T>>> for Grid<T> {
 impl<T: Clone> From<Grid<T>> for Vec<Vec<T>> {
     /// Gridから二次元Vecを作成
     fn from(val: Grid<T>) -> Self {
-        val.vec.chunks(val.col).map(|ch| ch.to_vec()).collect()
+        val.vec.chunks(val.col).map(<[T]>::to_vec).collect()
     }
 }
 
@@ -340,14 +340,14 @@ impl<T> Grid<T> {
         let data_max_width = formatted_cells.iter().map(String::len).max().unwrap_or(1);
         let mut row_header_width = 0;
         if self.row != 0 {
-            row_header_width = (self.row - 1).to_string().len()
-        };
+            row_header_width = (self.row - 1).to_string().len();
+        }
         let mut result = String::new();
         result.push_str(&" ".repeat(row_header_width));
         result.push_str(" | ");
 
         for c in 0..self.col {
-            result.push_str(&format!("{col:>width$} ", col = c, width = data_max_width));
+            let _ = write!(result, "{c:>data_max_width$} ");
         }
         result.push('\n');
         result.push_str(&"-".repeat(row_header_width));
@@ -357,15 +357,15 @@ impl<T> Grid<T> {
         result.push('\n');
 
         for r in 0..self.row {
-            result.push_str(&format!("{row:>width$}", row = r, width = row_header_width));
+            let _ = write!(result, "{r:>row_header_width$}");
             result.push_str(" | ");
             for c in 0..self.col {
                 let idx = r * self.col + c;
-                result.push_str(&format!(
-                    "{val:>width$} ",
-                    val = formatted_cells[idx],
-                    width = data_max_width
-                ));
+                let _ = write!(
+                    result,
+                    "{val:>data_max_width$} ",
+                    val = formatted_cells[idx]
+                );
             }
             result.push('\n');
         }

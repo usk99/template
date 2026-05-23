@@ -113,7 +113,7 @@ impl Answer {
 
 pub trait Elem: Display {
     fn write_elem(&self, w: &mut impl Write) -> io::Result<()> {
-        write!(w, "{}", self)
+        write!(w, "{self}")
     }
     fn write_vec(data: &[Self], w: &mut impl Write) -> io::Result<()>
     where

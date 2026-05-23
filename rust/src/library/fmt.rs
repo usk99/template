@@ -5,7 +5,7 @@ impl ToComma for str {
     fn comma(&self) -> String {
         let s = self.as_bytes();
         if s.is_empty() {
-            return "".into();
+            return String::new();
         }
         let p = s.iter().position(|&c| c == b'.').unwrap_or(s.len());
         let (l, r) = s.split_at(p);
@@ -23,7 +23,7 @@ impl ToComma for str {
         v.extend_from_slice(&nm[..h]);
         for c in nm[h..].chunks(3) {
             v.push(b',');
-            v.extend_from_slice(c)
+            v.extend_from_slice(c);
         }
         v.extend_from_slice(r);
         unsafe { String::from_utf8_unchecked(v) }

@@ -166,9 +166,8 @@ impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
         if self.len() < 2 {
             return false;
         }
-        let i = match (0..self.len() - 1).rfind(|&i| self[i] < self[i + 1]) {
-            Some(i) => i,
-            None => return false,
+        let Some(i) = (0..self.len() - 1).rfind(|&i| self[i] < self[i + 1]) else {
+            return false;
         };
         let j = (0..self.len()).rfind(|&j| self[i] < self[j]).unwrap();
         self.swap(i, j);
@@ -179,9 +178,8 @@ impl<T: Ord + Clone> SliceOrdExt<T> for [T] {
         if self.len() < 2 {
             return false;
         }
-        let i = match (0..self.len() - 1).rfind(|&i| self[i] > self[i + 1]) {
-            Some(i) => i,
-            None => return false,
+        let Some(i) = (0..self.len() - 1).rfind(|&i| self[i] > self[i + 1]) else {
+            return false;
         };
         let j = (0..self.len()).rfind(|&j| self[i] > self[j]).unwrap();
         self.swap(i, j);

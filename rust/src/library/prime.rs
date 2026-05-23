@@ -77,7 +77,7 @@ pub fn is_prime(n: usize) -> bool {
     if n < 2 {
         return false;
     }
-    for &p in PRIME_NUMBERS.iter() {
+    for &p in &PRIME_NUMBERS {
         if n == p {
             return true;
         } else if n % p == 0 {
@@ -103,7 +103,7 @@ pub fn is_prime(n: usize) -> bool {
         let mut k = (max_small / 30).saturating_sub(1);
         'wheel_outer: loop {
             k += 1;
-            for &r in WHEEL30.iter() {
+            for &r in &WHEEL30 {
                 let cand = k * 30 + r;
                 if cand <= max_small {
                     continue;
@@ -140,7 +140,7 @@ pub fn is_prime(n: usize) -> bool {
     // MR の基底（64-bit 用）
     const BASES: [u128; 6] = [2, 3, 5, 7, 11, 13];
 
-    for &a_orig in BASES.iter() {
+    for &a_orig in &BASES {
         let a = a_orig % n128;
         if a == 0 {
             // 基底が n の倍数はスキップ
@@ -181,7 +181,7 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
     }
 
     // まず小さい素数表で割り切る
-    for &p in PRIME_NUMBERS.iter() {
+    for &p in &PRIME_NUMBERS {
         let p_us = p;
         if p_us * p_us > n {
             break;
@@ -220,7 +220,7 @@ pub fn factorize(mut n: usize) -> Vec<(usize, usize)> {
         if d == n128 {
             // フェールセーフ：分解に失敗したら素朴に試し割り
             let mut m = n128 as usize;
-            for &p in PRIME_NUMBERS.iter() {
+            for &p in &PRIME_NUMBERS {
                 let p_us = p;
                 while m % p_us == 0 {
                     out.push(p_us as u128);

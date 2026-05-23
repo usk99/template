@@ -194,7 +194,7 @@ pub fn tune_simulated_annealing() {
     }
     eprintln!("\nBest SA Parameters:");
     eprintln!("------------------------");
-    for (param, value) in best_params.iter() {
+    for (param, value) in &best_params {
         eprintln!("{param:>12}={value:>8.3}");
     }
     eprintln!("Best Score  = {best_score:>8.0}");
@@ -218,11 +218,11 @@ pub fn tune_beam_search() {
                 .map(|_| {
                     let timer = &Timer::new(TIME_LIMIT / 2.0);
                     let mut rng = FastRng::new(RNG_SEED);
-                    let mut bs = BeamSearch::new(BeamParams {
+                    let mut bs = BeamSearch::new(&BeamParams {
                         beam_width: params.bs_params["beam_width"],
                         max_depth: params.bs_params["max_depth"],
                     });
-                    bs.run(State::new(), timer, &mut rng).score as f64
+                    bs.run(&State::new(), timer, &mut rng).score as f64
                 })
                 .collect::<Vec<_>>();
             let avg_score = trial_scores.iter().sum::<f64>() / trial_scores.len() as f64;
@@ -236,7 +236,7 @@ pub fn tune_beam_search() {
     }
     eprintln!("\nBest BS Parameters:");
     eprintln!("------------------------");
-    for (param, value) in best_params.iter() {
+    for (param, value) in &best_params {
         eprintln!("{param:>12}={value:>8.3}");
     }
     eprintln!("Best Score  = {best_score:>8.0}");
@@ -435,7 +435,7 @@ pub struct BeamSearch {
     best_score: usize,
 }
 impl BeamSearch {
-    pub fn new(params: BeamParams) -> Self {
+    pub fn new(params: &BeamParams) -> Self {
         Self {
             params: params.clone(),
             candidates: Vec::with_capacity(params.beam_width),
@@ -461,20 +461,20 @@ impl BeamSearch {
             }
         }
     }
-    pub fn run(&mut self, initial: State, timer: &Timer, _rng: &mut FastRng) -> State {
+    pub fn run(&mut self, initial: &State, timer: &Timer, _rng: &mut FastRng) -> State {
         self.candidates.clear();
         for _ in 0..self.params.max_depth {
             let mut current = std::mem::take(&mut self.candidates);
             // 次の状態生成
             if current.is_empty() {
                 current = initial.next_states();
-                for next in current.iter_mut() {
+                for next in &mut current {
                     next.evaluate();
                     self.candidates.push(next.clone());
                 }
             } else {
-                for state in current.iter() {
-                    for next in state.next_states().iter_mut() {
+                for state in &current {
+                    for next in &mut state.next_states() {
                         next.evaluate();
                         self.candidates.push(next.clone());
                     }
