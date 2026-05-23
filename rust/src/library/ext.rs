@@ -243,8 +243,8 @@ impl CharExt for char {
             ),
         }
     }
-    fn from_alpha(i: usize, upper: bool) -> char {
-        (if upper { b'A' } else { b'a' } + i as u8) as char
+    fn from_alpha(i: usize, upper: bool) -> Self {
+        (if upper { b'A' } else { b'a' } + i as u8) as Self
     }
 }
 

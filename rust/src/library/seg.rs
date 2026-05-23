@@ -27,7 +27,7 @@ pub struct Seg<M: Monoid> {
     d: Vec<M::S>,
 }
 impl<M: Monoid> Seg<M> {
-    pub fn new(v: &[M::S]) -> Seg<M> {
+    pub fn new(v: &[M::S]) -> Self {
         let n = v.len();
         assert!(n > 0);
         let size = n.next_power_of_two();

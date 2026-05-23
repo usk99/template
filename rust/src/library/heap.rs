@@ -47,7 +47,7 @@ pub type MinHeap<T> = Heap<T, Min>;
 
 impl<T: Ord, Order: HeapOrder<T>> Heap<T, Order> {
     /// 空のヒープを作成
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             heap: BinaryHeap::new(),
             _phantom: PhantomData,

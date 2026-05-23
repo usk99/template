@@ -28,7 +28,7 @@ pub enum Direction {
 crate::impl_elem!(Direction);
 impl Direction {
     /// 全4方向の定数配列。`for &dir in Direction::ALL.iter()` で全方向ループできる。
-    pub const ALL: [Self; 4] = [Direction::U, Direction::R, Direction::D, Direction::L];
+    pub const ALL: [Self; 4] = [Self::U, Self::R, Self::D, Self::L];
 
     /// インデックス `i % 4` に対応する方向を返す（0=U, 1=R, 2=D, 3=L）。
     pub const fn new(i: usize) -> Self {
@@ -265,7 +265,7 @@ impl Coord {
     /// `self` から `other` への方向を返す。
     /// 隣接していない場合や斜め方向の場合は `None`。
     #[inline]
-    pub fn direction_to(&self, other: &Self) -> Option<Direction> {
+    pub const fn direction_to(&self, other: &Self) -> Option<Direction> {
         let row_diff = other.r as isize - self.r as isize;
         let col_diff = other.c as isize - self.c as isize;
         match (row_diff.signum(), col_diff.signum()) {

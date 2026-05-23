@@ -14,23 +14,23 @@ pub const MOD: usize = 998_244_353;
 pub struct Mint(usize);
 
 impl Mint {
-    pub const ZERO: Mint = Mint(0);
-    pub const ONE: Mint = Mint(1);
+    pub const ZERO: Self = Self(0);
+    pub const ONE: Self = Self(1);
 
     /// 値をMODで丸めて構築
-    pub fn new(x: usize) -> Self {
-        Mint(x % MOD)
+    pub const fn new(x: usize) -> Self {
+        Self(x % MOD)
     }
 
     /// 内部値を取り出す
-    pub fn val(self) -> usize {
+    pub const fn val(self) -> usize {
         self.0
     }
 
     /// 繰り返し二乗法による a^n (O(log n))
     pub fn pow(self, mut n: u64) -> Self {
         let mut base = self;
-        let mut result = Mint::ONE;
+        let mut result = Self::ONE;
         while n > 0 {
             if n & 1 == 1 {
                 result *= base;
@@ -103,12 +103,12 @@ impl_op!(Mul, mul, MulAssign, mul_assign, |a, b| Mint(
 impl_op!(Div, div, DivAssign, div_assign, |a, b| a * b.inv());
 
 impl Neg for Mint {
-    type Output = Mint;
-    fn neg(self) -> Mint {
+    type Output = Self;
+    fn neg(self) -> Self {
         if self.0 == 0 {
-            Mint(0)
+            Self(0)
         } else {
-            Mint(MOD - self.0)
+            Self(MOD - self.0)
         }
     }
 }
@@ -135,22 +135,22 @@ macro_rules! impl_scalar_ops {
 impl_scalar_ops!(i32, i64, isize, u32, u64, usize);
 
 impl Sum for Mint {
-    fn sum<I: Iterator<Item = Mint>>(iter: I) -> Mint {
-        iter.fold(Mint::ZERO, |a, b| a + b)
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |a, b| a + b)
     }
 }
-impl<'a> Sum<&'a Mint> for Mint {
-    fn sum<I: Iterator<Item = &'a Mint>>(iter: I) -> Mint {
+impl<'a> Sum<&'a Self> for Mint {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().sum()
     }
 }
 impl Product for Mint {
-    fn product<I: Iterator<Item = Mint>>(iter: I) -> Mint {
-        iter.fold(Mint::ONE, |a, b| a * b)
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ONE, |a, b| a * b)
     }
 }
-impl<'a> Product<&'a Mint> for Mint {
-    fn product<I: Iterator<Item = &'a Mint>>(iter: I) -> Mint {
+impl<'a> Product<&'a Self> for Mint {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.copied().product()
     }
 }

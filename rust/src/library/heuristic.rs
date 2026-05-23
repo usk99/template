@@ -10,7 +10,7 @@ use {
 #[derive(Clone, Default)]
 pub struct Input {}
 impl Input {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {}
     }
 }
@@ -25,20 +25,20 @@ pub struct State {
     pub score: usize,
 }
 impl State {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { score: 0 }
     }
     // 次の状態を生成（ビームサーチ用）
-    pub fn next_states(&self) -> Vec<Self> {
+    pub const fn next_states(&self) -> Vec<Self> {
         // 問題に応じた状態遷移を実装
         vec![]
     }
     // 状態遷移(焼きなまし)
-    pub fn random_transition(&mut self, _rng: &mut FastRng) {
+    pub const fn random_transition(&mut self, _rng: &mut FastRng) {
         self.score = 0;
     }
     // 状態の評価
-    pub fn evaluate(&mut self) {
+    pub const fn evaluate(&mut self) {
         self.score = 0;
     }
 }
@@ -329,7 +329,7 @@ impl SimulatedAnnealing {
         self.current_temp = self.current_temp.max(self.params.end_temp);
     }
     // 再加熱
-    fn reheat(&mut self) {
+    const fn reheat(&mut self) {
         if self.since_improve > self.params.reheat_interval {
             self.current_temp = self.params.start_temp;
             self.since_improve = 0;
