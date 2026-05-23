@@ -26,7 +26,7 @@ fn main() {
 // === 単体 ===
 // use library::dp::*;        // dp
 // use library::graph::*;     // graph
-// use library::modint::*;    // Mint
+// use library::modint::*;    // Mint, ncr, npr, nhr (MOD は modint.rs 冒頭で切替)
 // use library::prime::*;     // is_prime, factorize
 // use library::rng::*;       // FastRng
 // use library::timer::*;     // Timer

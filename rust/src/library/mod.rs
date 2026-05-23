@@ -27,6 +27,9 @@ mod graph_tests;
 #[path = "grid_test.rs"]
 mod grid_tests;
 #[cfg(test)]
+#[path = "modint_test.rs"]
+mod modint_tests;
+#[cfg(test)]
 #[path = "seg_test.rs"]
 mod seg_tests;
 #[cfg(test)]
