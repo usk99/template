@@ -1,0 +1,23 @@
+{
+    "contest": {
+        "static": [".gitignore", ".github"]
+    },
+    "task": {
+        "program": [
+            ".vscode",
+            "memo",
+            "rust",
+            "create_submit.sh",
+            "gosubmit.sh",
+            "Main.cpp",
+            "Main.cs",
+            "Main.java",
+            "Main.py",
+            "go",
+            "setup.py",
+            "x.csproj"
+        ],
+        "submit": "Program.cs",
+        "cmd": "python3 setup.py"
+    }
+}

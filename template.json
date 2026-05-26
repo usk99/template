@@ -9,13 +9,8 @@
             "rust",
             "create_submit.sh",
             "gosubmit.sh",
-            "Main.cpp",
-            "Main.cs",
-            "Main.java",
-            "Main.py",
             "go",
-            "setup.py",
-            "x.csproj"
+            "setup.py"
         ],
         "submit": "Program.cs",
         "cmd": "python3 setup.py"
