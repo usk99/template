@@ -61,6 +61,14 @@ impl<M: Monoid> Seg<M> {
         self.update_from(p);
     }
 
+    /// 葉に関数を適用して更新（`seg[i] += 1` 相当を `seg.apply(i, |x| x + 1)` で書ける）
+    pub fn apply<G: FnOnce(M::S) -> M::S>(&mut self, mut p: usize, f: G) {
+        assert!(p < self.n);
+        p += self.size;
+        self.d[p] = f(self.d[p]);
+        self.update_from(p);
+    }
+
     /// 区間クエリ（半開区間 `[l, r)` を取得）
     ///
     /// # 注意
@@ -303,6 +311,19 @@ impl<F: MapMonoid> LazySeg<F> {
         p += self.size;
         self.push_to(p);
         self.d[p]
+    }
+
+    /// 葉に関数を適用して更新（`seg[i] += 1` 相当を `seg.apply(i, |x| x + 1)` で書ける）
+    pub fn apply<G: FnOnce(<F::M as Monoid>::S) -> <F::M as Monoid>::S>(
+        &mut self,
+        mut p: usize,
+        f: G,
+    ) {
+        assert!(p < self.n);
+        p += self.size;
+        self.push_to(p);
+        self.d[p] = f(self.d[p]);
+        self.update_from(p);
     }
 
     /// 区間クエリ（半開区間 `[l, r)` を取得）
