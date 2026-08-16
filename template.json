@@ -3,7 +3,16 @@
         "static": [".gitignore", ".github"]
     },
     "task": {
-        "program": [".vscode", "memo", "rust", "create_submit.sh", "setup.py"],
+        "program": [
+            ".vscode",
+            "docs",
+            "memo",
+            "rust",
+            "scripts",
+            "CLAUDE.md",
+            "create_submit.sh",
+            "setup.py"
+        ],
         "submit": "Program.cs",
         "cmd": "python3 setup.py"
     }

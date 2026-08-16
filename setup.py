@@ -1,18 +1,25 @@
+import glob
 import os
 import re
+import shutil
 
-# Cargo.toml を読み込む
+# ==============================
+#   コンテスト名・タスク名の取得
+# ==============================
+# 例: .../ahc029/a -> contest="ahc029", task="a"
+cwd = os.getcwd()
+task = os.path.basename(cwd)                      # "a"
+contest = os.path.basename(os.path.dirname(cwd))  # "ahc029"
+
+# ==============================
+#   Cargo.toml のパッケージ名変更
+# ==============================
 toml_path = "rust/Cargo.toml"
 
 if os.path.exists(toml_path):
     with open(toml_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 現在のパスからプロジェクト名を作成
-    # 例: .../abc300/a  -> contest="abc300", task="a" -> name="abc300_a"
-    cwd = os.getcwd()
-    task = os.path.basename(cwd)          # "a"
-    contest = os.path.basename(os.path.dirname(cwd))  # "adt_easy_20251210_1"
     new_name = f"{contest}_{task}"
 
     # Rustの識別子として有効な名前に変換 (ハイフンをアンダースコアに)
@@ -43,8 +50,10 @@ if os.path.exists(toml_path):
                 with open(rs_file, "w", encoding="utf-8") as f:
                     f.write(rs_content)
 
+# ==============================
+#   テストファイルの削除
+# ==============================
 # go のテストファイルを削除
-import glob
 for f in glob.glob("go/*_test.go"):
     os.remove(f)
 
@@ -57,9 +66,30 @@ mod_rs = "rust/src/library/mod.rs"
 if os.path.exists(mod_rs):
     with open(mod_rs, encoding="utf-8") as f:
         lines = f.readlines()
-    lines = [l for l in lines if not l.startswith("#[cfg(test)]") and not l.startswith("#[path =") and "_test" not in l]
+    lines = [l for l in lines if not l.startswith(
+        "#[cfg(test)]") and not l.startswith("#[path =") and "_test" not in l]
     with open(mod_rs, "w", encoding="utf-8") as f:
         f.writelines(lines)
+
+# ==============================
+#   CLAUDE.md (AHC のみ保持)
+# ==============================
+claude_md = "CLAUDE.md"
+if os.path.exists(claude_md):
+    if contest.lower().startswith("ahc"):
+        with open(claude_md, encoding="utf-8") as f:
+            md = f.read()
+        # 見出しをコンテスト名とタスク名に置換
+        md = re.sub(r'^# .*$', f"# {contest.upper()} {task.upper()}",
+                    md, count=1, flags=re.MULTILINE)
+        with open(claude_md, "w", encoding="utf-8") as f:
+            f.write(md)
+    else:
+        # AHC 以外では不要なので削除
+        os.remove(claude_md)
+        for path in ["docs", "scripts"]:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
 
 # このスクリプト自身を削除
 os.remove(__file__)
