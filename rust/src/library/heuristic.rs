@@ -7,7 +7,7 @@ use {
     std::collections::*,
 };
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Input {}
 impl Input {
     pub const fn new() -> Self {
@@ -19,7 +19,7 @@ pub fn input() -> &'static Input {
     INPUT.get().expect("Input has not been initialized")
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct State {
     // 問題固有の状態を定義
     pub score: usize,

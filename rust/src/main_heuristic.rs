@@ -39,8 +39,8 @@ fn solve(timer: &Timer, rng: &mut FastRng, answer: &mut Answer) -> String {
     }
     if ENABLE_BEAM {
         // tune_beam_search(input);
-        let mut bs = BeamSearch::new(BeamParams::default());
-        let bs = bs.run(State::new(), timer, rng);
+        let mut bs = BeamSearch::new(&BeamParams::default());
+        let bs = bs.run(&State::new(), timer, rng);
         if bs.score > result.score {
             best_solve = "BeamSearch";
             result = bs;
