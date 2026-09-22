@@ -25,20 +25,20 @@ pub struct State {
     pub score: usize,
 }
 impl State {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self { score: 0 }
     }
     // 次の状態を生成（ビームサーチ用）
-    pub const fn next_states(&self) -> Vec<Self> {
+    pub fn next_states(&self) -> Vec<Self> {
         // 問題に応じた状態遷移を実装
         vec![]
     }
     // 状態遷移(焼きなまし)
-    pub const fn random_transition(&mut self, _rng: &mut FastRng) {
+    pub fn random_transition(&mut self, _rng: &mut FastRng) {
         self.score = 0;
     }
     // 状態の評価
-    pub const fn evaluate(&mut self) {
+    pub fn evaluate(&mut self) {
         self.score = 0;
     }
 }
@@ -221,6 +221,7 @@ pub fn tune_beam_search() {
                     let mut bs = BeamSearch::new(&BeamParams {
                         beam_width: params.bs_params["beam_width"],
                         max_depth: params.bs_params["max_depth"],
+                        ..Default::default()
                     });
                     bs.run(&State::new(), timer, &mut rng).score as f64
                 })
@@ -243,6 +244,50 @@ pub fn tune_beam_search() {
     eprintln!("------------------------");
 }
 
+/// 最適化の目的（最大化 or 最小化）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Objective {
+    Maximize,
+    Minimize,
+}
+impl Objective {
+    /// a が b より良いスコアかどうか
+    fn is_better(self, a: usize, b: usize) -> bool {
+        match self {
+            Objective::Maximize => a > b,
+            Objective::Minimize => a < b,
+        }
+    }
+    /// a が b 以上に良いスコアかどうか（候補採用の判定用）
+    fn is_better_or_equal(self, a: usize, b: usize) -> bool {
+        match self {
+            Objective::Maximize => a >= b,
+            Objective::Minimize => a <= b,
+        }
+    }
+    /// 焼きなましの受理判定に使うスコア差（改善方向を正にする）
+    fn signed_diff(self, next: usize, current: usize) -> f64 {
+        match self {
+            Objective::Maximize => next as f64 - current as f64,
+            Objective::Minimize => current as f64 - next as f64,
+        }
+    }
+    /// 最悪スコアの初期値
+    fn worst_score(self) -> usize {
+        match self {
+            Objective::Maximize => usize::MIN,
+            Objective::Minimize => usize::MAX,
+        }
+    }
+    /// ビームサーチのソート用キー（小さいほど良い方向に揃える）
+    fn sort_key(self, score: usize) -> usize {
+        match self {
+            Objective::Maximize => usize::MAX - score,
+            Objective::Minimize => score,
+        }
+    }
+}
+
 /// 焼きなましパラメータ
 #[derive(Debug, Clone)]
 pub struct SAParams {
@@ -260,6 +305,8 @@ pub struct SAParams {
     pub reheat_interval: usize,
     /// 最小受理率
     pub min_accept: f64,
+    /// 最適化の目的
+    pub objective: Objective,
 }
 impl Default for SAParams {
     fn default() -> Self {
@@ -271,6 +318,7 @@ impl Default for SAParams {
             auto_adjust: true,
             reheat_interval: 1000,
             min_accept: 0.2,
+            objective: Objective::Maximize,
         }
     }
 }
@@ -335,7 +383,7 @@ impl SimulatedAnnealing {
             self.since_improve = 0;
         }
     }
-    // 状態遷移の受理判定
+    // 状態遷移の受理判定（diff は「改善方向を正」にしたスコア差）
     fn accept_transition(&self, diff: f64, rng: &mut FastRng) -> bool {
         if diff >= 0.0 {
             true
@@ -357,12 +405,19 @@ impl SimulatedAnnealing {
                 let mut next_state = current_state.clone();
                 next_state.random_transition(rng);
                 next_state.evaluate();
-                let diff = next_state.score as f64 - current_state.score as f64;
+                let diff = self
+                    .params
+                    .objective
+                    .signed_diff(next_state.score, current_state.score);
                 if self.accept_transition(diff, rng) {
                     current_state = next_state;
                     accept_count += 1;
 
-                    if current_state.score > best_state.score {
+                    if self
+                        .params
+                        .objective
+                        .is_better(current_state.score, best_state.score)
+                    {
                         best_state = current_state.clone();
                         self.since_improve = 0;
                         self.stats.improve_count += 1;
@@ -420,12 +475,15 @@ pub struct BeamParams {
     pub beam_width: usize,
     /// 最大探索深さ
     pub max_depth: usize,
+    /// 最適化の目的
+    pub objective: Objective,
 }
 impl Default for BeamParams {
     fn default() -> Self {
         Self {
             beam_width: 100,
             max_depth: 10,
+            objective: Objective::Maximize,
         }
     }
 }
@@ -439,7 +497,7 @@ impl BeamSearch {
         Self {
             params: params.clone(),
             candidates: Vec::with_capacity(params.beam_width),
-            best_score: usize::MIN,
+            best_score: params.objective.worst_score(),
         }
     }
     // ビーム幅の調整
@@ -454,9 +512,9 @@ impl BeamSearch {
         }
     }
     fn add_candidate(&mut self, state: State, score: usize) {
-        if score >= self.best_score {
+        if self.params.objective.is_better_or_equal(score, self.best_score) {
             self.candidates.push(state);
-            if score > self.best_score {
+            if self.params.objective.is_better(score, self.best_score) {
                 self.best_score = score;
             }
         }
@@ -481,7 +539,8 @@ impl BeamSearch {
                 }
             }
             // 上位を保持
-            self.candidates.sort_by_key(|s| usize::MAX - s.score);
+            self.candidates
+                .sort_by_key(|s| self.params.objective.sort_key(s.score));
             self.candidates.truncate(self.adjust_beam_width(timer));
 
             if self.candidates.is_empty() {
@@ -492,7 +551,8 @@ impl BeamSearch {
             }
         }
         // 最良状態を返す
-        self.candidates.sort_by_key(|s| usize::MAX - s.score);
+        self.candidates
+            .sort_by_key(|s| self.params.objective.sort_key(s.score));
         self.candidates.first().cloned().unwrap_or_else(State::new)
     }
 }
