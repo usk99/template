@@ -1,3 +1,1 @@
-cd ../
-bash create_submit.sh
-cd rust
+cd "$(dirname "$0")/.." && bash create_submit.sh "$@"

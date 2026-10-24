@@ -101,6 +101,12 @@ contents=$(echo "$contents" \
 contents+=$'\nuse crate::{'$(IFS=,; echo "${items[*]/%/::*}")'};'
 
 # ==========================================
+# 参照URLを先頭に付与
+# ==========================================
+LIB_URL=${LIB_URL:-https://github.com/usk99/template}
+contents="// library: ${LIB_URL}"$'\n'"$contents"
+
+# ==========================================
 # ファイル書き出し&コピー
 # ==========================================
 printf "%s" "$contents" > $submit_file
