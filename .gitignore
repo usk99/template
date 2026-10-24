@@ -16,3 +16,5 @@ contest.acc.json
 **/go/submit
 uma.rs
 **/.cargo
+.vscode/
+memo/
