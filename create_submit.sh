@@ -14,25 +14,74 @@ echo -ne "提出用ファイルを生成します"
 # ==========================================
 contents=""
 # `use library::xxx::*;` 行と `mod library;` 行を除外して提出ファイルに追加
-contents=$(cat $base_file | grep -v "^use library::" | grep -v "^mod library;")
+contents=$(cat "$base_file" | grep -v "^use library::" | grep -v "^mod library;")
 # `use library::xxx::*;` から xxx (モジュール名) を抽出
-items=(`cat $base_file | grep "^use library::" | sed -E "s/use library::(.*)::\*;(.*)/\1/"`)
+items=(`cat "$base_file" | grep "^use library::" | sed -E "s/use library::(.*)::\*;(.*)/\1/"`)
 
+# ==========================================
+# algorithm 関数の退避
+# ==========================================
+algorithm_file=$(mktemp)
+algorithm_saved=false
+
+contents=$(printf '%s' "$contents" | python3 -c '
+import sys
+
+path = sys.argv[1]
+src = sys.stdin.read()
+
+begin = "// BEGIN_KEEP_ALGORITHM\n"
+end = "// END_KEEP_ALGORITHM\n"
+
+# マーカーが両方ない場合は従来どおり処理
+if begin not in src and end not in src:
+	sys.stdout.write(src)
+	sys.exit(0)
+
+# マーカーの数を確認
+if src.count(begin) != 1 or src.count(end) != 1:
+	raise SystemExit("algorithm の退避マーカーが不正です")
+
+a = src.index(begin)
+b = src.index(end, a) + len(end)
+
+if b <= a:
+	raise SystemExit("algorithm のマーカー位置が不正です")
+
+# マーカーの内側をそのまま保存
+algorithm = src[a + len(begin):b - len(end)]
+
+with open(path, "w") as f:
+	f.write(algorithm)
+
+# マーカーごとプレースホルダーに置換
+sys.stdout.write(src[:a] + "__KEEP_ALGORITHM_PLACEHOLDER__" + src[b:])
+' "$algorithm_file") || {
+	rm -f "$algorithm_file"
+	exit 1
+}
+
+# 空の関数本体でも正しく判定できるよう、マーカーの有無で判定
+if grep -q "__KEEP_ALGORITHM_PLACEHOLDER__" <<< "$contents"; then
+	algorithm_saved=true
+fi
 
 # ==========================================
 # ライブラリファイルの結合 (インライン化)
 # ==========================================
-for item in "${items[@]}" ; do	
+for item in "${items[@]}" ; do
 	# いったん整形
-	rustfmt $library_dir/$item.rs
+	rustfmt "$library_dir/$item.rs"
 	
 	# 整形したコードを文字列変数に格納
 	contents+=$'\nmod '"$item"$' {\n'
-	contents+="$(cat $library_dir/$item.rs)"
+	contents+="$(cat "$library_dir/$item.rs")"
 	contents+=$'\n}'
 done
 
+# ==========================================
 # テスト部分以外を抽出
+# ==========================================
 contents=$(echo "$contents" \
 	| tr -d '\r' \
 	| perl -0777 -pe '
@@ -96,6 +145,33 @@ contents=$(echo "$contents" \
 	| cat)
 
 # ==========================================
+# algorithm 関数の復元
+# ==========================================
+if [ "$algorithm_saved" = true ]; then
+	contents=$(printf '%s' "$contents" | python3 -c '
+import sys
+
+path = sys.argv[1]
+src = sys.stdin.read()
+
+marker = "__KEEP_ALGORITHM_PLACEHOLDER__"
+
+if src.count(marker) != 1:
+	raise SystemExit("algorithm の復元位置が不正です")
+
+with open(path) as f:
+	algorithm = f.read()
+
+sys.stdout.write(src.replace(marker, algorithm, 1))
+' "$algorithm_file") || {
+		rm -f "$algorithm_file"
+		exit 1
+	}
+fi
+
+rm -f "$algorithm_file"
+
+# ==========================================
 # クレートの一括呼び出し
 # ==========================================
 contents+=$'\nuse crate::{'$(IFS=,; echo "${items[*]/%/::*}")'};'
@@ -109,17 +185,16 @@ contents="// library: ${LIB_URL}"$'\n'"$contents"
 # ==========================================
 # ファイル書き出し&コピー
 # ==========================================
-printf "%s" "$contents" > $submit_file
-perl -i -pe 's/\]fn algorithm/\]\nfn algorithm/g' $submit_file
-cat $submit_file | xsel -bi
+printf "%s" "$contents" > "$submit_file"
+cat "$submit_file" | xsel -bi
 printf "\r\033[K"
-du -b $submit_file | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
+du -b "$submit_file" | awk '{printf "%'\''d bytes (%.2f KB)\t%s\n", $1, $1/1024, $2}'
 
 # ==========================================
 # 確認
 # ==========================================
 if [ "$SAVE_FILE" = false ]; then
-	rm -f $submit_file
+	rm -f "$submit_file"
 	echo "提出用ファイルをコピーしました"
 else
 	echo "提出用ファイルを作成&コピーしました"

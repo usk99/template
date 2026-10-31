@@ -1,9 +1,10 @@
 #![allow(unused, non_snake_case)]
 use {itertools::*, std::collections::*};
-
+// BEGIN_KEEP_ALGORITHM
 fn algorithm(answer: &mut Answer) {
     answer.push("algo");
 }
+// END_KEEP_ALGORITHM
 fn main() {
     // 出力用意
     let mut answer = Answer::new();
